@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-import unittest
+import pytest
 
 import mqm.Calculator as mqmc
 
-class TestCalculatorMeta(unittest.TestCase):
-	def test_force_init(self):
-		with self.assertRaises(NotImplementedError):
-			mqmc.Calculator()
+def test_force_init():
+	with pytest.raises(NotImplementedError):
+		mqmc.Calculator()
 
-	def test_horton_has_methods(self):
-		self.assertTrue('HF' in mqmc.HortonCalculator._methods.keys())
+def test_horton_has_methods():
+	assert 'HF' in mqmc.HortonCalculator._methods.keys()
