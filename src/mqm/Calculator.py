@@ -35,10 +35,10 @@ class HortonCalculator(Calculator):
 		}
 
 	def __init__(self):
-		# lazy import
+		# lazy import only if available
+		global horton
 		import horton
 		horton.log.set_level(0)
-
 
 	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		mol = horton.IOData()
