@@ -1,0 +1,8 @@
+language: python
+python:
+	- "2.6"
+	- "3.6"
+install:
+	- pip install pytest-cov
+script:
+	- PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
