@@ -13,9 +13,9 @@ def test_horton_has_methods():
 def test_horton():
 	c = mqmc.HortonCalculator()
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
-	nuclear_numbers = [1, 1]
-	nuclear_charges = [1., 1.]
+	nuclear_numbers = np.array([1, 1])
+	nuclear_charges = np.array([1., 1.])
 	grid = None
 	method = 'HF'
-	basisset = 'sto3g'
+	basisset = 'STO-3g'
 	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)

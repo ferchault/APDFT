@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
@@ -9,19 +10,15 @@ class Calculator(object):
 		raise NotImplementedError()
 
 
-@staticmethod
 def _horton_setup_hf(obasis, grid, kin, er, na):
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UExchangeTerm(er, 'x_hf'), horton.UTwoIndexTerm(na, 'ne')]
 
-@staticmethod
 def _horton_setup_lda(obasis, grid, kin, er, na):
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UGridGroup(obasis, grid, [horton.UBeckeHartree(lmax=8), horton.ULibXCLDA('x'), horton.ULibXCLDA('c_vwn')]), horton.UTwoIndexTerm(na, 'ne')]
 
-@staticmethod
 def _horton_setup_pbe(obasis, grid, kin, er, na):
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [horton.ULibXCGGA('x_pbe'), horton.ULibXCGGA('c_pbe')]), horton.UTwoIndexTerm(na, 'ne')]
 
-@staticmethod
 def _horton_setup_pbe0(obasis, grid, kin, er, na):
 	libxc_term = horton.ULibXCHybridGGA('xc_pbe0_13')
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [libxc_term]), horton.UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), horton.UTwoIndexTerm(na, 'ne')]
@@ -61,7 +58,7 @@ class HortonCalculator(Calculator):
 
 		external = {'nn': horton.compute_nucnuc(mol.coordinates, mol.pseudo_numbers)}
 
-		grid = BeckeMolGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers, 'fine', mode='keep', random_rotate=False)
+		grid = horton.BeckeMolGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers, 'fine', mode='keep', random_rotate=False)
 
 		terms = self._methods[method](obasis, grid, kin, er, na)
 		ham = horton.UEffHam(terms, external)
@@ -81,7 +78,6 @@ class HortonCalculator(Calculator):
 		orb_beta.from_fock_and_dm(fock_beta, dm_beta, olp)
 
 		# integration grid
-		gridpoints = grid.get_points()
-		rho_alpha = obasis.compute_grid_density_dm(dm_alpha, gridpoints)
-		rho_beta = obasis.compute_grid_density_dm(dm_beta, gridpoint)
+		rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
+		rho_beta = obasis.compute_grid_density_dm(dm_beta, grid.points)
 		rho_full = rho_alpha + rho_beta
