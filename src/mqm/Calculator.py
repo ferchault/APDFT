@@ -11,20 +11,20 @@ class Calculator(object):
 
 @staticmethod
 def _horton_setup_hf(obasis, grid, kin, er, na):
-	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UExchangeTerm(er, 'x_hf'), UTwoIndexTerm(na, 'ne')]
+	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UExchangeTerm(er, 'x_hf'), horton.UTwoIndexTerm(na, 'ne')]
 
 @staticmethod
 def _horton_setup_lda(obasis, grid, kin, er, na):
-	return [UTwoIndexTerm(kin, 'kin'), UGridGroup(obasis, grid, [UBeckeHartree(lmax=8), ULibXCLDA('x'), ULibXCLDA('c_vwn')]), UTwoIndexTerm(na, 'ne')]
+	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UGridGroup(obasis, grid, [horton.UBeckeHartree(lmax=8), horton.ULibXCLDA('x'), horton.ULibXCLDA('c_vwn')]), horton.UTwoIndexTerm(na, 'ne')]
 
 @staticmethod
 def _horton_setup_pbe(obasis, grid, kin, er, na):
-	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [ULibXCGGA('x_pbe'), ULibXCGGA('c_pbe')]), UTwoIndexTerm(na, 'ne')]
+	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [horton.ULibXCGGA('x_pbe'), horton.ULibXCGGA('c_pbe')]), horton.UTwoIndexTerm(na, 'ne')]
 
 @staticmethod
 def _horton_setup_pbe0(obasis, grid, kin, er, na):
-	libxc_term = ULibXCHybridGGA('xc_pbe0_13')
-	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [libxc_term]), UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), UTwoIndexTerm(na, 'ne')]
+	libxc_term = horton.ULibXCHybridGGA('xc_pbe0_13')
+	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [libxc_term]), horton.UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), horton.UTwoIndexTerm(na, 'ne')]
 
 class HortonCalculator(Calculator):
 	_methods = {
@@ -35,6 +35,7 @@ class HortonCalculator(Calculator):
 		}
 
 	def __init__(self):
+		# lazy import
 		import horton
 		horton.log.set_level(0)
 
