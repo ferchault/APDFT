@@ -8,34 +8,36 @@ class Calculator(object):
 	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		raise NotImplementedError()
 
-class HortonCalculator(object):
-	self._methods = {
-		'HF': HortonCalculator._setup_hf,
-		'LDA': HortonCalculator._setup_lda,
-		'PBE': HortonCalculator._setup_pbe,
-		'PBE0': HortonCalculator._setup_pbe0,
+
+@staticmethod
+def _horton_setup_hf(obasis, grid, kin, er, na):
+	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UExchangeTerm(er, 'x_hf'), UTwoIndexTerm(na, 'ne')]
+
+@staticmethod
+def _horton_setup_lda(obasis, grid, kin, er, na):
+	return [UTwoIndexTerm(kin, 'kin'), UGridGroup(obasis, grid, [UBeckeHartree(lmax=8), ULibXCLDA('x'), ULibXCLDA('c_vwn')]), UTwoIndexTerm(na, 'ne')]
+
+@staticmethod
+def _horton_setup_pbe(obasis, grid, kin, er, na):
+	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [ULibXCGGA('x_pbe'), ULibXCGGA('c_pbe')]), UTwoIndexTerm(na, 'ne')]
+
+@staticmethod
+def _horton_setup_pbe0(obasis, grid, kin, er, na):
+	libxc_term = ULibXCHybridGGA('xc_pbe0_13')
+	return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [libxc_term]), UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), UTwoIndexTerm(na, 'ne')]
+
+class HortonCalculator(Calculator):
+	_methods = {
+		'HF': _horton_setup_hf,
+		'LDA': _horton_setup_lda,
+		'PBE': _horton_setup_pbe,
+		'PBE0': _horton_setup_pbe0,
 		}
 
 	def __init__(self):
 		import horton
 		horton.log.set_level(0)
 
-	@staticmethod
-	def _setup_hf(obasis, grid, kin, er, na):
-		return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UExchangeTerm(er, 'x_hf'), UTwoIndexTerm(na, 'ne')]
-
-	@staticmethod
-	def _setup_lda(obasis, grid, kin, er, na):
-		return [UTwoIndexTerm(kin, 'kin'), UGridGroup(obasis, grid, [UBeckeHartree(lmax=8), ULibXCLDA('x'), ULibXCLDA('c_vwn')]), UTwoIndexTerm(na, 'ne')]
-
-	@staticmethod
-	def _setup_pbe(obasis, grid, kin, er, na):
-		return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [ULibXCGGA('x_pbe'), ULibXCGGA('c_pbe')]), UTwoIndexTerm(na, 'ne')]
-
-	@staticmethod
-	def _setup_pbe0(obasis, grid, kin, er, na):
-		libxc_term = ULibXCHybridGGA('xc_pbe0_13')
-		return [UTwoIndexTerm(kin, 'kin'), UDirectTerm(er, 'hartree'), UGridGroup(obasis, grid, [libxc_term]), UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), UTwoIndexTerm(na, 'ne')]
 
 	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		mol = horton.IOData()
