@@ -6,3 +6,4 @@ install:
   - pip install pytest-cov
 script:
   - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
+  - codecov
