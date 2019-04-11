@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+import os
+
 import numpy as np
 import jinja2 as j
-import os
+import basis_set_exchange as bse
 
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
@@ -26,13 +28,38 @@ class GaussianCalculator(Calculator):
 			ret += '%d %f %f %f\n' % (Z, coords[0], coords[1], coords[2])
 		return ret[:-1]
 
+	@staticmethod
+	def _format_basisset(nuclear_charges, basisset):
+		res = ''
+		for atomid, nuclear_charge in enumerate(nuclear_charges):
+			elements = set([int(_(nuclear_charge)) for _ in (np.ceil, np.floor)])
+			output = bse.get_basis(basisset, elements=list(elements), fmt='gaussian94')
+
+			res += '%d 0\n' % (atomid + 1)
+			skipnext = False
+			for line in output.split('\n'):
+				if line.startswith('!'):
+					skipnext = False
+					continue
+				if len(line.strip()) == 0 or line.strip() == '****':
+					skipnext = True
+					continue
+				if skipnext:
+					skipnext = False
+					continue
+				res += line + '\n'
+			res += '****\n'
+
+		return res.strip()
+
 	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
-		return template.render(coordinates=env_coord, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges)
+		env_basis = GaussianCalculator._format_basisset(nuclear_numbers, basisset)
+		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=nuclear_charges)
 
 
 def _horton_setup_hf(obasis, grid, kin, er, na):

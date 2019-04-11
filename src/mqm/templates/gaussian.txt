@@ -7,6 +7,5 @@ run
 {{ coordinates }}
 
 {{ basisset }}
-****
 
 {{ nuclearcharges }}
