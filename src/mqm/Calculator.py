@@ -20,6 +20,8 @@ class Calculator(object):
 class GaussianCalculator(Calculator):
 	_methods = {
 		'CCSD': 'CCSD(Full,MaxCyc=100)',
+		'PBE0': 'PBE1PBE',
+		'PBE': 'PBEPBE',
 	}
 	def __init__(self):
 		pass

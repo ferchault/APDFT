@@ -5,5 +5,6 @@ import mqm
 parser = argparse.ArgumentParser(description='QM calculations on multiple systems.')
 parser.add_argument('geometry', help='An XYZ file with the input molecule.', type=str)
 parser.add_argument('method', help='A QM method.', choices=mqm.get_methods())
+parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange supported.')
 
 parser.parse_args()
