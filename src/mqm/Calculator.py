@@ -32,7 +32,7 @@ class GaussianCalculator(Calculator):
 			template = j.Template(fh.read())
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
-		print (template.render(coordinates=env_coord, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges))
+		return template.render(coordinates=env_coord, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges)
 
 
 def _horton_setup_hf(obasis, grid, kin, er, na):
