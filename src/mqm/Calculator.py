@@ -52,6 +52,10 @@ class GaussianCalculator(Calculator):
 
 		return res.strip()
 
+	@staticmethod
+	def _format_nuclear(nuclear_charges):
+		return '\n'.join(['%d Nuc %f' % (_[0] + 1, _[1]) for _ in enumerate(nuclear_charges)])
+
 	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
@@ -59,7 +63,8 @@ class GaussianCalculator(Calculator):
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
 		env_basis = GaussianCalculator._format_basisset(nuclear_numbers, basisset)
-		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=nuclear_charges)
+		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
+		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=env_nuc)
 
 
 def _horton_setup_hf(obasis, grid, kin, er, na):
