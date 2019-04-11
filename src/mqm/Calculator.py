@@ -23,7 +23,7 @@ class GaussianCalculator(Calculator):
 	def _format_coordinates(nuclear_numbers, coordinates):
 		ret = ''
 		for Z, coords in zip(nuclear_numbers, coordinates):
-			ret += '%d %f %f %f\n' % (Z, *coords)
+			ret += '%d %f %f %f\n' % (Z, coords[0], coords[1], coords[2])
 		return ret[:-1]
 
 	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
