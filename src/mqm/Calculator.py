@@ -13,6 +13,9 @@ class Calculator(object):
 	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		raise NotImplementedError()
 
+	def get_methods(self):
+		return list(self._methods.keys())
+
 
 class GaussianCalculator(Calculator):
 	_methods = {
