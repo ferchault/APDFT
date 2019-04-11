@@ -21,14 +21,18 @@ class GaussianCalculator(Calculator):
 
 	@staticmethod
 	def _format_coordinates(nuclear_numbers, coordinates):
-		return ''
+		ret = ''
+		for Z, coords in zip(nuclear_numbers, coordinates):
+			ret += '%d %f %f %f\n' % (Z, *coords)
+		return ret[:-1]
 
 	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
 
-		print (template.render(coordinates=coordinates, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges))
+		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
+		print (template.render(coordinates=env_coord, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges))
 
 
 def _horton_setup_hf(obasis, grid, kin, er, na):

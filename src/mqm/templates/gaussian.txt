@@ -4,7 +4,7 @@
 run
 
 0 1
-{{ coordinates}}
+{{ coordinates }}
 
 {{ basisset }}
 ****
