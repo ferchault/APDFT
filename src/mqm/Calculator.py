@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
+import jinja2 as j
+import os
 
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
@@ -8,6 +10,25 @@ class Calculator(object):
 
 	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		raise NotImplementedError()
+
+
+class GaussianCalculator(Calculator):
+	_methods = {
+		'CCSD': 'CCSD(Full,MaxCyc=100)',
+	}
+	def __init__(self):
+		pass
+
+	@staticmethod
+	def _format_coordinates(nuclear_numbers, coordinates):
+		return ''
+
+	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
+		basedir = os.path.dirname(os.path.abspath(__file__))
+		with open('%s/templates/gaussian.txt' % basedir) as fh:
+			template = j.Template(fh.read())
+
+		print (template.render(coordinates=coordinates, method=self._methods[method], basisset=basisset, nuclearcharges=nuclear_charges))
 
 
 def _horton_setup_hf(obasis, grid, kin, er, na):

@@ -1,0 +1,12 @@
+%Chk=run.chk
+#{{ method }} Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
+
+run
+
+0 1
+{{ coordinates}}
+
+{{ basisset }}
+****
+
+{{ nuclearcharges }}

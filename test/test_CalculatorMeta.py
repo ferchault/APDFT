@@ -19,3 +19,13 @@ def test_horton():
 	method = 'HF'
 	basisset = 'STO-3g'
 	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)
+
+def test_gaussian_input():
+	c = mqmc.GaussianCalculator()
+	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
+	nuclear_numbers = np.array([1, 1])
+	nuclear_charges = np.array([2., 2.])
+	grid = None
+	method = 'CCSD'
+	basisset = 'STO-3g'
+	c._get_input(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)

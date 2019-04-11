@@ -5,6 +5,7 @@ python:
 install:
   - pip install pytest-cov
   - pip install codecov
+  - pip install jinja2
 script:
   - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
   - codecov
