@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 import os
+import sys
 
 import numpy as np
 import jinja2 as j
 import basis_set_exchange as bse
+
+# load local orbkit
+basedir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append('%s/../../dep/orbkit/orbkit' % basedir)
+import orbkit
 
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
