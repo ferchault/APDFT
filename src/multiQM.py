@@ -8,3 +8,9 @@ parser.add_argument('method', help='A QM method.', choices=mqm.get_methods())
 parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange supported.')
 
 parser.parse_args()
+
+calculator = mqm.Calculator.GaussianCalculator()
+derivatives = mqm.Derivatives.FolderDerivatives()
+derivatives.prepare(calculator)
+derivatives.run()
+derivatives.analyse()
