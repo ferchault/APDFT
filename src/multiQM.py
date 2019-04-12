@@ -11,7 +11,8 @@ args = parser.parse_args()
 
 calculator = mqm.Calculator.GaussianCalculator()
 nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
-derivatives = mqm.Derivatives.DerivativeFolders()
-derivatives.prepare(calculator, 2)
+
+derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates)
+derivatives.prepare()
 derivatives.run()
 derivatives.analyse()
