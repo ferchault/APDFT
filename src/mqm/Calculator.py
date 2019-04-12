@@ -61,7 +61,7 @@ class GaussianCalculator(Calculator):
 	def _format_nuclear(nuclear_charges):
 		return '\n'.join(['%d Nuc %f' % (_[0] + 1, _[1]) for _ in enumerate(nuclear_charges)])
 
-	def _get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
+	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
