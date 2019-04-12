@@ -67,6 +67,17 @@ class GaussianCalculator(Calculator):
 	def _format_nuclear(nuclear_charges):
 		return '\n'.join(['%d Nuc %f' % (_[0] + 1, _[1]) for _ in enumerate(nuclear_charges)])
 
+	@staticmethod
+	def density_on_grid(inputfile, grid):
+		orbkit.grid.x = xs
+		orbkit.grid.y = ys
+		orbkit.grid.z = zs
+		orbkit.grid.is_initialized = True
+
+		qc = orbkit.read.main_read(inputfile, itype='gaussian.fchk')
+		rho = orbkit.core.rho_compute(qc, numproc=1)
+		return rho
+
 	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
