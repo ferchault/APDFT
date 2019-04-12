@@ -9,6 +9,7 @@ install:
   - pip install basis_set_exchange
   - pip install Cython
   - pip install scipy
+  - pip install h5py
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:
