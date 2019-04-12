@@ -29,7 +29,7 @@ def test_gaussian_input():
 	grid = None
 	method = 'CCSD'
 	basisset = 'STO-3g'
-	inputfile = c._get_input(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)
 	expected = '''%Chk=run.chk
 #CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
 
