@@ -9,6 +9,7 @@ install:
   - pip install basis_set_exchange
   - pip install Cython
   - cd dep; . install.sh; cd ..
+  - cd $TRAVIS_BUILD_DIR
 script:
   - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
   - codecov
