@@ -71,6 +71,11 @@ class GaussianCalculator(Calculator):
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
 		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=env_nuc)
 
+	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
+		basedir = os.path.dirname(os.path.abspath(__file__))
+		with open('%s/templates/gaussian-run.sh' % basedir) as fh:
+			template = j.Template(fh.read())
+		return template.render()
 
 def _horton_setup_hf(obasis, grid, kin, er, na):
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UExchangeTerm(er, 'x_hf'), horton.UTwoIndexTerm(na, 'ne')]

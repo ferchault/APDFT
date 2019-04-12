@@ -58,7 +58,8 @@ class DerivativeFolders(object):
 					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset)
 					with open('%s/run.inp' % path, 'w') as fh:
 						fh.write(inputfile)
-
+					with open('%s/run.sh' % path, 'w') as fh:
+						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
 
 	def run(self):
 		""" Executes all calculations in the current folder if not done so already."""
