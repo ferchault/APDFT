@@ -7,7 +7,7 @@ install:
   - pip install codecov
   - pip install jinja2
   - pip install basis_set_exchange
-  - cd dep; ./install.sh; cd ..
+  - cd dep; . install.sh; cd ..
 script:
   - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
   - codecov
