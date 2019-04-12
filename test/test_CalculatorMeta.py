@@ -18,8 +18,8 @@ def test_horton():
 	nuclear_charges = np.array([1., 1.])
 	grid = None
 	method = 'HF'
-	basisset = 'STO-3g'
-	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)
+	basisset = 'STO-3G'
+	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
 
 def test_gaussian_input():
 	c = mqmc.GaussianCalculator()
@@ -28,8 +28,8 @@ def test_gaussian_input():
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
 	method = 'CCSD'
-	basisset = 'STO-3g'
-	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method)
+	basisset = 'STO-3G'
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
 	expected = '''%Chk=run.chk
 #CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
 
