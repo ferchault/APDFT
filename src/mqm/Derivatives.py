@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+import itertools as it
+import os
 
 class DerivativeFolders(object):
-	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates):
+	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, basisset, method):
 		self._calculator = calculator
+		if highest_order > 2:
+			raise NotImplementedError()
 		self._orders = list(range(0, highest_order+1))
 		self._nuclear_numbers = nuclear_numbers
 		self._coordinates = coordinates
+		self._basisset = basisset
+		self._method = method
 
 	def _enumerate_all_targets(self):
 		""" Builds a list of all integer partitions. """
@@ -22,7 +28,24 @@ class DerivativeFolders(object):
 
 	def prepare(self):
 		""" Builds a complete folder list of all relevant calculations."""
-		targets = self._enumerate_all_targets()
+		for order in self._orders:
+			# only upper triangle with diagonal
+			for combination in it.combinations_with_replacement((1, 2, 3, 4), order):
+				if order > 0:
+					label = '-' + '-'.join(map(str, combination))
+					directions = ['up', 'dn']
+				else:
+					directions = ['cc']
+					label = '-all'
+
+				for direction in directions:
+					path = 'multiqm-run/order-%d/site%s-%s' % (order, label, direction)
+					os.makedirs(path, exist_ok=True)
+
+					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, self._nuclear_numbers, None, self._basisset, self._method)
+					with open('%s/run.inp' % path, 'w') as fh:
+						fh.write(inputfile)
+
 
 	def run(self):
 		""" Executes all calculations in the current folder if not done so already."""
@@ -30,4 +53,5 @@ class DerivativeFolders(object):
 
 	def analyse(self):
 		""" Performs actual analysis and integration. Prints results"""
+		targets = self._enumerate_all_targets()
 		pass
