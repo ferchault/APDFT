@@ -3,7 +3,7 @@ import itertools as it
 import os
 
 class DerivativeFolders(object):
-	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, basisset, method):
+	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
 		self._calculator = calculator
 		if highest_order > 2:
 			raise NotImplementedError()
@@ -42,7 +42,7 @@ class DerivativeFolders(object):
 					path = 'multiqm-run/order-%d/site%s-%s' % (order, label, direction)
 					os.makedirs(path, exist_ok=True)
 
-					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, self._nuclear_numbers, None, self._basisset, self._method)
+					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, self._nuclear_numbers, None, self._method, self._basisset)
 					with open('%s/run.inp' % path, 'w') as fh:
 						fh.write(inputfile)
 

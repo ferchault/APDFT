@@ -10,7 +10,7 @@ class Calculator(object):
 	def __init__(self):
 		raise NotImplementedError()
 
-	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
+	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
 		raise NotImplementedError()
 
 	def get_methods(self):
@@ -61,7 +61,7 @@ class GaussianCalculator(Calculator):
 	def _format_nuclear(nuclear_charges):
 		return '\n'.join(['%d Nuc %f' % (_[0] + 1, _[1]) for _ in enumerate(nuclear_charges)])
 
-	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
+	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
@@ -99,7 +99,7 @@ class HortonCalculator(Calculator):
 		import horton
 		horton.log.set_level(0)
 
-	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, basisset, method):
+	def evaluate(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
 		mol = horton.IOData()
 		mol.coordinates = coordinates
 		mol.numbers = nuclear_numbers
