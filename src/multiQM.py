@@ -7,10 +7,11 @@ parser.add_argument('geometry', help='An XYZ file with the input molecule.', typ
 parser.add_argument('method', help='A QM method.', choices=mqm.get_methods())
 parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange supported.')
 
-parser.parse_args()
+args = parser.parse_args()
 
 calculator = mqm.Calculator.GaussianCalculator()
-derivatives = mqm.Derivatives.FolderDerivatives()
-derivatives.prepare(calculator)
+nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
+derivatives = mqm.Derivatives.DerivativeFolders()
+derivatives.prepare(calculator, 2)
 derivatives.run()
 derivatives.analyse()
