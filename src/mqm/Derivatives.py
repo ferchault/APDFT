@@ -26,6 +26,16 @@ class DerivativeFolders(object):
 
 		return get_partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
 
+	@staticmethod
+	def _calculate_delta_Z_vector(numatoms, order, sites, direction):
+		baseline = np.zeros(numatoms)
+
+		if order > 0:
+			sign = {'up': 1, 'dn': -1}[direction]
+			baseline[sites] += sign
+
+		return baseline
+
 	def prepare(self):
 		""" Builds a complete folder list of all relevant calculations."""
 		for order in self._orders:
@@ -42,7 +52,8 @@ class DerivativeFolders(object):
 					path = 'multiqm-run/order-%d/site%s-%s' % (order, label, direction)
 					os.makedirs(path, exist_ok=True)
 
-					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, self._nuclear_numbers, None, self._method, self._basisset)
+					charges = self._nuclear_numbers + DerivativeFolders._calculate_delta_Z_vector(len(self._nuclear_numbers), order, combination, direction)
+					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset)
 					with open('%s/run.inp' % path, 'w') as fh:
 						fh.write(inputfile)
 
