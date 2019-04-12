@@ -2,6 +2,8 @@
 import itertools as it
 import os
 
+import numpy as np
+
 class DerivativeFolders(object):
 	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
 		self._calculator = calculator
@@ -31,8 +33,8 @@ class DerivativeFolders(object):
 		baseline = np.zeros(numatoms)
 
 		if order > 0:
-			sign = {'up': 1, 'dn': -1}[direction]
-			baseline[sites] += sign
+			sign = {'up': 1, 'dn': -1}[direction] * 0.05
+			baseline[list(sites)] += sign
 
 		return baseline
 
@@ -40,7 +42,7 @@ class DerivativeFolders(object):
 		""" Builds a complete folder list of all relevant calculations."""
 		for order in self._orders:
 			# only upper triangle with diagonal
-			for combination in it.combinations_with_replacement((1, 2, 3, 4), order):
+			for combination in it.combinations_with_replacement(list(range(len(self._nuclear_numbers))), order):
 				if order > 0:
 					label = '-' + '-'.join(map(str, combination))
 					directions = ['up', 'dn']
