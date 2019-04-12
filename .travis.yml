@@ -10,7 +10,7 @@ install:
   - pip install Cython
   - pip install scipy
   - pip install h5py
-  - pip install numgrid
+  - pip install pyscf
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:

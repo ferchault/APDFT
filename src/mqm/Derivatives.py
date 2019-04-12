@@ -3,6 +3,8 @@ import itertools as it
 import os
 
 import numpy as np
+import pyscf
+from pyscf import dft
 
 class DerivativeFolders(object):
 	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
@@ -65,7 +67,18 @@ class DerivativeFolders(object):
 		""" Executes all calculations in the current folder if not done so already."""
 		pass
 
+	def _get_grid(self):
+		mol = pyscf.gto.Mole()
+		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
+			mol.atom.extend([[nuclear, *coord]])
+		mol.build()
+		grid = dft.gen_grid.Grids(mol)
+		grid.level = 3
+		grid.build()
+		return grid.coords, grid.weights
+
 	def analyse(self):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
-		pass
+
+		gridcoords, gridweights = self._get_grid()
