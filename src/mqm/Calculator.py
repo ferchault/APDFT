@@ -22,7 +22,7 @@ class Calculator(object):
 	def get_methods(self):
 		return list(self._methods.keys())
 
-	def get_density_on_grid(self):
+	def get_density_on_grid(self, folder, gridpoints):
 		raise NotImplementedError()
 
 
@@ -92,6 +92,7 @@ class GaussianCalculator(Calculator):
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
 		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=env_nuc)
 
+	@classmethod
 	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian-run.sh' % basedir) as fh:
@@ -171,4 +172,3 @@ class HortonCalculator(Calculator):
 		# integration grid
 		rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
 		rho_beta = obasis.compute_grid_density_dm(dm_beta, grid.points)
-		rho_full = rho_alpha + rho_beta

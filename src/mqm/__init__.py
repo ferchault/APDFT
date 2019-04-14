@@ -10,7 +10,7 @@ def get_methods():
 	for calculator in calculators:
 		try:
 			c = calculator().get_methods()
-		except:
+		except ImportError:
 			continue
 		methods += c
 	return methods

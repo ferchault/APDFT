@@ -96,7 +96,7 @@ class DerivativeFolders(object):
 			#	continue
 
 			deltaV = np.zeros(len(gridweights))
-			for atomidx, site in enumerate(self._coordinates):
+			for atomidx in range(natoms):
 				deltaV += deltaZ[atomidx] / ds[atomidx]
 
 			# zeroth order
@@ -104,17 +104,17 @@ class DerivativeFolders(object):
 			rhotilde = rho.copy()
 
 			# first order
-			for atomidx, site in enumerate(self._coordinates):
+			for atomidx in range(natoms):
 				rhoup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
 				rhodn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
 				deriv = (rhoup - rhodn)/(2*0.05)
 				rhotilde += deriv * deltaZ[atomidx] / 2
 
 			# second order
-			for i, sitei in enumerate(self._coordinates):
+			for i in range(natoms):
 				rhoiup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % i, gridcoords)
 				rhoidn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % i, gridcoords)
-				for j, sitej in enumerate(self._coordinates):
+				for j in range(natoms):
 					rhojup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % j, gridcoords)
 					rhojdn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % j, gridcoords)
 					rhoup = self._calculator.get_density_on_grid('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords)
@@ -128,8 +128,6 @@ class DerivativeFolders(object):
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights)
-			#print (rho)
-			#break
 
 		print (targets)
 		print (energies)
