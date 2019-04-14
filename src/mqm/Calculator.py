@@ -72,6 +72,7 @@ class GaussianCalculator(Calculator):
 
 	@staticmethod
 	def density_on_grid(inputfile, grid):
+		orbkit.options.quiet = True
 		orbkit.grid.x = grid[:, 0]*1.88973
 		orbkit.grid.y = grid[:, 1]*1.88973
 		orbkit.grid.z = grid[:, 2]*1.88973
