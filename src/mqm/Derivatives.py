@@ -70,15 +70,66 @@ class DerivativeFolders(object):
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
 		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
+			# pyscf molecule init is in Angstrom
 			mol.atom.extend([[nuclear, *coord]])
 		mol.build()
 		grid = dft.gen_grid.Grids(mol)
 		grid.level = 3
 		grid.build()
-		return grid.coords, grid.weights
+		# pyscf grid is in a.u.
+		return grid.coords/1.88973, grid.weights
 
 	def analyse(self):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
+		energies = np.zeros(len(targets))
+		natoms = len(self._coordinates)
 
 		gridcoords, gridweights = self._get_grid()
+		ds = []
+		for atomidx, site in enumerate(self._coordinates):
+			ds.append(np.linalg.norm((gridcoords - site)*1.88973, axis=1))
+
+		for targetidx, target in enumerate(targets):
+			deltaZ = target - self._nuclear_numbers
+			#if max(deltaZ) > 1:
+			#	continue
+
+			deltaV = np.zeros(len(gridweights))
+			for atomidx, site in enumerate(self._coordinates):
+				deltaV += deltaZ[atomidx] / ds[atomidx]
+
+			# zeroth order
+			rho = self._calculator.get_density_on_grid('multiqm-run/order-0/site-all-cc', gridcoords)
+			rhotilde = rho.copy()
+
+			# first order
+			for atomidx, site in enumerate(self._coordinates):
+				rhoup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
+				rhodn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
+				deriv = (rhoup - rhodn)/(2*0.05)
+				rhotilde += deriv * deltaZ[atomidx] / 2
+
+			# second order
+			for i, sitei in enumerate(self._coordinates):
+				rhoiup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % i, gridcoords)
+				rhoidn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % i, gridcoords)
+				for j, sitej in enumerate(self._coordinates):
+					rhojup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % j, gridcoords)
+					rhojdn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % j, gridcoords)
+					rhoup = self._calculator.get_density_on_grid('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords)
+					rhodn = self._calculator.get_density_on_grid('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords)
+
+					if i == j:
+						deriv = (rhoup + rhodn - 2 * rho)/(0.05**2)
+					else:
+						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05)
+
+					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
+
+			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights)
+			#print (rho)
+			#break
+
+		print (targets)
+		print (energies)

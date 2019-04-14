@@ -22,6 +22,9 @@ class Calculator(object):
 	def get_methods(self):
 		return list(self._methods.keys())
 
+	def get_density_on_grid(self):
+		raise NotImplementedError()
+
 
 class GaussianCalculator(Calculator):
 	_methods = {
@@ -69,9 +72,9 @@ class GaussianCalculator(Calculator):
 
 	@staticmethod
 	def density_on_grid(inputfile, grid):
-		orbkit.grid.x = xs
-		orbkit.grid.y = ys
-		orbkit.grid.z = zs
+		orbkit.grid.x = grid[:, 0]*1.88973
+		orbkit.grid.y = grid[:, 1]*1.88973
+		orbkit.grid.z = grid[:, 2]*1.88973
 		orbkit.grid.is_initialized = True
 
 		qc = orbkit.read.main_read(inputfile, itype='gaussian.fchk')
@@ -93,6 +96,9 @@ class GaussianCalculator(Calculator):
 		with open('%s/templates/gaussian-run.sh' % basedir) as fh:
 			template = j.Template(fh.read())
 		return template.render()
+
+	def get_density_on_grid(self, folder, gridpoints):
+		return GaussianCalculator.density_on_grid(folder + '/run.fchk', gridpoints)
 
 def _horton_setup_hf(obasis, grid, kin, er, na):
 	return [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UExchangeTerm(er, 'x_hf'), horton.UTwoIndexTerm(na, 'ne')]
