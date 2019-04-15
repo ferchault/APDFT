@@ -8,13 +8,16 @@ from pyscf import dft
 
 class Derivatives(object):
 	""" Collects common code for derivative implementations."""
+
+	angstrom = 1/0.52917721067
+
 	def calculate_delta_nuc_nuc(self, target):
 		natoms = len(self._coordinates)
 		ret = 0.
 		deltaZ = target - self._nuclear_numbers
 		for i in range(natoms):
 			for j in range(i + 1, natoms):
-				d = np.linalg.norm((self._coordinates[i] - self._coordinates[j])*1.88973)
+				d = np.linalg.norm((self._coordinates[i] - self._coordinates[j])*self.angstrom)
 				ret = deltaZ[i]*deltaZ[j]/d
 		return ret
 
@@ -97,7 +100,7 @@ class DerivativeFolders(Derivatives):
 		grid.level = 3
 		grid.build()
 		# pyscf grid is in a.u.
-		return grid.coords/1.88973, grid.weights
+		return grid.coords/self.angstrom, grid.weights
 
 	def analyse(self):
 		""" Performs actual analysis and integration. Prints results"""
@@ -109,7 +112,7 @@ class DerivativeFolders(Derivatives):
 		gridcoords, gridweights = self._get_grid()
 		ds = []
 		for atomidx, site in enumerate(self._coordinates):
-			ds.append(np.linalg.norm((gridcoords - site)*1.88973, axis=1))
+			ds.append(np.linalg.norm((gridcoords - site)*self.angstrom, axis=1))
 
 		# get target predictions
 		for targetidx, target in enumerate(targets):
