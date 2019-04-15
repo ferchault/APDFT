@@ -113,6 +113,7 @@ class DerivativeFolders(Derivatives):
 		ds = []
 		for atomidx, site in enumerate(self._coordinates):
 			ds.append(np.linalg.norm((gridcoords - site)*self.angstrom, axis=1))
+		refenergy = self._calculator.get_total_energy('multiqm-run/order-0/site-all-cc')
 
 		# get target predictions
 		for targetidx, target in enumerate(targets):
@@ -152,5 +153,6 @@ class DerivativeFolders(Derivatives):
 
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
+		energies += refenergy
 		print (targets)
 		print (energies)

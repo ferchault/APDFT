@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import jinja2 as j
 import basis_set_exchange as bse
+import cclib
 
 # load local orbkit
 basedir = os.path.dirname(os.path.abspath(__file__))
@@ -93,6 +94,17 @@ class GaussianCalculator(Calculator):
 
 	def get_density_on_grid(self, folder, gridpoints):
 		return GaussianCalculator.density_on_grid(folder + '/run.fchk', gridpoints)
+
+	def get_total_energy(self, folder):
+		data = cclib.io.ccread('%s/run.log' % folder)
+		energy = None
+		energy = data.scfenergies
+		try:
+			energy = data.ccenergies
+		except AttributeError:
+			pass
+		return energy / 27.21138602
+
 
 class HortonCalculator(Calculator):
 	_methods = {

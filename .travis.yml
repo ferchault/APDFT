@@ -11,6 +11,8 @@ install:
   - pip install scipy
   - pip install h5py
   - pip install pyscf
+  - pip install numgrid
+  - pip install cclib
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:
