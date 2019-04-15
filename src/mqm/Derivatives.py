@@ -6,7 +6,20 @@ import numpy as np
 import pyscf
 from pyscf import dft
 
-class DerivativeFolders(object):
+class Derivatives(object):
+	""" Collects common code for derivative implementations."""
+	def calculate_delta_nuc_nuc(self, target):
+		natoms = len(self._coordinates)
+		ret = 0.
+		deltaZ = target - self._nuclear_numbers
+		for i in range(natoms):
+			for j in range(i + 1, natoms):
+				d = np.linalg.norm((self._coordinates[i] - self._coordinates[j])*1.88973)
+				ret = deltaZ[i]*deltaZ[j]/d
+		return ret
+
+
+class DerivativeFolders(Derivatives):
 	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
 		self._calculator = calculator
 		if highest_order > 2:
@@ -92,15 +105,15 @@ class DerivativeFolders(object):
 		energies = np.zeros(len(targets))
 		natoms = len(self._coordinates)
 
+		# get base information
 		gridcoords, gridweights = self._get_grid()
 		ds = []
 		for atomidx, site in enumerate(self._coordinates):
 			ds.append(np.linalg.norm((gridcoords - site)*1.88973, axis=1))
 
+		# get target predictions
 		for targetidx, target in enumerate(targets):
 			deltaZ = target - self._nuclear_numbers
-			#if max(deltaZ) > 1:
-			#	continue
 
 			deltaV = np.zeros(len(gridweights))
 			for atomidx in range(natoms):
@@ -134,7 +147,7 @@ class DerivativeFolders(object):
 
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
-			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights)
+			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
 		print (targets)
 		print (energies)
