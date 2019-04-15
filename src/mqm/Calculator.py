@@ -96,10 +96,10 @@ class GaussianCalculator(Calculator):
 
 class HortonCalculator(Calculator):
 	_methods = {
-		'HF': _horton_setup_hf,
-		'LDA': _horton_setup_lda,
-		'PBE': _horton_setup_pbe,
-		'PBE0': _horton_setup_pbe0,
+		'HF': 'tbd',
+		'LDA': 'tbd',
+		'PBE': 'tbd',
+		'PBE0': 'tbd',
 		}
 
 	def __init__(self):
