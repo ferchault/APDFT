@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pyscf
 from pyscf import dft
+import basis_set_exchange as bse
 
 class Derivatives(object):
 	""" Collects common code for derivative implementations."""
@@ -20,6 +21,17 @@ class Derivatives(object):
 				d = np.linalg.norm((self._coordinates[i] - self._coordinates[j])*self.angstrom)
 				ret = deltaZ[i]*deltaZ[j]/d
 		return ret
+
+	@staticmethod
+	def _Z_to_label(Z):
+		if Z == 0:
+			return '-'
+		return bse.lut.element_sym_from_Z(Z, normalize=True)
+
+	def _print_energies(self, targets, energies):
+		print ('Energies [Hartree]')
+		for target, energy in zip(targets, energies):
+			print ('%20.10f %s' % (energy, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
 
 
 class DerivativeFolders(Derivatives):
@@ -154,5 +166,5 @@ class DerivativeFolders(Derivatives):
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
 		energies += refenergy
-		print (targets)
-		print (energies)
+
+		self._print_energies(targets, energies)
