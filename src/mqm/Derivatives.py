@@ -16,6 +16,7 @@ class DerivativeFolders(object):
 		self._coordinates = coordinates
 		self._basisset = basisset
 		self._method = method
+		self._reader_cache = dict()
 
 	def _enumerate_all_targets(self):
 		""" Builds a list of all integer partitions. """
@@ -67,6 +68,12 @@ class DerivativeFolders(object):
 		""" Executes all calculations in the current folder if not done so already."""
 		pass
 
+	def _cached_reader(self, folder, gridcoords):
+		if folder not in self._reader_cache:
+			self._reader_cache[folder] = self._calculator.get_density_on_grid(folder, gridcoords)
+
+		return self._reader_cache[folder]
+
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
 		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
@@ -100,25 +107,25 @@ class DerivativeFolders(object):
 				deltaV += deltaZ[atomidx] / ds[atomidx]
 
 			# zeroth order
-			rho = self._calculator.get_density_on_grid('multiqm-run/order-0/site-all-cc', gridcoords)
+			rho = self._cached_reader('multiqm-run/order-0/site-all-cc', gridcoords)
 			rhotilde = rho.copy()
 
 			# first order
 			for atomidx in range(natoms):
-				rhoup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
-				rhodn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
+				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
+				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
 				deriv = (rhoup - rhodn)/(2*0.05)
 				rhotilde += deriv * deltaZ[atomidx] / 2
 
 			# second order
 			for i in range(natoms):
-				rhoiup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % i, gridcoords)
-				rhoidn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % i, gridcoords)
+				rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i, gridcoords)
+				rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i, gridcoords)
 				for j in range(natoms):
-					rhojup = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-up' % j, gridcoords)
-					rhojdn = self._calculator.get_density_on_grid('multiqm-run/order-1/site-%d-dn' % j, gridcoords)
-					rhoup = self._calculator.get_density_on_grid('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords)
-					rhodn = self._calculator.get_density_on_grid('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords)
+					rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j, gridcoords)
+					rhojdn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % j, gridcoords)
+					rhoup = self._cached_reader('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords)
+					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords)
 
 					if i == j:
 						deriv = (rhoup + rhodn - 2 * rho)/(0.05**2)
