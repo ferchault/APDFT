@@ -4,6 +4,7 @@ import sys
 import glob
 import random
 import string
+import warnings
 
 import numpy as np
 import jinja2 as j
@@ -53,8 +54,11 @@ class Calculator(object):
 
 				s.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
+
 				try:
-					s.connect(host, port, username, password)
+					with warnings.catch_warnings():
+						warnings.simplefilter('ignore')
+						s.connect(host, port, username, password)
 				except:
 					print ('E - Unable to connect to remote host. Run skipped.')
 					return 1
