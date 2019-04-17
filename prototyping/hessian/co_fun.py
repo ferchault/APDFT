@@ -76,8 +76,17 @@ def SCFonCO(distance,pseudo_numbers):
             exp_beta.rotate_2orbitals()
     
             i+=1
+    grid=BeckeMolGrid(mol.coordinates,mol.numbers,mol.numbers, random_rotate=False)
+
+    dm_alpha = exp_alpha.to_dm()
+    dm_beta = exp_beta.to_dm()
+    
+    rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
+    rho_beta = obasis.compute_grid_density_dm(dm_beta, grid.points)
+    rho=rho_alpha+rho_beta
+
             
-    return(ham.cache['energy'])
+    return(ham.cache['energy'],rho)
 
 
 
