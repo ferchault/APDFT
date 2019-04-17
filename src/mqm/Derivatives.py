@@ -99,7 +99,6 @@ class DerivativeFolders(Derivatives):
 		""" Executes all calculations if not done so already."""
 		# find folders to execute
 		folders = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.sh', recursive=True)]
-		print (folders)
 
 		for folder in folders:
 			mqmc.Calculator.execute(folder, remote_host)

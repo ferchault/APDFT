@@ -9,7 +9,6 @@ parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange sup
 parser.add_argument('--remote-host', help='A SSH host to run the calculations in the format username:password@host+port:path/to/dir')
 
 args = parser.parse_args()
-print (args)
 
 calculator = mqm.Calculator.GaussianCalculator()
 nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)

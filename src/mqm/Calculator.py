@@ -53,7 +53,11 @@ class Calculator(object):
 
 				s.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
-				s.connect(host, port, username, password)
+				try:
+					s.connect(host, port, username, password)
+				except:
+					print ('E - Unable to connect to remote host. Run skipped.')
+					return 1
 				sftp = s.open_sftp()
 				sftp.chdir(path)
 
@@ -87,7 +91,6 @@ class Calculator(object):
 
 				# copy back
 				for fn in sftp.listdir():
-					print (fn)
 					sftp.get(fn, '%s/%s' % (folder, fn))
 
 				# clear
