@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
 import sys
+import glob
 
 import numpy as np
 import jinja2 as j
 import basis_set_exchange as bse
 import cclib
+import subprocess
 
 # load local orbkit
 basedir = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +21,54 @@ class Calculator(object):
 
 	def get_density_on_grid(self, folder, gridpoints):
 		raise NotImplementedError()
+
+	@staticmethod
+	def _parse_ssh_constr(constr):
+		""" Parses a connection string.
+
+		Format: username:password@host+port:path/to/dir"""
+		userpass, rest = constr.split('@')
+		username, password = userpass.split(':')
+		rest, path = rest.split(':')
+		host, port = rest.split('+')
+		return username, password, host, port, path
+
+	def execute(self, folder, remote_constr=None):
+		""" Run a calculation with the input file in folder."""
+
+		if remote_constr == None:
+			subprocess.run('%s/run.sh' % folder)
+		else:
+			import paramiko
+			with paramiko.SSHClient() as s:
+				# connect
+				s.load_system_host_keys()
+				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
+				s.connect(host, port, username, password)
+				s.exec_command('cd %s' % path)
+
+				# copy files
+				sftp = s.open_sftp()
+				sftp.chdir(path)
+				for fn in glob.glob('%s/*' % folder):
+					sftp.put(fn, os.path.basename(fn))
+
+				# run
+				s.exec_command('./run.sh')
+
+				# copy back
+				for fn in sftp.listdir():
+					sftp.get(fn, '%s/%s' % (folder, fn))
+
+
+class MockCalculator(Calculator):
+	_methods = {}
+	@classmethod
+	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
+		basedir = os.path.dirname(os.path.abspath(__file__))
+		with open('%s/templates/mock-run.sh' % basedir) as fh:
+			template = j.Template(fh.read())
+		return template.render()
 
 
 class GaussianCalculator(Calculator):
