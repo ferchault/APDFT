@@ -1,0 +1,2 @@
+# multiQM
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/6cca6695d31f4c21aabad2e3fb96941d)](https://app.codacy.com/app/ferchault/multiQM?utm_source=github.com&utm_medium=referral&utm_content=ferchault/multiQM&utm_campaign=Badge_Grade_Dashboard)
