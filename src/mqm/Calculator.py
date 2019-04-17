@@ -2,6 +2,8 @@
 import os
 import sys
 import glob
+import random
+import string
 
 import numpy as np
 import jinja2 as j
@@ -33,7 +35,12 @@ class Calculator(object):
 		host, port = rest.split('+')
 		return username, password, host, port, path
 
-	def execute(self, folder, remote_constr=None):
+	@staticmethod
+	def _get_tempname():
+		return 'mqmc-tmp-' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+
+	@staticmethod
+	def execute(folder, remote_constr=None):
 		""" Run a calculation with the input file in folder."""
 
 		if remote_constr == None:
@@ -42,23 +49,52 @@ class Calculator(object):
 			import paramiko
 			with paramiko.SSHClient() as s:
 				# connect
-				s.load_system_host_keys()
-				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
-				s.connect(host, port, username, password)
-				s.exec_command('cd %s' % path)
+				#s.load_system_host_keys()
 
-				# copy files
+				s.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
+				try:
+					s.connect(host, port, username, password)
+				except:
+					print ('E - Unable to connect to remote host. Run skipped.')
+					return 1
 				sftp = s.open_sftp()
 				sftp.chdir(path)
+
+				# create temporary folder
+				tmpname = Calculator._get_tempname()
+				sftp.mkdir(tmpname)
+				sftp.chdir(tmpname)
+				
+				# copy files
 				for fn in glob.glob('%s/*' % folder):
 					sftp.put(fn, os.path.basename(fn))
+				sftp.chmod('run.sh', 0o777)
 
 				# run
-				s.exec_command('./run.sh')
+				stdin, stdout, stderr = s.exec_command('cd %s; cd %s' % (path, tmpname))
+				if stdout.channel.recv_exit_status() != 0:
+					raise ValueError('Unable to navigate on remote machine.')
+
+				stdin, stdout, stderr = s.exec_command('cd %s; cd %s; ./run.sh' % (path, tmpname))
+				status = stdout.channel.recv_exit_status()
+				if status != 0:
+					print ('E + Error running %s/run.sh on remote host:' % folder)
+					msglines = stdout.readlines() + stderr.readlines()
+					if len(msglines) == 0:
+						print ('E | (no output given)')
+					else:
+						for line in msglines:
+							print ('E | ' + line.strip())
+						print ('E + Run skipped.\n')
+					raise ValueError('Unable to navigate on remote machine.')
 
 				# copy back
 				for fn in sftp.listdir():
 					sftp.get(fn, '%s/%s' % (folder, fn))
+
+				# clear
+				#s.exec_command('cd %s; rm -rf %s' % (path, tmpname))
 
 
 class MockCalculator(Calculator):

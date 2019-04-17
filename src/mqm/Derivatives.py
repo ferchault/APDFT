@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import itertools as it
 import os
+import glob
 
 import numpy as np
 import pyscf
 from pyscf import dft
 import basis_set_exchange as bse
+
+import mqm.Calculator as mqmc
 
 class Derivatives(object):
 	""" Collects common code for derivative implementations."""
@@ -92,9 +95,23 @@ class DerivativeFolders(Derivatives):
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
 
-	def run(self):
-		""" Executes all calculations in the current folder if not done so already."""
-		pass
+	def run(self, remote_host=None):
+		""" Executes all calculations if not done so already."""
+		# find folders to execute
+		folders = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.sh', recursive=True)]
+
+		for folder in folders:
+			mqmc.Calculator.execute(folder, remote_host)
+			break
+
+		raise NotImplementedError()
+
+		if remote_host is None:
+			raise NotImplementedError()
+		else:
+			pass
+
+
 
 	def _cached_reader(self, folder, gridcoords):
 		if folder not in self._reader_cache:
