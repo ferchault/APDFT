@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 import os
-import shutil
+import tempfile
 import mqm.Calculator as mqmc
 
 def test_local_execution():
@@ -16,20 +16,19 @@ def test_local_execution():
 	basisset = 'STO-3G'
 	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
 
-	tmpname = 'test_local_execution'
-	os.mkdir(tmpname)
-	os.chdir(tmpname)
-	with open('run.inp', 'w') as fh:
-		fh.write(inputfile)
-	with open('run.sh', 'w') as fh:
-		fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset))
+	with tempfile.TemporaryDirectory() as tmpname:
+		os.chdir(tmpname)
+		with open('run.inp', 'w') as fh:
+			fh.write(inputfile)
+		with open('run.sh', 'w') as fh:
+			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset))
+		os.chmod('run.sh', 0o777)
 
-	c.execute('.')
+		c.execute('.')
 
-	with open('run.log') as fh:
-		assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
-	os.chdir('..')
-	shutil.rmtree(tmpname)
+		with open('run.log') as fh:
+			assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
+		os.chdir('..')
 
 def test_horton_has_methods():
 	assert 'HF' in mqmc.HortonCalculator._methods.keys()
