@@ -18,6 +18,17 @@ class Derivatives(object):
 
 	angstrom = 1/0.52917721067
 
+	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
+		self._calculator = calculator
+		if highest_order > 2:
+			raise NotImplementedError()
+		self._orders = list(range(0, highest_order+1))
+		self._nuclear_numbers = nuclear_numbers
+		self._coordinates = coordinates
+		self._basisset = basisset
+		self._method = method
+		self._reader_cache = dict()
+
 	def calculate_delta_nuc_nuc(self, target):
 		natoms = len(self._coordinates)
 		ret = 0.
@@ -43,18 +54,20 @@ class Derivatives(object):
 			for target, energy, comparison in zip(targets, energies, comparison_energies):
 				print ('%20.10f %20.10f %s' % (energy, comparison, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
 
-class DerivativeFolders(Derivatives):
-	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
-		self._calculator = calculator
-		if highest_order > 2:
-			raise NotImplementedError()
-		self._orders = list(range(0, highest_order+1))
-		self._nuclear_numbers = nuclear_numbers
-		self._coordinates = coordinates
-		self._basisset = basisset
-		self._method = method
-		self._reader_cache = dict()
+	def _get_grid(self):
+		mol = pyscf.gto.Mole()
+		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
+			# pyscf molecule init is in Angstrom
+			mol.atom.extend([[nuclear, *coord]])
+		mol.build()
+		grid = dft.gen_grid.Grids(mol)
+		grid.level = 3
+		grid.build()
+		# pyscf grid is in a.u.
+		return grid.coords/self.angstrom, grid.weights
 
+
+class DerivativeFolders(Derivatives):
 	def _enumerate_all_targets(self):
 		""" Builds a list of all integer partitions. """
 		def get_partition(protons, sites):
@@ -156,18 +169,6 @@ class DerivativeFolders(Derivatives):
 
 		return self._reader_cache[folder]
 
-	def _get_grid(self):
-		mol = pyscf.gto.Mole()
-		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
-			# pyscf molecule init is in Angstrom
-			mol.atom.extend([[nuclear, *coord]])
-		mol.build()
-		grid = dft.gen_grid.Grids(mol)
-		grid.level = 3
-		grid.build()
-		# pyscf grid is in a.u.
-		return grid.coords/self.angstrom, grid.weights
-
 	def analyse(self, explicit_reference=False):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
@@ -199,7 +200,7 @@ class DerivativeFolders(Derivatives):
 				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
 				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
 				deriv = (rhoup - rhodn)/(2*0.05)
-				rhotilde += deriv * deltaZ[atomidx] / 2
+				#rhotilde += deriv * deltaZ[atomidx] / 2
 
 			# second order
 			for i in range(natoms):
@@ -216,7 +217,7 @@ class DerivativeFolders(Derivatives):
 					else:
 						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05)
 
-					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
+					#rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
