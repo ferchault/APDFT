@@ -37,13 +37,13 @@ def test_ssh_constr():
 	result = mqmc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
 	assert result == ('username', None, 'host', 'port', 'path/to/dir')
 	result = mqmc.Calculator._parse_ssh_constr('username@host+port:')
-	assert result == ('username', None, 'host', 'port', '')
+	assert result == ('username', None, 'host', 'port', '.')
 	result = mqmc.Calculator._parse_ssh_constr('username@host:path/to/dir')
 	assert result == ('username', None, 'host', 22, 'path/to/dir')
 	result = mqmc.Calculator._parse_ssh_constr('username@host')
-	assert result == ('username', None, 'host', 22, '')
+	assert result == ('username', None, 'host', 22, '.')
 	result = mqmc.Calculator._parse_ssh_constr('host')
-	assert result == (getpass.getuser(), None, 'host', 22, '')
+	assert result == (getpass.getuser(), None, 'host', 22, '.')
 
 def test_horton_has_methods():
 	assert 'HF' in mqmc.HortonCalculator._methods.keys()

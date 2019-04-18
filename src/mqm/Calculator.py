@@ -31,7 +31,14 @@ class Calculator(object):
 	def _parse_ssh_constr(constr):
 		""" Parses a connection string.
 
-		Format: username:password@host+port:path/to/dir"""
+		Accepted formats:
+		username:password@host+port:path/to/dir
+		username@host+port:path/to/dir
+		username@host+port:
+		username@host:path/to/dir
+		username@host
+		host
+		"""
 		regex = r"((?P<username>[^:@]+)(:(?P<password>[^@]+))?@)?(?P<host>[^+:]+)(\+(?P<port>[^:]+))?:?(?P<path>[^:@]*)"
 		matches = re.search(regex, constr)
 		groups = matches.groupdict()
@@ -41,6 +48,9 @@ class Calculator(object):
 
 		if groups['username'] is None:
 			groups['username'] = getpass.getuser()
+
+		if groups['path'] is '':
+			groups['path'] = '.'
 
 		return groups['username'], groups['password'], groups['host'], groups['port'], groups['path']
 
