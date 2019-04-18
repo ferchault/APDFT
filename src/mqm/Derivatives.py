@@ -200,7 +200,7 @@ class DerivativeFolders(Derivatives):
 				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
 				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
 				deriv = (rhoup - rhodn)/(2*0.05)
-				#rhotilde += deriv * deltaZ[atomidx] / 2
+				rhotilde += deriv * deltaZ[atomidx] / 2
 
 			# second order
 			for i in range(natoms):
@@ -217,7 +217,7 @@ class DerivativeFolders(Derivatives):
 					else:
 						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05)
 
-					#rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
+					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
