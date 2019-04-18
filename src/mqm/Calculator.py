@@ -116,7 +116,7 @@ class Calculator(object):
 					sftp.get(fn, '%s/%s' % (folder, fn))
 
 				# clear
-				#s.exec_command('cd %s; rm -rf %s' % (path, tmpname))
+				s.exec_command('cd %s; rm -rf %s' % (path, tmpname))
 
 
 class MockCalculator(Calculator):
@@ -134,6 +134,7 @@ class GaussianCalculator(Calculator):
 		'CCSD': 'CCSD(Full,MaxCyc=100)',
 		'PBE0': 'PBE1PBE',
 		'PBE': 'PBEPBE',
+		'HF': 'UHF',
 	}
 
 	@staticmethod
