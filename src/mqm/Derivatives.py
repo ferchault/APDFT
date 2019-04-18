@@ -131,13 +131,6 @@ class DerivativeFolders(Derivatives):
 				print ('\n'.join(lines))
 			print ('E + Skipping those runs.\n')
 
-		raise NotImplementedError()
-
-		if remote_host is None:
-			raise NotImplementedError()
-		else:
-			pass
-
 	def _cached_reader(self, folder, gridcoords):
 		if folder not in self._reader_cache:
 			self._reader_cache[folder] = self._calculator.get_density_on_grid(folder, gridcoords)
