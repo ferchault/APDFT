@@ -4,6 +4,7 @@ import numpy as np
 import os
 import tempfile
 import mqm.Calculator as mqmc
+import getpass
 
 def test_local_execution():
 	c = mqmc.MockCalculator()
@@ -29,6 +30,20 @@ def test_local_execution():
 		with open('run.log') as fh:
 			assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
 		os.chdir('..')
+
+def test_ssh_constr():
+	result = mqmc.Calculator._parse_ssh_constr('username:password@host+port:path/to/dir')
+	assert result == ('username', 'password', 'host', 'port', 'path/to/dir')
+	result = mqmc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
+	assert result == ('username', None, 'host', 'port', 'path/to/dir')
+	result = mqmc.Calculator._parse_ssh_constr('username@host+port:')
+	assert result == ('username', None, 'host', 'port', '')
+	result = mqmc.Calculator._parse_ssh_constr('username@host:path/to/dir')
+	assert result == ('username', None, 'host', 22, 'path/to/dir')
+	result = mqmc.Calculator._parse_ssh_constr('username@host')
+	assert result == ('username', None, 'host', 22, '')
+	result = mqmc.Calculator._parse_ssh_constr('host')
+	assert result == (getpass.getuser(), None, 'host', 22, '')
 
 def test_horton_has_methods():
 	assert 'HF' in mqmc.HortonCalculator._methods.keys()

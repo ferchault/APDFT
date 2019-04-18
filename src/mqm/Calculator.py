@@ -11,6 +11,8 @@ import jinja2 as j
 import basis_set_exchange as bse
 import cclib
 import subprocess
+import re
+import getpass
 
 # load local orbkit
 basedir = os.path.dirname(os.path.abspath(__file__))
@@ -30,11 +32,17 @@ class Calculator(object):
 		""" Parses a connection string.
 
 		Format: username:password@host+port:path/to/dir"""
-		userpass, rest = constr.split('@')
-		username, password = userpass.split(':')
-		rest, path = rest.split(':')
-		host, port = rest.split('+')
-		return username, password, host, port, path
+		regex = r"((?P<username>[^:@]+)(:(?P<password>[^@]+))?@)?(?P<host>[^+:]+)(\+(?P<port>[^:]+))?:?(?P<path>[^:@]*)"
+		matches = re.search(regex, constr)
+		groups = matches.groupdict()
+
+		if groups['port'] is None:
+			groups['port'] = 22
+
+		if groups['username'] is None:
+			groups['username'] = getpass.getuser()
+
+		return groups['username'], groups['password'], groups['host'], groups['port'], groups['path']
 
 	@staticmethod
 	def _get_tempname():
