@@ -13,7 +13,7 @@ def get_methods():
 		except ImportError:
 			continue
 		methods += c
-	return methods
+	return sorted(set(methods))
 
 def get_element_number(element):
 	return lut.element_Z_from_sym(element)
