@@ -5,4 +5,3 @@
 # multiQM
 
 Used to calculate quantum-chemical data one molecule at a time? multiQM uses [APDFT](https://arxiv.org/abs/1809.01647) to give properties of many similar molecules at once.
-

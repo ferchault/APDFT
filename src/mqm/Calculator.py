@@ -10,7 +10,7 @@ import numpy as np
 import jinja2 as j
 import basis_set_exchange as bse
 import cclib
-import subprocess
+import subprocess # nosec
 import re
 import getpass
 
@@ -63,7 +63,7 @@ class Calculator(object):
 		""" Run a calculation with the input file in folder."""
 
 		if remote_constr == None:
-			p = subprocess.run('%s/run.sh' % folder, universal_newlines=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+			p = subprocess.run('%s/run.sh' % folder, universal_newlines=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)  # nosec
 			if p.returncode != 0:
 				print ('E + Error running %s/run.sh:')
 				for line in p.stdout.split('\n'):
@@ -96,10 +96,11 @@ class Calculator(object):
 				# copy files
 				for fn in glob.glob('%s/*' % folder):
 					sftp.put(fn, os.path.basename(fn))
-				sftp.chmod('run.sh', 0o777)
+				sftp.chmod('run.sh', 0o700)
 
 				# run
-				stdin, stdout, stderr = s.exec_command('cd %s; cd %s' % (path, tmpname))
+				_ = s.exec_command('cd %s; cd %s' % (path, tmpname)) # nosec
+				stdout = _[0]
 				if stdout.channel.recv_exit_status() != 0:
 					raise ValueError('Unable to navigate on remote machine.')
 
@@ -107,7 +108,8 @@ class Calculator(object):
 					remote_preload = ''
 				else:
 					remote_preload = '%s; ' % remote_preload
-				stdin, stdout, stderr = s.exec_command('%scd %s; cd %s; ./run.sh' % (remote_preload, path, tmpname))
+				_ = s.exec_command('%scd %s; cd %s; ./run.sh' % (remote_preload, path, tmpname)) # nosec
+				stdout = _[0]
 				status = stdout.channel.recv_exit_status()
 				if status != 0:
 					print ('E + Error running %s/run.sh on remote host:' % folder)
@@ -124,7 +126,7 @@ class Calculator(object):
 					sftp.get(fn, '%s/%s' % (folder, fn))
 
 				# clear
-				s.exec_command('cd %s; rm -rf %s' % (path, tmpname))
+				s.exec_command('cd %s; rm -rf "%s"' % (path, tmpname)) # nosec
 
 
 class MockCalculator(Calculator):
@@ -212,7 +214,8 @@ class GaussianCalculator(Calculator):
 	def get_density_on_grid(self, folder, gridpoints):
 		return GaussianCalculator.density_on_grid(folder + '/run.fchk', gridpoints)
 
-	def get_total_energy(self, folder):
+	@staticmethod
+	def get_total_energy(folder):
 		data = cclib.io.ccread('%s/run.log' % folder)
 		energy = None
 		energy = data.scfenergies
