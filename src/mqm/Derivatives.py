@@ -34,11 +34,14 @@ class Derivatives(object):
 			return '-'
 		return bse.lut.element_sym_from_Z(Z, normalize=True)
 
-	def _print_energies(self, targets, energies):
+	def _print_energies(self, targets, energies, comparison_energies):
 		print ('Energies [Hartree]')
-		for target, energy in zip(targets, energies):
-			print ('%20.10f %s' % (energy, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
-
+		if comparison_energies is None:
+			for target, energy in zip(targets, energies):
+				print ('%20.10f %s' % (energy, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
+		else:
+			for target, energy, comparison in zip(targets, energies, comparison_energies):
+				print ('%20.10f %20.10f %s' % (energy, comparison, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
 
 class DerivativeFolders(Derivatives):
 	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
@@ -75,7 +78,7 @@ class DerivativeFolders(Derivatives):
 
 		return baseline
 
-	def prepare(self):
+	def prepare(self, explicit_reference=False):
 		""" Builds a complete folder list of all relevant calculations."""
 		for order in self._orders:
 			# only upper triangle with diagonal
@@ -97,6 +100,16 @@ class DerivativeFolders(Derivatives):
 						fh.write(inputfile)
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
+		if explicit_reference:
+			for target in self._enumerate_all_targets():
+				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
+				os.makedirs(path, exist_ok=True)
+
+				inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, target, None, self._method, self._basisset)
+				with open('%s/run.inp' % path, 'w') as fh:
+					fh.write(inputfile)
+				with open('%s/run.sh' % path, 'w') as fh:
+					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None, self._method, self._basisset))
 
 	@staticmethod
 	def _wrapper(_, remote_host, remote_preload):
@@ -149,10 +162,11 @@ class DerivativeFolders(Derivatives):
 		# pyscf grid is in a.u.
 		return grid.coords/self.angstrom, grid.weights
 
-	def analyse(self):
+	def analyse(self, explicit_reference=False):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
 		energies = np.zeros(len(targets))
+		comparison_energies = np.zeros(len(targets))
 		natoms = len(self._coordinates)
 
 		# get base information
@@ -200,6 +214,14 @@ class DerivativeFolders(Derivatives):
 
 			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
+		# optional comparison to true properties
+		if explicit_reference:
+			for targetidx, target in enumerate(targets):
+				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
+				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
+		else:
+			comparison_energies = None
+
 		energies += refenergy
 
-		self._print_energies(targets, energies)
+		self._print_energies(targets, energies, comparison_energies)
