@@ -14,3 +14,10 @@ def test_grid():
 	assert center[0] - 0 < 1e-8
 	assert center[1] - 0 < 1e-8
 	assert center[2] - 1.5 < 1e-8
+
+def test_targets():
+	c = mqmc.MockCalculator()
+	d = mqmd.Derivatives(c, 0, [2, 2], [[0, 0, 1], [0, 0, 2]], 'HF', 'STO-3G')
+	targets = set([tuple(_) for _ in d._enumerate_all_targets()])
+	expected = set([(0, 4), (1, 3), (2, 2), (3, 1), (4, 0)])
+	assert targets == expected

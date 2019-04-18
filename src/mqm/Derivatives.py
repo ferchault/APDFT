@@ -66,8 +66,6 @@ class Derivatives(object):
 		# pyscf grid is in a.u.
 		return grid.coords/self.angstrom, grid.weights
 
-
-class DerivativeFolders(Derivatives):
 	def _enumerate_all_targets(self):
 		""" Builds a list of all integer partitions. """
 		def get_partition(protons, sites):
@@ -81,6 +79,8 @@ class DerivativeFolders(Derivatives):
 
 		return get_partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
 
+
+class DerivativeFolders(Derivatives):
 	@staticmethod
 	def _calculate_delta_Z_vector(numatoms, order, sites, direction):
 		baseline = np.zeros(numatoms)
@@ -179,7 +179,7 @@ class DerivativeFolders(Derivatives):
 		# get base information
 		gridcoords, gridweights = self._get_grid()
 		ds = []
-		for atomidx, site in enumerate(self._coordinates):
+		for site in self._coordinates:
 			ds.append(np.linalg.norm((gridcoords - site)*self.angstrom, axis=1))
 		refenergy = self._calculator.get_total_energy('multiqm-run/order-0/site-all-cc')
 
