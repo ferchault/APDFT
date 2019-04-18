@@ -99,13 +99,13 @@ class DerivativeFolders(Derivatives):
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
 
 	@staticmethod
-	def _wrapper(_, remote_host):
+	def _wrapper(_, remote_host, remote_preload):
 		try:
-			mqmc.Calculator.execute(_, remote_host)
+			mqmc.Calculator.execute(_, remote_host, remote_preload)
 		except Exception as e:
 			return traceback.format_exc()
 
-	def run(self, remote_host=None, parallel=None):
+	def run(self, parallel=None, remote_host=None, remote_preload=None):
 		""" Executes all calculations if not done so already."""
 
 		# Obtain number of parallel executions
@@ -121,7 +121,7 @@ class DerivativeFolders(Derivatives):
 		folders = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.sh', recursive=True)]
 
 		with mp.Pool(parallel) as pool:
-			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host), folders)
+			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
 
 		failed = [_ for _ in results if _ is not None]
 		if len(failed) > 0:
@@ -137,8 +137,6 @@ class DerivativeFolders(Derivatives):
 			raise NotImplementedError()
 		else:
 			pass
-
-
 
 	def _cached_reader(self, folder, gridcoords):
 		if folder not in self._reader_cache:

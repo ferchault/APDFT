@@ -7,6 +7,7 @@ parser.add_argument('geometry', help='An XYZ file with the input molecule.', typ
 parser.add_argument('method', help='A QM method.', choices=mqm.get_methods())
 parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange supported.')
 parser.add_argument('--remote-host', help='A SSH host to run the calculations in the format username:password@host+port:path/to/dir')
+parser.add_argument('--remote-preload', help='A command to run on the remote host to make QM codes available.')
 parser.add_argument('--parallel', type=int, help='Number of parallel executions allowed. If 0, uses all available CPU.')
 
 args = parser.parse_args()
@@ -16,5 +17,5 @@ nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
 
 derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, args.method, args.basisset)
 derivatives.prepare()
-derivatives.run(args.remote_host, args.parallel)
+derivatives.run(args.parallel, args.remote_host, args.remote_preload)
 derivatives.analyse()

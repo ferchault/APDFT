@@ -59,11 +59,16 @@ class Calculator(object):
 		return 'mqmc-tmp-' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
 	@staticmethod
-	def execute(folder, remote_constr=None):
+	def execute(folder, remote_constr=None, remote_preload=None):
 		""" Run a calculation with the input file in folder."""
 
 		if remote_constr == None:
-			subprocess.run('%s/run.sh' % folder)
+			p = subprocess.run('%s/run.sh' % folder, universal_newlines=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+			if p.returncode != 0:
+				print ('E + Error running %s/run.sh:')
+				for line in p.stdout.split('\n'):
+					print ('E | %s' % line)
+				print ('E + Run skipped.\n')
 		else:
 			import paramiko
 			with paramiko.SSHClient() as s:
@@ -98,7 +103,11 @@ class Calculator(object):
 				if stdout.channel.recv_exit_status() != 0:
 					raise ValueError('Unable to navigate on remote machine.')
 
-				stdin, stdout, stderr = s.exec_command('cd %s; cd %s; ./run.sh' % (path, tmpname))
+				if remote_preload == None:
+					remote_preload = ''
+				else:
+					remote_preload = '%s; ' % remote_preload
+				stdin, stdout, stderr = s.exec_command('%scd %s; cd %s; ./run.sh' % (remote_preload, path, tmpname))
 				status = stdout.channel.recv_exit_status()
 				if status != 0:
 					print ('E + Error running %s/run.sh on remote host:' % folder)
@@ -109,7 +118,6 @@ class Calculator(object):
 						for line in msglines:
 							print ('E | ' + line.strip())
 						print ('E + Run skipped.\n')
-					raise ValueError('Unable to navigate on remote machine.')
 
 				# copy back
 				for fn in sftp.listdir():
