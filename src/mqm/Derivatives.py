@@ -215,7 +215,7 @@ class DerivativeFolders(Derivatives):
 					if i == j:
 						deriv = (rhoup + rhodn - 2 * rho)/(0.05**2)
 					else:
-						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05)
+						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05**2)
 
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
