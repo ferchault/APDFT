@@ -2,11 +2,14 @@
 import itertools as it
 import os
 import glob
+import multiprocessing as mp
+import functools
 
 import numpy as np
 import pyscf
 from pyscf import dft
 import basis_set_exchange as bse
+import traceback
 
 import mqm.Calculator as mqmc
 
@@ -95,14 +98,38 @@ class DerivativeFolders(Derivatives):
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
 
-	def run(self, remote_host=None):
+	@staticmethod
+	def _wrapper(_, remote_host):
+		try:
+			mqmc.Calculator.execute(_, remote_host)
+		except Exception as e:
+			return traceback.format_exc()
+
+	def run(self, remote_host=None, parallel=None):
 		""" Executes all calculations if not done so already."""
+
+		# Obtain number of parallel executions
+		if parallel is None and remote_host is not None:
+			raise NotImplementedError('Remote parallelisation only with explicit process count.')
+
+		if parallel == 0:
+			parallel = mp.cpu_count()
+		if parallel is None:
+			parallel = 1
+
 		# find folders to execute
 		folders = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.sh', recursive=True)]
 
-		for folder in folders:
-			mqmc.Calculator.execute(folder, remote_host)
-			break
+		with mp.Pool(parallel) as pool:
+			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host), folders)
+
+		failed = [_ for _ in results if _ is not None]
+		if len(failed) > 0:
+			print ('E + Of the %d calculations, %d failed with the following messages:' % (len(folders), len(failed)))
+			for failed in failed:
+				lines = ['E | %s' % _ for _ in failed.split('\n')]
+				print ('\n'.join(lines))
+			print ('E + Skipping those runs.\n')
 
 		raise NotImplementedError()
 
