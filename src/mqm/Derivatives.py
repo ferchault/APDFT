@@ -80,6 +80,10 @@ class DerivativeFolders(Derivatives):
 
 	def prepare(self, explicit_reference=False):
 		""" Builds a complete folder list of all relevant calculations."""
+		if os.path.isdir('multiqm-run'):
+			print ('WW | Project folder exists. Reusing existing data. ')
+			return
+
 		for order in self._orders:
 			# only upper triangle with diagonal
 			for combination in it.combinations_with_replacement(list(range(len(self._nuclear_numbers))), order):
@@ -132,6 +136,8 @@ class DerivativeFolders(Derivatives):
 
 		# find folders to execute
 		folders = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.sh', recursive=True)]
+		haslog = [os.path.dirname(_) for _ in glob.glob('multiqm-run/**/run.log', recursive=True)]
+		folders = set(folders) - set(haslog)
 
 		with mp.Pool(parallel) as pool:
 			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
