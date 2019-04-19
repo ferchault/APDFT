@@ -219,7 +219,7 @@ class DerivativeFolders(Derivatives):
 
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 
-			energies[targetidx] = np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
+			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
 
 		# optional comparison to true properties
 		if explicit_reference:
