@@ -4,13 +4,14 @@ import os
 import glob
 import multiprocessing as mp
 import functools
+import traceback
 
 import numpy as np
 import pyscf
 from pyscf import dft
 import basis_set_exchange as bse
-import traceback
 
+import mqm
 import mqm.Calculator as mqmc
 
 class Derivatives(object):
@@ -46,13 +47,14 @@ class Derivatives(object):
 		return bse.lut.element_sym_from_Z(Z, normalize=True)
 
 	def _print_energies(self, targets, energies, comparison_energies):
-		print ('Energies [Hartree]')
 		if comparison_energies is None:
 			for target, energy in zip(targets, energies):
-				print ('%20.10f %s' % (energy, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
+				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname)
 		else:
 			for target, energy, comparison in zip(targets, energies, comparison_energies):
-				print ('%20.10f %20.10f %s' % (energy, comparison, ' '.join(map(lambda _: Derivatives._Z_to_label(_).ljust(3), target))))
+				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
@@ -94,7 +96,7 @@ class DerivativeFolders(Derivatives):
 	def prepare(self, explicit_reference=False):
 		""" Builds a complete folder list of all relevant calculations."""
 		if os.path.isdir('multiqm-run'):
-			print ('WW | Project folder exists. Reusing existing data. ')
+			mqm.log.log('Project folder exists. Reusing existing data.', level='warning')
 			return
 
 		for order in self._orders:

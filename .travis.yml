@@ -12,6 +12,7 @@ install:
   - pip install h5py
   - pip install pyscf
   - pip install cclib
+  - pip install structlog colorama
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:

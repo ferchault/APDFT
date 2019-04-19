@@ -4,6 +4,22 @@ from basis_set_exchange import lut
 from . import Calculator
 from . import Derivatives
 
+import structlog
+my_styles = structlog.dev.ConsoleRenderer.get_default_level_styles()
+my_styles["RESULT"] = my_styles["info"]
+renderer = structlog.dev.ConsoleRenderer(level_styles=my_styles)
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M.%S"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        renderer
+   ],
+    context_class=dict,
+    cache_logger_on_first_use=True,
+)
+log = structlog.get_logger()
+
 def get_methods():
 	calculators = [getattr(Calculator, _) for _ in dir(Calculator) if 'Calculator' in _ and _ != 'Calculator']
 	methods = []
