@@ -64,3 +64,13 @@ def test_filecontents():
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
 	shutil.rmtree('multiqm-run')
+
+def test_too_high_order():
+	c = mqmc.GaussianCalculator()
+	with pytest.raises(NotImplementedError):
+		d = mqmd.DerivativeFolders(c, 3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 'HF', 'STO-3G')
+
+def test_element_conversion():
+	assert mqmd.Derivatives._Z_to_label(0) == "-"
+	assert mqmd.Derivatives._Z_to_label(1) == "H"
+	assert mqmd.Derivatives._Z_to_label(2) == "He"
