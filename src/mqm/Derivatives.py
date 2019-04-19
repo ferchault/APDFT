@@ -213,7 +213,7 @@ class DerivativeFolders(Derivatives):
 					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords)
 
 					if i == j:
-						deriv = (rhoup + rhodn - 2 * rho)/(0.05**2)
+						deriv = (rhoiup + rhoidn - 2 * rho)/(0.05**2)
 					else:
 						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05**2)
 
