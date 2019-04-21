@@ -31,6 +31,7 @@ def test_readfile(sample_rundir):
 	calculator = mqmc.GaussianCalculator()
 	nuclear_numbers, coordinates = mqm.read_xyz('multiqm-run/n2.xyz')
 
+	# with reference
 	derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, 'HF', 'STO-3G')
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
 
@@ -39,6 +40,16 @@ def test_readfile(sample_rundir):
 	pos = targets.index(lookup)
 	assert abs(energies[pos] - -160.15390113953077) < 1e-7
 	assert abs(comparison_energies[pos] - -177.78263968061) < 1e-7
+
+	# without reference
+	derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, 'HF', 'STO-3G')
+	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=False)
+
+	# check one energy value
+	lookup  = [1, 13]
+	pos = targets.index(lookup)
+	assert abs(energies[pos] - -160.15390113953077) < 1e-7
+	assert comparison_energies is None
 
 	os.chdir(pwd)
 
