@@ -81,7 +81,7 @@ def test_filecontents():
 	c = mqmc.GaussianCalculator()
 	d = mqmd.DerivativeFolders(c, 2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 'HF', 'STO-3G')
 	assert d._orders == [0, 1, 2]
-	d.prepare(False)
+	d.prepare(explicit_reference=True)
 
 	def _get_Zs_from_file(fn):
 		with open(fn) as fh:
@@ -104,7 +104,14 @@ def test_filecontents():
 	assert _get_Zs_from_file('multiqm-run/order-2/site-0-1-up/run.inp') == [2.+delta, 3.+delta]
 	assert _get_Zs_from_file('multiqm-run/order-2/site-0-1-dn/run.inp') == [2.-delta, 3.-delta]
 
-	assert set(map(os.path.basename, glob.glob('multiqm-run/*'))) == set('order-0 order-1 order-2'.split())
+	assert _get_Zs_from_file('multiqm-run/comparison-0-5/run.inp') == [0., 5.]
+	assert _get_Zs_from_file('multiqm-run/comparison-1-4/run.inp') == [1., 4.]
+	assert _get_Zs_from_file('multiqm-run/comparison-2-3/run.inp') == [2., 3.]
+	assert _get_Zs_from_file('multiqm-run/comparison-3-2/run.inp') == [3., 2.]
+	assert _get_Zs_from_file('multiqm-run/comparison-4-1/run.inp') == [4., 1.]
+	assert _get_Zs_from_file('multiqm-run/comparison-5-0/run.inp') == [5., 0.]
+
+	assert set(map(os.path.basename, glob.glob('multiqm-run/*'))) == set('order-0 order-1 order-2 comparison-0-5 comparison-1-4 comparison-2-3 comparison-3-2 comparison-4-1 comparison-5-0'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-0/*'))) == set('site-all-cc'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
