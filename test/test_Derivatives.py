@@ -32,18 +32,7 @@ def test_readfile(sample_rundir):
 	nuclear_numbers, coordinates = mqm.read_xyz('multiqm-run/n2.xyz')
 
 	derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, 'HF', 'STO-3G')
-	try:
-		targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
-	except:
-		print (pwd)
-		print (sample_rundir)
-		print (os.getcwd())
-		print (glob.glob('*'))
-		print (glob.glob('multiqm-run/*'))
-		print (glob.glob('multiqm-run/order-0/*'))
-		print (glob.glob('multiqm-run/order-0/site-all-cc/*'))
-		print (open('multiqm-run/order-0/site-all-cc/run.log').readlines()[:10])
-		raise
+	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
 
 	# check one energy value
 	lookup  = [1, 13]
