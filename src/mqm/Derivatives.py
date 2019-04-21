@@ -56,6 +56,12 @@ class Derivatives(object):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
 				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
+	def _print_dipoles(self, targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles, comparison_nuclear_dipoles):
+		if comparison_electronic_dipoles is not None:
+			for target, electronic_dipole, nuclear_dipole in zip(targets, electronic_dipoles, nuclear_dipoles):
+				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				mqm.log.log('Dipole calculated', level='RESULT', value=electronic_dipole + nuclear_dipole, kind='total_dipole', target=target, targetname=targetname, electronic_contribution=electronic_dipole, nuclear_contribution=nuclear_dipole)
+
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
 		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
@@ -170,11 +176,16 @@ class DerivativeFolders(Derivatives):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
 		energies = np.zeros(len(targets))
+		electronic_dipoles = np.zeros(len(targets))
+		nuclear_dipoles = np.zeros(len(targets))
 		comparison_energies = np.zeros(len(targets))
+		comparison_electronic_dipoles = np.zeros(len(targets))
+		comparison_nuclear_dipoles = np.zeros(len(targets))
 		natoms = len(self._coordinates)
 
 		# get base information
 		gridcoords, gridweights = self._get_grid()
+		grid_ds = np.linalg.norm(gridcoords * self.angstrom, axis=1)
 		ds = []
 		for site in self._coordinates:
 			ds.append(np.linalg.norm((gridcoords - site)*self.angstrom, axis=1))
@@ -191,6 +202,7 @@ class DerivativeFolders(Derivatives):
 			# zeroth order
 			rho = self._cached_reader('multiqm-run/order-0/site-all-cc', gridcoords)
 			rhotilde = rho.copy()
+			rhotarget = rho.copy()
 
 			# first order
 			for atomidx in range(natoms):
@@ -198,6 +210,7 @@ class DerivativeFolders(Derivatives):
 				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
 				deriv = (rhoup - rhodn)/(2*0.05)
 				rhotilde += deriv * deltaZ[atomidx] / 2
+				rhotarget += deriv * deltaZ[atomidx]
 
 			# second order
 			for i in range(natoms):
@@ -215,8 +228,10 @@ class DerivativeFolders(Derivatives):
 						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05**2)
 
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
+					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
 
 			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
+			electronic_dipoles[targetidx] = np.sum(rhotarget * grid_ds * gridweights)
 
 		# optional comparison to true properties
 		if explicit_reference:
@@ -229,5 +244,6 @@ class DerivativeFolders(Derivatives):
 		energies += refenergy
 
 		self._print_energies(targets, energies, comparison_energies)
+		self._print_dipoles(targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles, comparison_nuclear_dipoles)
 
 		return targets, energies, comparison_energies
