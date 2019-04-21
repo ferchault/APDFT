@@ -86,7 +86,9 @@ class Calculator(object):
 						s.connect(host, port, username, password)
 				except paramiko.ssh_exception.NoValidConnectionsError:
 					mqm.log.log('Unable to establish SSH connection.', level='error', host=host, port=port, username=username, password=password)
+					return
 				except:
+					mqm.log.log('General SSH error.', level='error', host=host, port=port, username=username, password=password)
 					return
 				sftp = s.open_sftp()
 				sftp.chdir(path)
@@ -105,7 +107,8 @@ class Calculator(object):
 				_ = s.exec_command('cd %s; cd %s' % (path, tmpname)) # nosec
 				stdout = _[0]
 				if stdout.channel.recv_exit_status() != 0:
-					raise ValueError('Unable to navigate on remote machine.')
+					mqm.log.log('Unable to navigate on remote machine.', level='error', host=host, port=port, username=username, password=password, path="%s/%s" % (path, tmpname))
+					return
 
 				if remote_preload == None:
 					remote_preload = ''
@@ -115,14 +118,8 @@ class Calculator(object):
 				stdout = _[0]
 				status = stdout.channel.recv_exit_status()
 				if status != 0:
-					print ('E + Error running %s/run.sh on remote host:' % folder)
 					msglines = stdout.readlines() + stderr.readlines()
-					if len(msglines) == 0:
-						print ('E | (no output given)')
-					else:
-						for line in msglines:
-							print ('E | ' + line.strip())
-						print ('E + Run skipped.\n')
+					mqm.log.log('Unable to execute runscript on remote machine.', level='error', host=host, port=port, username=username, password=password, path=folder, remotemsg=msglines)
 
 				# copy back
 				for fn in sftp.listdir():
