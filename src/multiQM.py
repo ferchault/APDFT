@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import sys
 import mqm
 
 parser = argparse.ArgumentParser(description='QM calculations on multiple systems.')
@@ -18,5 +19,8 @@ nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
 
 derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, args.method, args.basisset)
 derivatives.prepare(args.do_explicit_reference)
-derivatives.run(args.parallel, args.remote_host, args.remote_preload)
+success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
+if not success:
+	mqm.log.log('Incomplete calculations. Aborting', level='critical')
+	sys.exit(1)
 derivatives.analyse(args.do_explicit_reference)

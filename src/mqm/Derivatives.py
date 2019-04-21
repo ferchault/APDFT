@@ -158,12 +158,7 @@ class DerivativeFolders(Derivatives):
 			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
 
 		failed = [_ for _ in results if _ is not None]
-		if len(failed) > 0:
-			print ('E + Of the %d calculations, %d failed with the following messages:' % (len(folders), len(failed)))
-			for failed in failed:
-				lines = ['E | %s' % _ for _ in failed.split('\n')]
-				print ('\n'.join(lines))
-			print ('E + Skipping those runs.\n')
+		return len(failed) == 0
 
 	def _cached_reader(self, folder, gridcoords):
 		if folder not in self._reader_cache:

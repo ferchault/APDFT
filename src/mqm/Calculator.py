@@ -14,6 +14,8 @@ import subprocess # nosec
 import re
 import getpass
 
+import mqm
+
 # load local orbkit
 basedir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append('%s/../../dep/orbkit/orbkit' % basedir)
@@ -82,9 +84,10 @@ class Calculator(object):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore')
 						s.connect(host, port, username, password)
+				except paramiko.ssh_exception.NoValidConnectionsError:
+					mqm.log.log('Unable to establish SSH connection.', level='error', host=host, port=port, username=username, password=password)
 				except:
-					print ('E - Unable to connect to remote host. Run skipped.')
-					return 1
+					return
 				sftp = s.open_sftp()
 				sftp.chdir(path)
 
