@@ -38,7 +38,11 @@ def test_readfile(sample_rundir):
 		print (pwd)
 		print (sample_rundir)
 		print (os.getcwd())
-		print (glob.glob('**/run.log', recursive=True))
+		print (glob.glob('*'))
+		print (glob.glob('multiqm-run/*'))
+		print (glob.glob('multiqm-run/order-0/*'))
+		print (glob.glob('multiqm-run/order-0/site-all-cc/*'))
+		print (open('multiqm-run/order-0/site-all-cc/run.log').readlines()[:10])
 		raise
 
 	# check one energy value
