@@ -234,3 +234,5 @@ class DerivativeFolders(Derivatives):
 		energies += refenergy
 
 		self._print_energies(targets, energies, comparison_energies)
+
+		return targets, energies, comparison_energies

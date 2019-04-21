@@ -6,6 +6,7 @@ import shutil
 
 import numpy as np
 
+import mqm
 import mqm.Derivatives as mqmd
 import mqm.Calculator as mqmc
 
@@ -14,6 +15,32 @@ def mock_derivatives():
 	c = mqmc.MockCalculator()
 	d = mqmd.Derivatives(c, 0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), 'HF', 'STO-3G')
 	return d
+
+@pytest.fixture(scope="module")
+def sample_rundir():
+	tmpdir = os.path.abspath(mqmc.Calculator._get_tempname())
+	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+	shutil.copytree(path + '/data/multiqm-run', '%s/multiqm-run' % tmpdir)
+	yield tmpdir
+	shutil.rmtree('%s/multiqm-run' % tmpdir)
+
+def test_readfile(sample_rundir):
+	pwd = os.path.abspath(os.getcwd())
+	os.chdir(sample_rundir)
+
+	calculator = mqmc.GaussianCalculator()
+	nuclear_numbers, coordinates = mqm.read_xyz('multiqm-run/n2.xyz')
+
+	derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, 'HF', 'STO-3G')
+	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
+
+	# check one energy value
+	lookup  = [1, 13]
+	pos = targets.index(lookup)
+	assert abs(energies[pos] - -160.15390113953077) < 1e-7
+	assert abs(comparison_energies[pos] - -177.78263968061) < 1e-7
+
+	os.chdir(pwd)
 
 def test_grid():
 	c = mqmc.MockCalculator()
@@ -35,6 +62,11 @@ def test_nucnuc(mock_derivatives):
 	assert abs(diff - expected) < 1e-8
 
 def test_filecontents():
+	pwd = os.path.abspath(os.getcwd())
+	tmpdir = os.path.abspath(mqmc.Calculator._get_tempname())
+	os.mkdir(tmpdir)
+	os.chdir(tmpdir)
+
 	c = mqmc.GaussianCalculator()
 	d = mqmd.DerivativeFolders(c, 2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 'HF', 'STO-3G')
 	assert d._orders == [0, 1, 2]
@@ -65,7 +97,9 @@ def test_filecontents():
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-0/*'))) == set('site-all-cc'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
 	assert set(map(os.path.basename, glob.glob('multiqm-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
-	shutil.rmtree('multiqm-run')
+
+	os.chdir(pwd)
+	shutil.rmtree(tmpdir)
 
 def test_too_high_order():
 	c = mqmc.GaussianCalculator()
