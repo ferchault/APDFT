@@ -158,7 +158,7 @@ class GaussianCalculator(Calculator):
 	def _format_basisset(nuclear_charges, basisset):
 		res = ''
 		for atomid, nuclear_charge in enumerate(nuclear_charges):
-			elements = set([int(_(nuclear_charge)) for _ in (np.ceil, np.floor)])
+			elements = set([max(1, int(_(nuclear_charge))) for _ in (np.ceil, np.floor)])
 			output = bse.get_basis(basisset, elements=list(elements), fmt='gaussian94')
 
 			res += '%d 0\n' % (atomid + 1)
@@ -200,7 +200,7 @@ class GaussianCalculator(Calculator):
 			template = j.Template(fh.read())
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
-		env_basis = GaussianCalculator._format_basisset(nuclear_numbers, basisset)
+		env_basis = GaussianCalculator._format_basisset(nuclear_charges, basisset)
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
 		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=env_nuc)
 
