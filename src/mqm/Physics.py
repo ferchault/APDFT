@@ -11,14 +11,14 @@ class Dipoles(object):
 
 		.. math::
 
-			\mathbf{p}(r) = \sum_I q_i(r-r_i)
+			\mathbf{p}(\mathbf{r}) = \sum_I q_i(\mathbf{r_i}-\mathbf{r})
 		
 		Args:
-			reference_point:	A 3 array of the reference point. [Angstrom]
-			coordinates: 		A (3,N) array of point charge coordinates. [Angstrom]
-			charges:			A N array of point charges. [e]
+			reference_point:	A 3 array of the reference point :math:`\mathbf{r}`. [Angstrom]
+			coordinates: 		A (3,N) array of point charge coordinates :math:`\mathbf{r_i}`. [Angstrom]
+			charges:			A N array of point charges :math:`q_i`. [e]
 		Returns:
-			Dipole moment. [Debye]
+			Dipole moment :math:`\mathbf{p}`. [Debye]
 		"""
 		pass
 
