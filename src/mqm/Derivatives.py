@@ -40,6 +40,9 @@ class Derivatives(object):
 				ret = deltaZ[i]*deltaZ[j]/d
 		return ret
 
+	def calulate_nuclear_dipole(self, nuclear_charges):
+		return np.sum(self._coordinates.T * nuclear_charges, axis=1)
+
 	@staticmethod
 	def _Z_to_label(Z):
 		if Z == 0:
@@ -56,11 +59,11 @@ class Derivatives(object):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
 				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
-	def _print_dipoles(self, targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles, comparison_nuclear_dipoles):
+	def _print_dipoles(self, targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles):
 		if comparison_electronic_dipoles is not None:
 			for target, electronic_dipole, nuclear_dipole in zip(targets, electronic_dipoles, nuclear_dipoles):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
-				mqm.log.log('Dipole calculated', level='RESULT', value=electronic_dipole + nuclear_dipole, kind='total_dipole', target=target, targetname=targetname, electronic_contribution=electronic_dipole, nuclear_contribution=nuclear_dipole)
+				mqm.log.log('Dipole calculated', level='RESULT', value=list(electronic_dipole + nuclear_dipole), kind='total_dipole', target=target, targetname=targetname, electronic_contribution=list(electronic_dipole), nuclear_contribution=list(nuclear_dipole))
 
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
@@ -176,11 +179,10 @@ class DerivativeFolders(Derivatives):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
 		energies = np.zeros(len(targets))
-		electronic_dipoles = np.zeros(len(targets))
-		nuclear_dipoles = np.zeros(len(targets))
+		electronic_dipoles = np.zeros((len(targets), 3))
+		nuclear_dipoles = np.zeros((len(targets), 3))
 		comparison_energies = np.zeros(len(targets))
 		comparison_electronic_dipoles = np.zeros(len(targets))
-		comparison_nuclear_dipoles = np.zeros(len(targets))
 		natoms = len(self._coordinates)
 
 		# get base information
@@ -231,7 +233,8 @@ class DerivativeFolders(Derivatives):
 					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
 
 			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
-			electronic_dipoles[targetidx] = np.sum(rhotarget * grid_ds * gridweights)
+			electronic_dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1)
+			nuclear_dipoles[targetidx] = self.calulate_nuclear_dipole(target)
 
 		# optional comparison to true properties
 		if explicit_reference:
@@ -244,6 +247,6 @@ class DerivativeFolders(Derivatives):
 		energies += refenergy
 
 		self._print_energies(targets, energies, comparison_energies)
-		self._print_dipoles(targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles, comparison_nuclear_dipoles)
+		self._print_dipoles(targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles)
 
 		return targets, energies, comparison_energies
