@@ -41,6 +41,7 @@ class Derivatives(object):
 		return ret
 
 	def calulate_nuclear_dipole(self, nuclear_charges):
+		""" Calculates the nuclear dipole moment w.r.t. the origin."""
 		return np.sum(self._coordinates.T * nuclear_charges, axis=1)
 
 	@staticmethod
@@ -59,19 +60,17 @@ class Derivatives(object):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
 				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
-	def _print_dipoles(self, targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles):
-		if comparison_electronic_dipoles is not None:
-			for target, electronic_dipole, nuclear_dipole, comparison in zip(targets, electronic_dipoles, nuclear_dipoles, comparison_electronic_dipoles):
+	def _print_dipoles(self, targets, dipoles, comparison_dipoles):
+		if comparison_dipoles is not None:
+			for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
 				mqm.log.log('Dipole calculated',
 					level='RESULT',
 					kind='total_dipole',
 					reference=list(comparison),
-					value=list(electronic_dipole + nuclear_dipole),
+					value=list(dipole),
 					target=target,
-					targetname=targetname,
-					electronic_contribution=list(electronic_dipole),
-					nuclear_contribution=list(nuclear_dipole)
+					targetname=targetname
 				)
 
 	def _get_grid(self):
@@ -188,10 +187,9 @@ class DerivativeFolders(Derivatives):
 		""" Performs actual analysis and integration. Prints results"""
 		targets = self._enumerate_all_targets()
 		energies = np.zeros(len(targets))
-		electronic_dipoles = np.zeros((len(targets), 3))
-		nuclear_dipoles = np.zeros((len(targets), 3))
+		dipoles = np.zeros((len(targets), 3))
 		comparison_energies = np.zeros(len(targets))
-		comparison_electronic_dipoles = np.zeros((len(targets), 3))
+		comparison_dipoles = np.zeros((len(targets), 3))
 		natoms = len(self._coordinates)
 
 		# get base information
@@ -242,21 +240,20 @@ class DerivativeFolders(Derivatives):
 					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
 
 			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
-			electronic_dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1)
-			nuclear_dipoles[targetidx] = self.calulate_nuclear_dipole(target)
+			dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1) + self.calulate_nuclear_dipole(target)
 
 		# optional comparison to true properties
 		if explicit_reference:
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
-				comparison_electronic_dipoles[targetidx] = self._calculator.get_dipole(path)
+				comparison_dipoles[targetidx] = self._calculator.get_dipole(path)
 		else:
 			comparison_energies = None
 
 		energies += refenergy
 
 		self._print_energies(targets, energies, comparison_energies)
-		self._print_dipoles(targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles)
+		self._print_dipoles(targets, dipoles, comparison_dipoles)
 
 		return targets, energies, comparison_energies
