@@ -61,9 +61,18 @@ class Derivatives(object):
 
 	def _print_dipoles(self, targets, electronic_dipoles, comparison_electronic_dipoles, nuclear_dipoles):
 		if comparison_electronic_dipoles is not None:
-			for target, electronic_dipole, nuclear_dipole in zip(targets, electronic_dipoles, nuclear_dipoles):
+			for target, electronic_dipole, nuclear_dipole, comparison in zip(targets, electronic_dipoles, nuclear_dipoles, comparison_electronic_dipoles):
 				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
-				mqm.log.log('Dipole calculated', level='RESULT', value=list(electronic_dipole + nuclear_dipole), kind='total_dipole', target=target, targetname=targetname, electronic_contribution=list(electronic_dipole), nuclear_contribution=list(nuclear_dipole))
+				mqm.log.log('Dipole calculated',
+					level='RESULT',
+					kind='total_dipole',
+					reference=list(comparison),
+					value=list(electronic_dipole + nuclear_dipole),
+					target=target,
+					targetname=targetname,
+					electronic_contribution=list(electronic_dipole),
+					nuclear_contribution=list(nuclear_dipole)
+				)
 
 	def _get_grid(self):
 		mol = pyscf.gto.Mole()
@@ -182,7 +191,7 @@ class DerivativeFolders(Derivatives):
 		electronic_dipoles = np.zeros((len(targets), 3))
 		nuclear_dipoles = np.zeros((len(targets), 3))
 		comparison_energies = np.zeros(len(targets))
-		comparison_electronic_dipoles = np.zeros(len(targets))
+		comparison_electronic_dipoles = np.zeros((len(targets), 3))
 		natoms = len(self._coordinates)
 
 		# get base information
@@ -241,6 +250,7 @@ class DerivativeFolders(Derivatives):
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
+				comparison_electronic_dipoles[targetidx] = self._calculator.get_dipole(path)
 		else:
 			comparison_energies = None
 

@@ -194,7 +194,7 @@ class GaussianCalculator(Calculator):
 		rho = orbkit.core.rho_compute(qc, numproc=1)
 		return rho
 
-	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
+	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset, iscomparison=False):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
@@ -216,6 +216,7 @@ class GaussianCalculator(Calculator):
 
 	@staticmethod
 	def get_total_energy(folder):
+		""" Returns the total energy in Hartree."""
 		data = cclib.io.ccread('%s/run.log' % folder)
 		energy = None
 		energy = data.scfenergies
@@ -225,14 +226,9 @@ class GaussianCalculator(Calculator):
 			pass
 		return energy / 27.21138602
 
+	@staticmethod
+	def get_dipole(folder):
+		""" Returns the dipole moment in Debye."""
+		data = cclib.io.ccread('%s/run.log' % folder)
+		return data.moments[1]
 
-class HortonCalculator(Calculator):
-	_methods = {
-		'HF': 'tbd',
-		'LDA': 'tbd',
-		'PBE': 'tbd',
-		'PBE0': 'tbd',
-		}
-
-	def __init__(self):
-		pass
