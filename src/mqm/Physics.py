@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 
 class Dipoles(object):
 	""" Collects functions regarding the calculation of dipole moments."""
@@ -8,6 +9,8 @@ class Dipoles(object):
 	@staticmethod
 	def point_charges(reference_point, coordinates, charges):
 		""" Calculates the dipole moment of point charges.
+
+		Note that for sets of point charges of a net charge, the resulting dipole moment depends on the chosen reference point. A common choice in the molecular context is the center of mass.
 
 		.. math::
 
@@ -20,5 +23,5 @@ class Dipoles(object):
 		Returns:
 			Dipole moment :math:`\mathbf{p}`. [Debye]
 		"""
-		pass
-
+		shift = coordinates - reference_point
+		return np.sum(shift.T * charges, axis=0) * Dipoles.debye
