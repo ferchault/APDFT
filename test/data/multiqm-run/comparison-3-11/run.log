@@ -1,9 +1,9 @@
- Entering Gaussian System, Link 0=/apps/gaussian/bin/g09
+ Entering Gaussian System, Link 0=/home/grudorff/opt/gaussian/bin//g09
  Input=run.inp
  Output=run.log
  Initial command:
- /apps/gaussian/bin/l1.exe "/home/vonrudorff/mqmc-tmp-7ZRYKEMWWI/Gau-145634.inp" -scrdir="/home/vonrudorff/mqmc-tmp-7ZRYKEMWWI/"
- Entering Link 1 = /apps/gaussian/bin/l1.exe PID=    145638.
+ /home/grudorff/opt/gaussian/bin/l1.exe "/home/grudorff/mqmc-tmp-AT3S9ZA4TV/Gau-30207.inp" -scrdir="/home/grudorff/mqmc-tmp-AT3S9ZA4TV/"
+ Entering Link 1 = /home/grudorff/opt/gaussian/bin/l1.exe PID=     30216.
   
  Copyright (c) 1988,1990,1992,1993,1995,1998,2003,2009,2013,
             Gaussian, Inc.  All Rights Reserved.
@@ -76,18 +76,19 @@
  
  ******************************************
  Gaussian 09:  ES64L-G09RevD.01 24-Apr-2013
-                21-Apr-2019 
+                23-Apr-2019 
  ******************************************
  %Chk=run.chk
  ----------------------------------------------------------------------
- #UHF Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Densi
- ty=Current
+ #UHF Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Den
+ sity=Current NoSymm
  ----------------------------------------------------------------------
  1/30=1,38=1/1;
  2/12=2,15=1,17=6,18=5,40=1/2;
  3/5=7,10=10,11=2,16=1,25=1,30=1,47=8,116=2/1,2,3;
  4/5=4,11=3/1;
  5/5=2,32=2,38=5/2;
+ 6/7=2,8=2,9=2,10=2,15=16,22=-1,28=1/1,2;
  99/5=1,9=1/99;
  ---
  run
@@ -147,18 +148,161 @@
  <L.S>= 0.000000000000E+00
  Annihilation of the first spin contaminant:
  S**2 before annihilation     0.0000,   after     0.0000
- 1\1\GINC-ALCHEMY\SP\UHF\Gen\N2\VONRUDORFF\21-Apr-2019\0\\#UHF Gen scf=
- tight Massage guess=indo integral=NoXCTest Pop=None Density=Current\\r
- un\\0,1\Li,0,0.,0.,0.\Na,0,0.,0.,1.\\Version=ES64L-G09RevD.01\HF=-139.
- 1314543\S2=0.\S2-1=0.\S2A=0.\RMSD=6.754e-09\PG=D*H [C*(N1.N1)]\\@
+
+ **********************************************************************
+
+            Population analysis using the SCF density.
+
+ **********************************************************************
+
+ Alpha  occ. eigenvalues --  -38.38065  -2.70234  -2.03444  -1.81358  -1.79852
+ Alpha  occ. eigenvalues --   -1.21042   0.53878
+ Alpha virt. eigenvalues --    1.10566   1.68269   7.66060
+  Beta  occ. eigenvalues --  -38.38065  -2.70234  -2.03444  -1.81358  -1.79852
+  Beta  occ. eigenvalues --   -1.21042   0.53878
+  Beta virt. eigenvalues --    1.10566   1.68269   7.66060
+          Condensed to atoms (all electrons):
+               1          2
+     1  Li   7.400473  -3.667736
+     2  Na  -3.667736  13.934998
+          Atomic-Atomic Spin Densities.
+               1          2
+     1  Li   0.000000   0.000000
+     2  Na   0.000000   0.000000
+ Mulliken charges and spin densities:
+               1          2
+     1  Li  -0.732738   0.000000
+     2  Na   0.732738   0.000000
+ Sum of Mulliken charges =   0.00000   0.00000
+ Mulliken charges and spin densities with hydrogens summed into heavy atoms:
+               1          2
+     1  Li  -0.732738   0.000000
+     2  Na   0.732738   0.000000
+ Electronic spatial extent (au):  <R**2>=             60.3024
+ Charge=              0.0000 electrons
+ Dipole moment (field-independent basis, Debye):
+    X=              0.0000    Y=              0.0000    Z=              3.4847  Tot=              3.4847
+ Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=             -9.4370   YY=            -11.4405   ZZ=             -7.3961
+   XY=              0.0909   XZ=              0.0000   YZ=              0.0000
+ Traceless Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=             -0.0124   YY=             -2.0159   ZZ=              2.0284
+   XY=              0.0909   XZ=              0.0000   YZ=              0.0000
+ Octapole moment (field-independent basis, Debye-Ang**2):
+  XXX=              0.0000  YYY=              0.0000  ZZZ=            -20.3268  XYY=              0.0000
+  XXY=              0.0000  XXZ=             -7.1985  XZZ=              0.0000  YZZ=              0.0000
+  YYZ=             -7.0956  XYZ=             -0.0047
+ Hexadecapole moment (field-independent basis, Debye-Ang**3):
+ XXXX=             -5.4725 YYYY=             -7.1742 ZZZZ=            -49.4618 XXXY=              0.0386
+ XXXZ=              0.0000 YYYX=              0.0386 YYYZ=              0.0000 ZZZX=              0.0000
+ ZZZY=              0.0000 XXYY=             -2.1078 XXZZ=             -9.3518 YYZZ=             -9.6541
+ XXYZ=              0.0000 YYXZ=              0.0000 ZZXY=              0.0137
+ N-N= 1.746284788347D+01 E-N=-2.891608696358D+02  KE= 7.077462656385D+01
+                          Isotropic Fermi Contact Couplings
+        Atom                 a.u.       MegaHertz       Gauss      10(-4) cm-1
+     1  Li(14)             0.00000       0.00000       0.00000       0.00000
+     2  Na(14)             0.00000       0.00000       0.00000       0.00000
+ --------------------------------------------------------
+       Center         ----  Spin Dipole Couplings  ----
+                      3XX-RR        3YY-RR        3ZZ-RR
+ --------------------------------------------------------
+     1   Atom        0.000000      0.000000      0.000000
+     2   Atom        0.000000      0.000000      0.000000
+ --------------------------------------------------------
+                        XY            XZ            YZ
+ --------------------------------------------------------
+     1   Atom        0.000000      0.000000      0.000000
+     2   Atom        0.000000      0.000000      0.000000
+ --------------------------------------------------------
 
 
- I DO NOT KNOW WHAT I MAY APPEAR TO THE WORLD; BUT TO MYSELF
- I SEEM TO HAVE BEEN ONLY LIKE A BOY PLAYING ON THE SEASHORE,
- AND DIVERTING MYSELF IN NOW AND THEN FINDING A SMOOTHER PEBBLE
- OR A PRETTIER SHELL THAN ORDINARY, WHILST THE GREAT OCEAN OF
- TRUTH LAY ALL UNDISCOVERED BEFORE ME.
-                                          -- NEWTON (1642-1726)
- Job cpu time:       0 days  0 hours  0 minutes  1.8 seconds.
+ ---------------------------------------------------------------------------------
+              Anisotropic Spin Dipole Couplings in Principal Axis System
+ ---------------------------------------------------------------------------------
+
+       Atom             a.u.   MegaHertz   Gauss  10(-4) cm-1        Axes
+
+              Baa     0.0000     0.000     0.000     0.000  1.0000  0.0000  0.0000
+     1 Li(14) Bbb     0.0000     0.000     0.000     0.000  0.0000  1.0000  0.0000
+              Bcc     0.0000     0.000     0.000     0.000  0.0000  0.0000  1.0000
+ 
+              Baa     0.0000     0.000     0.000     0.000  1.0000  0.0000  0.0000
+     2 Na(14) Bbb     0.0000     0.000     0.000     0.000  0.0000  1.0000  0.0000
+              Bcc     0.0000     0.000     0.000     0.000  0.0000  0.0000  1.0000
+ 
+
+ ---------------------------------------------------------------------------------
+
+
+ **********************************************************************
+
+            Electrostatic Properties Using The SCF Density
+
+ **********************************************************************
+
+       Atomic Center    1 is at   0.000000  0.000000  0.000000
+       Atomic Center    2 is at   0.000000  0.000000  1.000000
+ -----------------------------------------------------------------
+
+              Electrostatic Properties (Atomic Units)
+
+ -----------------------------------------------------------------
+    Center     Electric         -------- Electric Field --------
+               Potential          X             Y             Z
+ -----------------------------------------------------------------
+    1 Atom     -4.471069      0.000000      0.000000     -0.481642
+    2 Atom    -21.892906      0.000000      0.000000      0.234689
+ -----------------------------------------------------------------
+ -----------------------------------------------------
+    Center         ---- Electric Field Gradient ----
+                     XX            YY            ZZ
+ -----------------------------------------------------
+    1 Atom      -46.575005    -40.655318    -48.908016
+    2 Atom     -541.632582   -541.296330   -540.299276
+ -----------------------------------------------------
+ -----------------------------------------------------
+    Center         ---- Electric Field Gradient ----
+                     XY            XZ            YZ
+ -----------------------------------------------------
+    1 Atom       -0.268620      0.000000      0.000000
+    2 Atom       -0.015258      0.000000      0.000000
+ -----------------------------------------------------
+ -----------------------------------------------------
+    Center         ---- Electric Field Gradient ----
+                   ----       Eigenvalues       ----
+ -----------------------------------------------------
+    1 Atom      -48.908016    -46.587169    -40.643153
+    2 Atom     -541.633273   -541.295639   -540.299276
+ -----------------------------------------------------
+ -----------------------------------------------------
+    Center         ---- Electric Field Gradient ----
+                       ( tensor representation )
+                   3XX-RR        3YY-RR        3ZZ-RR
+ -----------------------------------------------------
+    1 Atom       -1.195559      4.724128     -3.528570
+    2 Atom       -0.556520     -0.220267      0.776787
+ -----------------------------------------------------
+ -----------------------------------------------------
+    Center         ---- Electric Field Gradient ----
+                       ( tensor representation )
+                   ----       Eigenvalues       ----
+ -----------------------------------------------------
+    1 Atom       -3.528570     -1.207723      4.736293
+    2 Atom       -0.557211     -0.219576      0.776787
+ -----------------------------------------------------
+ 1\1\GINC-AVL03\SP\UHF\Gen\N2\GRUDORFF\23-Apr-2019\0\\#UHF Gen scf=tigh
+ t Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSy
+ mm\\run\\0,1\Li,0,0.,0.,0.\Na,0,0.,0.,1.\\Version=ES64L-G09RevD.01\HF=
+ -139.1314543\S2=0.\S2-1=0.\S2A=0.\RMSD=6.754e-09\Dipole=0.,0.,1.370976
+ 6\Quadrupole=-0.009251,-1.4987976,1.5080486,0.0675919,0.,0.\PG=D*H [C*
+ (N1.N1)]\\@
+
+
+ NOT WHAT WE DID SHALL BE THE TEST
+ WHEN ACT AND WILL ARE DONE,
+ BUT WHAT OUR LORD INFERS WE WOULD-
+ HAD WE DIVINER BEEN.
+           EMILY DICKINSON  POEMS NO. CLXXV
+ Job cpu time:       0 days  0 hours  0 minutes  1.7 seconds.
  File lengths (MBytes):  RWF=      5 Int=      0 D2E=      0 Chk=      1 Scr=      1
- Normal termination of Gaussian 09 at Sun Apr 21 11:44:18 2019.
+ Normal termination of Gaussian 09 at Tue Apr 23 12:51:15 2019.

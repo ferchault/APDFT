@@ -45,20 +45,6 @@ def test_ssh_constr():
 	result = mqmc.Calculator._parse_ssh_constr('host')
 	assert result == (getpass.getuser(), None, 'host', 22, '.')
 
-def test_horton_has_methods():
-	assert 'HF' in mqmc.HortonCalculator._methods.keys()
-
-def test_horton():
-	return
-	c = mqmc.HortonCalculator()
-	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
-	nuclear_numbers = np.array([1, 1])
-	nuclear_charges = np.array([1., 1.])
-	grid = None
-	method = 'HF'
-	basisset = 'STO-3G'
-	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
-
 def test_gaussian_input():
 	c = mqmc.GaussianCalculator()
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
@@ -69,7 +55,7 @@ def test_gaussian_input():
 	basisset = 'STO-3G'
 	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
 	expected = '''%Chk=run.chk
-#CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
+#CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSymm
 
 run
 
