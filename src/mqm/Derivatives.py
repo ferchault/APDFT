@@ -178,9 +178,13 @@ class DerivativeFolders(Derivatives):
 		failed = [_ for _ in results if _ is not None]
 		return len(failed) == 0
 
-	def _cached_reader(self, folder, gridcoords):
+	def _cached_reader(self, folder, gridcoords, gridweights, num_electrons):
 		if folder not in self._reader_cache:
-			self._reader_cache[folder] = self._calculator.get_density_on_grid(folder, gridcoords)
+			rho = self._calculator.get_density_on_grid(folder, gridcoords)
+			self._reader_cache[folder] = rho
+			int_electrons = np.sum(rho * gridweights)
+			if abs(num_electrons - int_electrons) > 1e-4:
+				mqm.log.log('Electron count mismatch.', level='error', expected=num_electrons, found=int_electrons, path=folder)
 
 		return self._reader_cache[folder]
 
@@ -192,6 +196,8 @@ class DerivativeFolders(Derivatives):
 		comparison_energies = np.zeros(len(targets))
 		comparison_dipoles = np.zeros((len(targets), 3))
 		natoms = len(self._coordinates)
+
+		num_electrons = np.sum(self._nuclear_numbers)
 
 		# get base information
 		gridcoords, gridweights = self._get_grid()
@@ -210,27 +216,27 @@ class DerivativeFolders(Derivatives):
 				deltaV += deltaZ[atomidx] / ds[atomidx]
 
 			# zeroth order
-			rho = self._cached_reader('multiqm-run/order-0/site-all-cc', gridcoords)
+			rho = self._cached_reader('multiqm-run/order-0/site-all-cc', gridcoords, gridweights, num_electrons)
 			rhotilde = rho.copy()
 			rhotarget = rho.copy()
 
 			# first order
 			for atomidx in range(natoms):
-				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords)
-				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords)
+				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords, gridweights, num_electrons)
+				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords, gridweights, num_electrons)
 				deriv = (rhoup - rhodn)/(2*0.05)
 				rhotilde += deriv * deltaZ[atomidx] / 2
 				rhotarget += deriv * deltaZ[atomidx]
 
 			# second order
 			for i in range(natoms):
-				rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i, gridcoords)
-				rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i, gridcoords)
+				rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i, gridcoords, gridweights, num_electrons)
+				rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i, gridcoords, gridweights, num_electrons)
 				for j in range(natoms):
-					rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j, gridcoords)
-					rhojdn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % j, gridcoords)
-					rhoup = self._cached_reader('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords)
-					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords)
+					rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j, gridcoords, gridweights, num_electrons)
+					rhojdn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % j, gridcoords, gridweights, num_electrons)
+					rhoup = self._cached_reader('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords, gridweights, num_electrons)
+					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords, gridweights, num_electrons)
 
 					if i == j:
 						deriv = (rhoiup + rhoidn - 2 * rho)/(0.05**2)
