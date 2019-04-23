@@ -13,6 +13,7 @@ install:
   - pip install pyscf
   - pip install cclib
   - pip install structlog colorama
+  - pip install sphinx_rtd_theme
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:
