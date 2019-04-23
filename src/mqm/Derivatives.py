@@ -74,6 +74,7 @@ class Derivatives(object):
 				)
 
 	def _get_grid(self):
+		""" Returns the integration grid in Angstrom."""
 		mol = pyscf.gto.Mole()
 		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
 			# pyscf molecule init is in Angstrom
@@ -247,7 +248,7 @@ class DerivativeFolders(Derivatives):
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
-				comparison_dipoles[targetidx] = self._calculator.get_dipole(path)
+				comparison_dipoles[targetidx] = self._calculator.get_electronic_dipole(path, gridcoords, gridweights) + self.calulate_nuclear_dipole(target)
 		else:
 			comparison_energies = None
 

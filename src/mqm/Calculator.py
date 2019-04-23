@@ -227,8 +227,11 @@ class GaussianCalculator(Calculator):
 		return energy / 27.21138602
 
 	@staticmethod
-	def get_dipole(folder):
-		""" Returns the dipole moment in Debye."""
-		data = cclib.io.ccread('%s/run.log' % folder)
-		return data.moments[1]
+	def get_electronic_dipole(folder, gridcoords, gridweights):
+		""" Returns the electronic dipole moment."""
+		#data = cclib.io.ccread('%s/run.log' % folder)
+		#return data.moments[1]
+
+		rho = GaussianCalculator.density_on_grid('%s/run.fchk' % folder, gridcoords)
+		return -np.sum(gridcoords.T * rho * gridweights, axis=1)
 
