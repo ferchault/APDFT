@@ -20,13 +20,19 @@ mqm.Derivatives module
     :undoc-members:
     :show-inheritance:
 
-mqm.Physics module
+mqm.physics module
 ------------------
 
 .. automodule:: mqm.physics
     :members:
     :undoc-members:
 
+mqm.math module
+------------------
+
+.. automodule:: mqm.math
+    :members:
+    :undoc-members:
 
 Module contents
 ---------------

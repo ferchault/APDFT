@@ -13,6 +13,7 @@ import basis_set_exchange as bse
 
 import mqm
 import mqm.Calculator as mqmc
+import mqm.math
 
 class Derivatives(object):
 	""" Collects common code for derivative implementations."""
@@ -87,17 +88,15 @@ class Derivatives(object):
 		return grid.coords/self.angstrom, grid.weights
 
 	def _enumerate_all_targets(self):
-		""" Builds a list of all integer partitions. """
-		def get_partition(protons, sites):
-			if sites == 1:
-				return [[protons]]
-			res = []
-			for x in range(protons + 1):
-				for p in get_partition(protons - x, sites - 1):
-					res.append([x] + p)
-			return res
+		""" Builds a list of all possible targets.
 
-		return get_partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
+		Note that the order is not guaranteed to be stable.
+
+		Args:
+			self:		Class instance from which the total charge and numebr of sites is determined.
+		Returns:
+			A list of lists with the integer nuclear charges."""
+		return mqm.math.IntegerPartitions.partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
 
 
 class DerivativeFolders(Derivatives):
