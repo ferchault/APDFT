@@ -7,22 +7,22 @@ import mqm.Calculator as mqmc
 import getpass
 
 def test_local_execution():
-	c = mqmc.MockCalculator()
-	c2 = mqmc.GaussianCalculator()
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = mqmc.MockCalculator(method, basisset)
+	c2 = mqmc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	method = 'CCSD'
-	basisset = 'STO-3G'
-	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
+	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 
 	with tempfile.TemporaryDirectory() as tmpname:
 		os.chdir(tmpname)
 		with open('run.inp', 'w') as fh:
 			fh.write(inputfile)
 		with open('run.sh', 'w') as fh:
-			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset))
+			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid))
 		os.chmod('run.sh', 0o777)
 
 		c.execute('.')
@@ -46,15 +46,14 @@ def test_ssh_constr():
 	assert result == (getpass.getuser(), None, 'host', 22, '.')
 
 def test_gaussian_input():
-	c = mqmc.GaussianCalculator()
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = mqmc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	method = 'CCSD'
-	basisset = 'STO-3G'
-	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
-	print (inputfile)
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 	expected = '''%Chk=run.chk
 #CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSymm
 

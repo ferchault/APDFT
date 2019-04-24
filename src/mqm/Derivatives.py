@@ -7,64 +7,31 @@ import functools
 import traceback
 
 import numpy as np
-import pyscf
-from pyscf import dft
 import basis_set_exchange as bse
 
 import mqm
 import mqm.Calculator as mqmc
 import mqm.math
+import mqm.physics
 
-class Derivatives(object):
-	""" Collects common code for derivative implementations."""
-
-	angstrom = 1/0.52917721067
-
-	def __init__(self, calculator, highest_order, nuclear_numbers, coordinates, method, basisset):
+class DerivativeFolders(mqm.physics.APDFT):
+	def assign_calculator(self, calculator):
 		self._calculator = calculator
-		if highest_order > 2:
-			raise NotImplementedError()
-		self._orders = list(range(0, highest_order+1))
-		self._nuclear_numbers = nuclear_numbers
-		self._coordinates = coordinates
-		self._basisset = basisset
-		self._method = method
-		self._reader_cache = dict()
-
-	def calculate_delta_nuc_nuc(self, target):
-		natoms = len(self._coordinates)
-		ret = 0.
-		deltaZ = target - self._nuclear_numbers
-		for i in range(natoms):
-			for j in range(i + 1, natoms):
-				d = np.linalg.norm((self._coordinates[i] - self._coordinates[j])*self.angstrom)
-				ret = deltaZ[i]*deltaZ[j]/d
-		return ret
-
-	def calulate_nuclear_dipole(self, nuclear_charges):
-		""" Calculates the nuclear dipole moment w.r.t. the origin."""
-		return np.sum(self._coordinates.T * nuclear_charges, axis=1)
-
-	@staticmethod
-	def _Z_to_label(Z):
-		if Z == 0:
-			return '-'
-		return bse.lut.element_sym_from_Z(Z, normalize=True)
 
 	def _print_energies(self, targets, energies, comparison_energies):
 		if comparison_energies is None:
 			for target, energy in zip(targets, energies):
-				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				targetname = ','.join([mqm.physics.charge_to_label(_) for _ in target])
 				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname)
 		else:
 			for target, energy, comparison in zip(targets, energies, comparison_energies):
-				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				targetname = ','.join([mqm.physics.charge_to_label(_) for _ in target])
 				mqm.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
 	def _print_dipoles(self, targets, dipoles, comparison_dipoles):
 		if comparison_dipoles is not None:
 			for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
-				targetname = ','.join([Derivatives._Z_to_label(_) for _ in target])
+				targetname = ','.join([mqm.physics.charge_to_label(_) for _ in target])
 				mqm.log.log('Dipole calculated',
 					level='RESULT',
 					kind='total_dipole',
@@ -74,32 +41,6 @@ class Derivatives(object):
 					targetname=targetname
 				)
 
-	def _get_grid(self):
-		""" Returns the integration grid in Angstrom."""
-		mol = pyscf.gto.Mole()
-		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
-			# pyscf molecule init is in Angstrom
-			mol.atom.extend([[nuclear, *coord]])
-		mol.build()
-		grid = dft.gen_grid.Grids(mol)
-		grid.level = 3
-		grid.build()
-		# pyscf grid is in a.u.
-		return grid.coords/self.angstrom, grid.weights
-
-	def _enumerate_all_targets(self):
-		""" Builds a list of all possible targets.
-
-		Note that the order is not guaranteed to be stable.
-
-		Args:
-			self:		Class instance from which the total charge and numebr of sites is determined.
-		Returns:
-			A list of lists with the integer nuclear charges."""
-		return mqm.math.IntegerPartitions.partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
-
-
-class DerivativeFolders(Derivatives):
 	@staticmethod
 	def _calculate_delta_Z_vector(numatoms, order, sites, direction):
 		baseline = np.zeros(numatoms)
@@ -131,21 +72,21 @@ class DerivativeFolders(Derivatives):
 					os.makedirs(path, exist_ok=True)
 
 					charges = self._nuclear_numbers + DerivativeFolders._calculate_delta_Z_vector(len(self._nuclear_numbers), order, combination, direction)
-					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset)
+					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, charges, None)
 					with open('%s/run.inp' % path, 'w') as fh:
 						fh.write(inputfile)
 					with open('%s/run.sh' % path, 'w') as fh:
-						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None, self._method, self._basisset))
+						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None))
 		if explicit_reference:
-			for target in self._enumerate_all_targets():
+			for target in self.enumerate_all_targets():
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				os.makedirs(path, exist_ok=True)
 
-				inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, target, None, self._method, self._basisset)
+				inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, target, None)
 				with open('%s/run.inp' % path, 'w') as fh:
 					fh.write(inputfile)
 				with open('%s/run.sh' % path, 'w') as fh:
-					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None, self._method, self._basisset))
+					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None))
 
 	@staticmethod
 	def _wrapper(_, remote_host, remote_preload):
@@ -189,21 +130,22 @@ class DerivativeFolders(Derivatives):
 
 	def analyse(self, explicit_reference=False):
 		""" Performs actual analysis and integration. Prints results"""
-		targets = self._enumerate_all_targets()
+		targets = self.enumerate_all_targets()
 		energies = np.zeros(len(targets))
 		dipoles = np.zeros((len(targets), 3))
 		comparison_energies = np.zeros(len(targets))
 		comparison_dipoles = np.zeros((len(targets), 3))
 		natoms = len(self._coordinates)
+		own_nuc_nuc = mqm.physics.Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
 
 		num_electrons = np.sum(self._nuclear_numbers)
 
 		# get base information
 		gridcoords, gridweights = self._get_grid()
-		grid_ds = np.linalg.norm(gridcoords * self.angstrom, axis=1)
+		grid_ds = np.linalg.norm(gridcoords * mqm.physics.angstrom, axis=1)
 		ds = []
 		for site in self._coordinates:
-			ds.append(np.linalg.norm((gridcoords - site)*self.angstrom, axis=1))
+			ds.append(np.linalg.norm((gridcoords - site)*mqm.physics.angstrom, axis=1))
 		refenergy = self._calculator.get_total_energy('multiqm-run/order-0/site-all-cc')
 
 		# get target predictions
@@ -245,15 +187,21 @@ class DerivativeFolders(Derivatives):
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
 
-			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + self.calculate_delta_nuc_nuc(target)
-			dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1) + self.calulate_nuclear_dipole(target)
+			d_nuc_nuc = mqm.physics.Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
+			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + d_nuc_nuc
+			nuc_dipole = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+			dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1) + nuc_dipole
 
 		# optional comparison to true properties
 		if explicit_reference:
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
-				comparison_dipoles[targetidx] = self._calculator.get_electronic_dipole(path, gridcoords, gridweights) + self.calulate_nuclear_dipole(target)
+
+				rho = self._cached_reader(path, gridcoords, gridweights, num_electrons)
+				ed = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+				nd = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rho * gridweights)
+				comparison_dipoles[targetidx] = ed + nd
 		else:
 			comparison_energies = None
 

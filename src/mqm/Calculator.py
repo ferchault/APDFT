@@ -23,6 +23,11 @@ import orbkit
 
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
+
+	def __init__(self, method, basisset):
+		self._method = method
+		self._basisset = basisset
+
 	def get_methods(self):
 		return list(self._methods.keys())
 
@@ -132,7 +137,7 @@ class Calculator(object):
 class MockCalculator(Calculator):
 	_methods = {}
 	@classmethod
-	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
+	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/mock-run.sh' % basedir) as fh:
 			template = j.Template(fh.read())
@@ -194,18 +199,18 @@ class GaussianCalculator(Calculator):
 		rho = orbkit.core.rho_compute(qc, numproc=1)
 		return rho
 
-	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset, iscomparison=False):
+	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian.txt' % basedir) as fh:
 			template = j.Template(fh.read())
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
-		env_basis = GaussianCalculator._format_basisset(nuclear_charges, basisset)
+		env_basis = GaussianCalculator._format_basisset(nuclear_charges, self._basisset)
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
-		return template.render(coordinates=env_coord, method=self._methods[method], basisset=env_basis, nuclearcharges=env_nuc)
+		return template.render(coordinates=env_coord, method=self._methods[self._method], basisset=env_basis, nuclearcharges=env_nuc)
 
 	@classmethod
-	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset):
+	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):
 		basedir = os.path.dirname(os.path.abspath(__file__))
 		with open('%s/templates/gaussian-run.sh' % basedir) as fh:
 			template = j.Template(fh.read())
