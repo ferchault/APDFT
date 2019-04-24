@@ -54,6 +54,7 @@ def test_gaussian_input():
 	method = 'CCSD'
 	basisset = 'STO-3G'
 	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
+	print (inputfile)
 	expected = '''%Chk=run.chk
 #CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSymm
 
@@ -74,6 +75,10 @@ S   3   1.00
       0.3425250914D+01       0.1543289673D+00
       0.6239137298D+00       0.5353281423D+00
       0.1688554040D+00       0.4446345422D+00
+S   3   1.00
+      0.6362421394D+01       0.1543289673D+00
+      0.1158922999D+01       0.5353281423D+00
+      0.3136497915D+00       0.4446345422D+00
 ****
 
 1 Nuc 0.950000
