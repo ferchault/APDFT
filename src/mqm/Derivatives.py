@@ -41,12 +41,11 @@ class DerivativeFolders(mqm.physics.APDFT):
 					targetname=targetname
 				)
 
-	@staticmethod
-	def _calculate_delta_Z_vector(numatoms, order, sites, direction):
+	def _calculate_delta_Z_vector(self, numatoms, order, sites, direction):
 		baseline = np.zeros(numatoms)
 
 		if order > 0:
-			sign = {'up': 1, 'dn': -1}[direction] * 0.05
+			sign = {'up': 1, 'dn': -1}[direction] * self._delta
 			baseline[list(sites)] += sign
 
 		return baseline
@@ -71,7 +70,7 @@ class DerivativeFolders(mqm.physics.APDFT):
 					path = 'multiqm-run/order-%d/site%s-%s' % (order, label, direction)
 					os.makedirs(path, exist_ok=True)
 
-					charges = self._nuclear_numbers + DerivativeFolders._calculate_delta_Z_vector(len(self._nuclear_numbers), order, combination, direction)
+					charges = self._nuclear_numbers + self._calculate_delta_Z_vector(len(self._nuclear_numbers), order, combination, direction)
 					inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, charges, None)
 					with open('%s/run.inp' % path, 'w') as fh:
 						fh.write(inputfile)
@@ -165,7 +164,7 @@ class DerivativeFolders(mqm.physics.APDFT):
 			for atomidx in range(natoms):
 				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords, gridweights, num_electrons)
 				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords, gridweights, num_electrons)
-				deriv = (rhoup - rhodn)/(2*0.05)
+				deriv = (rhoup - rhodn)/(2*self._delta)
 				rhotilde += deriv * deltaZ[atomidx] / 2
 				rhotarget += deriv * deltaZ[atomidx]
 
@@ -180,9 +179,9 @@ class DerivativeFolders(mqm.physics.APDFT):
 					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords, gridweights, num_electrons)
 
 					if i == j:
-						deriv = (rhoiup + rhoidn - 2 * rho)/(0.05**2)
+						deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)
 					else:
-						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*0.05**2)
+						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*self._delta**2)
 
 					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
 					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2

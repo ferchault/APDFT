@@ -103,6 +103,7 @@ class APDFT(object):
 		self._nuclear_numbers = nuclear_numbers
 		self._coordinates = coordinates
 		self._reader_cache = dict()
+		self._delta = 0.05
 
 	def _get_grid(self):
 		""" Returns the integration grid in Angstrom."""
