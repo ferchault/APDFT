@@ -16,10 +16,11 @@ parser.add_argument('--do-explicit-reference', action='store_true', help='Whethe
 if __name__ == '__main__':
 	args = parser.parse_args()
 
-	calculator = mqm.Calculator.GaussianCalculator()
+	calculator = mqm.Calculator.GaussianCalculator(args.method, args.basisset)
 	nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
 
-	derivatives = mqm.Derivatives.DerivativeFolders(calculator, 2, nuclear_numbers, coordinates, args.method, args.basisset)
+	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates)
+	derivatives.assign_calculator(calculator)
 	derivatives.prepare(args.do_explicit_reference)
 	success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
 	if not success:
