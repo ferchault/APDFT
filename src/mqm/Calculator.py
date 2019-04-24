@@ -195,8 +195,12 @@ class GaussianCalculator(Calculator):
 		orbkit.grid.z = grid[:, 2]*1.88973
 		orbkit.grid.is_initialized = True
 
-		qc = orbkit.read.main_read(inputfile, itype='gaussian.fchk')
-		rho = orbkit.core.rho_compute(qc, numproc=1)
+		try:
+			qc = orbkit.read.main_read(inputfile, itype='gaussian.fchk')
+			rho = orbkit.core.rho_compute(qc, numproc=1)
+		except:
+			mqm.log.log('Unable to read fchk file with orbkit.', level='error', filename=inputfile)
+			return grid[:, 0] * 0
 		return rho
 
 	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False):
