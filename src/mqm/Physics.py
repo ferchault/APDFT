@@ -2,8 +2,9 @@
 import numpy as np
 
 class Dipoles(object):
-	""" Collects functions regarding the calculation of dipole moments."""
+	""" Collects functions regarding the calculation of dipole moments. This code follows the physics convention of the sign: the dipole moment vector points from the negative charge center to the positive charge center."""
 
+	#: Conversion factor from electron charges and Angstrom to Debye
 	debye = 0.20819433
 
 	@staticmethod
@@ -15,14 +16,14 @@ class Dipoles(object):
 
 		.. math::
 
-			\mathbf{p}(\mathbf{r}) = \sum_I q_i(\mathbf{r_i}-\mathbf{r})
+			\\mathbf{p}(\\mathbf{r}) = \\sum_I q_i(\\mathbf{r_i}-\\mathbf{r})
 		
 		Args:
-			reference_point:	A 3 array of the reference point :math:`\mathbf{r}`. [Angstrom]
-			coordinates: 		A (3,N) array of point charge coordinates :math:`\mathbf{r_i}`. [Angstrom]
+			reference_point:	A 3 array of the reference point :math:`\\mathbf{r}`. [Angstrom]
+			coordinates: 		A (3,N) array of point charge coordinates :math:`\\mathbf{r_i}`. [Angstrom]
 			charges:			A N array of point charges :math:`q_i`. [e]
 		Returns:
-			Dipole moment :math:`\mathbf{p}`. [Debye]
+			Dipole moment :math:`\\mathbf{p}`. [Debye]
 		"""
 		shift = coordinates - reference_point
 		return np.sum(shift.T * charges, axis=1) * Dipoles.debye
@@ -36,14 +37,14 @@ class Dipoles(object):
 
 		.. math::
 
-			\mathbf{p}(\mathbf{r}) = \int_\Omega \\rho(\mathbf{r_i})(\mathbf{r_i}-\mathbf{r})
+			\\mathbf{p}(\\mathbf{r}) = \\int_\\Omega \\rho(\\mathbf{r_i})(\\mathbf{r_i}-\\mathbf{r})
 		
 		Args:
-			reference_point:	A 3 array of the reference point :math:`\mathbf{r}`. [Angstrom]
-			coordinates: 		A (3,N) array of grid coordinates :math:`\mathbf{r_i}`. [Angstrom]
+			reference_point:	A 3 array of the reference point :math:`\\mathbf{r}`. [Angstrom]
+			coordinates: 		A (3,N) array of grid coordinates :math:`\\mathbf{r_i}`. [Angstrom]
 			electron_density:	A N array of electron density values :math:`\\rho` at `coordinates`. [e/Angstrom^3]
 		Returns:
-			Dipole moment :math:`\mathbf{p}`. [Debye]
+			Dipole moment :math:`\\mathbf{p}`. [Debye]
 		"""
 		shift = coordinates - reference_point
 		return -np.sum(shift.T * electron_density, axis=1) * Dipoles.debye

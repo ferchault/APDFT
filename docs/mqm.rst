@@ -23,10 +23,9 @@ mqm.Derivatives module
 mqm.Physics module
 ------------------
 
-.. automodule:: mqm.Physics
+.. automodule:: mqm.physics
     :members:
     :undoc-members:
-    :show-inheritance:
 
 
 Module contents
