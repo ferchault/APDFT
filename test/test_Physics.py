@@ -16,6 +16,6 @@ def test_dipole_sign():
 	dipole = phys.Dipoles.point_charges(np.array([0., 0., 0.]), coordinates, charges)
 	assert dipole[-1] > 0
 
-	charges = np.array([1, 1])
+	charges = np.array([1, -1])
 	dipole = phys.Dipoles.electron_density(np.array([0., 0., 0.]), coordinates, charges)
-	assert dipole < 0
+	assert dipole[-1] < 0

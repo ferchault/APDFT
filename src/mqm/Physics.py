@@ -25,7 +25,7 @@ class Dipoles(object):
 			Dipole moment :math:`\mathbf{p}`. [Debye]
 		"""
 		shift = coordinates - reference_point
-		return np.sum(shift.T * charges, axis=0) * Dipoles.debye
+		return np.sum(shift.T * charges, axis=1) * Dipoles.debye
 
 	@staticmethod
 	def electron_density(reference_point, coordinates, electron_density):
@@ -46,4 +46,4 @@ class Dipoles(object):
 			Dipole moment :math:`\mathbf{p}`. [Debye]
 		"""
 		shift = coordinates - reference_point
-		return -np.sum(shift.T * electron_density, axis=0) * Dipoles.debye
+		return -np.sum(shift.T * electron_density, axis=1) * Dipoles.debye
