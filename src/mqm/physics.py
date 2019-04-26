@@ -118,13 +118,21 @@ class APDFT(object):
 		# pyscf grid is in a.u.
 		return grid.coords/angstrom, grid.weights
 
-	def enumerate_all_targets(self):
+	def enumerate_all_targets(self, max_charge=2):
 		""" Builds a list of all possible targets.
 
 		Note that the order is not guaranteed to be stable.
 
 		Args:
 			self:		Class instance from which the total charge and numebr of sites is determined.
+			max_charge:	Maxmimum absolute molecular charge allowed. [e]
 		Returns:
 			A list of lists with the integer nuclear charges."""
-		return mqm.math.IntegerPartitions.partition(sum(self._nuclear_numbers), len(self._nuclear_numbers))
+		res = []
+		nsites = len(self._nuclear_numbers)
+		nprotons = sum(self._nuclear_numbers)
+		for shift in range(-max_charge, max_charge + 1):
+			if nprotons + shift < 1:
+				continue
+			res += mqm.math.IntegerPartitions.partition(nprotons + shift, nsites)
+		return res

@@ -211,7 +211,8 @@ class GaussianCalculator(Calculator):
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
 		env_basis = GaussianCalculator._format_basisset(nuclear_charges, self._basisset)
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
-		return template.render(coordinates=env_coord, method=self._methods[self._method], basisset=env_basis, nuclearcharges=env_nuc)
+		env_molcharge = int(np.sum(nuclear_charges) - np.sum(nuclear_numbers))
+		return template.render(coordinates=env_coord, method=self._methods[self._method], basisset=env_basis, nuclearcharges=env_nuc, moleculecharge=env_molcharge)
 
 	@classmethod
 	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):

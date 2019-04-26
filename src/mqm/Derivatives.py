@@ -92,7 +92,7 @@ class DerivativeFolders(mqm.physics.APDFT):
 		try:
 			mqmc.Calculator.execute(_, remote_host, remote_preload)
 		except Exception as e:
-			return traceback.format_exc()
+			return _, traceback.format_exc()
 
 	def run(self, parallel=None, remote_host=None, remote_preload=None):
 		""" Executes all calculations if not done so already."""
@@ -115,6 +115,8 @@ class DerivativeFolders(mqm.physics.APDFT):
 			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
 
 		failed = [_ for _ in results if _ is not None]
+		for fail in failed:
+			mqm.log.log('Calculation failed.', level='error', folder=fail[0])
 		return len(failed) == 0
 
 	def _cached_reader(self, folder, gridcoords, gridweights, num_electrons):

@@ -1,9 +1,9 @@
 %Chk=run.chk
-#{{ method }} Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSymm
+#{{ method }} Gen scf=tight Massage integral=NoXCTest Pop=Dipole Density=Current NoSymm
 
 run
 
-0 1
+{{ moleculecharge }} 1
 {{ coordinates }}
 
 {{ basisset }}
