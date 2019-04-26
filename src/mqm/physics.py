@@ -8,7 +8,7 @@ import mqm
 #: Conversion factor from Bohr in Angstrom.
 angstrom = 1/0.52917721067
 #: Conversion factor from electron charges and Angstrom to Debye
-debye = 0.20819433
+debye = 1/0.20819433
 
 class Coulomb(object):
 	""" Collects functions for Coulomb interaction."""
