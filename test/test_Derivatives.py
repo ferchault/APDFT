@@ -12,7 +12,7 @@ import mqm.Calculator as mqmc
 
 @pytest.fixture
 def mock_derivatives():
-	d = mqmd.DerivativeFolders(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]))
+	d = mqmd.DerivativeFolders(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), 0, 5)
 	return d
 
 @pytest.fixture(scope="module")
@@ -31,7 +31,7 @@ def test_readfile(sample_rundir):
 	nuclear_numbers, coordinates = mqm.read_xyz('multiqm-run/n2.xyz')
 
 	# with reference
-	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates)
+	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
 	derivatives.assign_calculator(calculator)
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
 
@@ -42,7 +42,7 @@ def test_readfile(sample_rundir):
 	assert abs(comparison_energies[pos] - -177.78263968061) < 1e-7
 
 	# without reference
-	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates)
+	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
 	derivatives.assign_calculator(calculator)
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=False)
 
@@ -76,7 +76,7 @@ def test_filecontents():
 	os.chdir(tmpdir)
 
 	c = mqmc.GaussianCalculator('HF', 'STO-3G')
-	d = mqmd.DerivativeFolders(2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]))
+	d = mqmd.DerivativeFolders(2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 0, 6)
 	d.assign_calculator(c)
 	assert d._orders == [0, 1, 2]
 	d.prepare(explicit_reference=True)

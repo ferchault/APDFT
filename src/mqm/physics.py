@@ -96,7 +96,7 @@ def charge_to_label(Z):
 
 class APDFT(object):
 	""" Implementation of alchemical perturbation density functional theory."""
-	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0):
+	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0, max_deltaz=3):
 		if highest_order > 2:
 			raise NotImplementedError()
 		self._orders = list(range(0, highest_order+1))
@@ -105,6 +105,7 @@ class APDFT(object):
 		self._reader_cache = dict()
 		self._delta = 0.05
 		self._max_charge = max_charge
+		self._max_deltaz = max_deltaz
 
 	def _get_grid(self):
 		""" Returns the integration grid in Angstrom."""
@@ -119,23 +120,27 @@ class APDFT(object):
 		# pyscf grid is in a.u.
 		return grid.coords/angstrom, grid.weights
 
-	def enumerate_all_targets(self, max_charge=None):
+	def enumerate_all_targets(self):
 		""" Builds a list of all possible targets.
 
 		Note that the order is not guaranteed to be stable.
 
 		Args:
 			self:		Class instance from which the total charge and numebr of sites is determined.
-			max_charge:	Maxmimum absolute molecular charge allowed. [e]
 		Returns:
 			A list of lists with the integer nuclear charges."""
-		if max_charge is None:
-			max_charge = self._max_charge
+		if self._max_deltaz is None:
+			around = None
+			limit = None
+		else:
+			around = np.array(self._nuclear_numbers)
+			limit = self._max_deltaz
+
 		res = []
 		nsites = len(self._nuclear_numbers)
 		nprotons = sum(self._nuclear_numbers)
-		for shift in range(-max_charge, max_charge + 1):
+		for shift in range(-self._max_charge, self._max_charge + 1):
 			if nprotons + shift < 1:
 				continue
-			res += mqm.math.IntegerPartitions.partition(nprotons + shift, nsites)
+			res += mqm.math.IntegerPartitions.partition(nprotons + shift, nsites, around, limit)
 		return res
