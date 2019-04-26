@@ -96,7 +96,7 @@ def charge_to_label(Z):
 
 class APDFT(object):
 	""" Implementation of alchemical perturbation density functional theory."""
-	def __init__(self, highest_order, nuclear_numbers, coordinates):
+	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0):
 		if highest_order > 2:
 			raise NotImplementedError()
 		self._orders = list(range(0, highest_order+1))
@@ -104,6 +104,7 @@ class APDFT(object):
 		self._coordinates = coordinates
 		self._reader_cache = dict()
 		self._delta = 0.05
+		self._max_charge = max_charge
 
 	def _get_grid(self):
 		""" Returns the integration grid in Angstrom."""
@@ -118,7 +119,7 @@ class APDFT(object):
 		# pyscf grid is in a.u.
 		return grid.coords/angstrom, grid.weights
 
-	def enumerate_all_targets(self, max_charge=0):
+	def enumerate_all_targets(self, max_charge=None):
 		""" Builds a list of all possible targets.
 
 		Note that the order is not guaranteed to be stable.
@@ -128,6 +129,8 @@ class APDFT(object):
 			max_charge:	Maxmimum absolute molecular charge allowed. [e]
 		Returns:
 			A list of lists with the integer nuclear charges."""
+		if max_charge is None:
+			max_charge = self._max_charge
 		res = []
 		nsites = len(self._nuclear_numbers)
 		nprotons = sum(self._nuclear_numbers)

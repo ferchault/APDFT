@@ -11,6 +11,7 @@ parser.add_argument('--remote-host', help='A SSH host to run the calculations in
 parser.add_argument('--remote-preload', help='A command to run on the remote host to make QM codes available.')
 parser.add_argument('--parallel', type=int, help='Number of parallel executions allowed. If 0, uses all available CPU.')
 parser.add_argument('--do-explicit-reference', action='store_true', help='Whether to do a reference calculation for every target.')
+parser.add_argument('--max-charge', type=int, help='The maximal formal molecular charge for targets.')
 
 
 if __name__ == '__main__':
@@ -19,7 +20,7 @@ if __name__ == '__main__':
 	calculator = mqm.Calculator.GaussianCalculator(args.method, args.basisset)
 	nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
 
-	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates)
+	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, args.max_charge)
 	derivatives.assign_calculator(calculator)
 	derivatives.prepare(args.do_explicit_reference)
 	success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
