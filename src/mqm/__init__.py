@@ -44,7 +44,10 @@ def read_xyz(fn):
 	nuclear_numbers = []
 	coordinates = []
 	for line in lines:
-		parts = line.strip().split()
+		line = line.strip()
+		if len(line) == 0:
+			break
+		parts = line.split()
 		nuclear_numbers.append(get_element_number(parts[0]))
 		coordinates.append([float(_) for _ in parts[1:4]])
 	return np.array(nuclear_numbers), np.array(coordinates)

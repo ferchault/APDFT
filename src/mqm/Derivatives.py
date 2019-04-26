@@ -122,7 +122,7 @@ class DerivativeFolders(mqm.physics.APDFT):
 			rho = self._calculator.get_density_on_grid(folder, gridcoords)
 			self._reader_cache[folder] = rho
 			int_electrons = np.sum(rho * gridweights)
-			if abs(num_electrons - int_electrons) > 1e-4:
+			if abs(num_electrons - int_electrons) > 1e-2:
 				mqm.log.log('Electron count mismatch.', level='error', expected=num_electrons, found=int_electrons, path=folder)
 
 		return self._reader_cache[folder]

@@ -163,7 +163,7 @@ class GaussianCalculator(Calculator):
 	def _format_basisset(nuclear_charges, basisset):
 		res = ''
 		for atomid, nuclear_charge in enumerate(nuclear_charges):
-			elements = set([max(1, int(_(nuclear_charge))) for _ in (np.ceil, np.floor)])
+			elements = set([max(1, int(_(nuclear_charge))) for _ in (np.round,)])
 			output = bse.get_basis(basisset, elements=list(elements), fmt='gaussian94')
 
 			res += '%d 0\n' % (atomid + 1)
@@ -226,7 +226,12 @@ class GaussianCalculator(Calculator):
 	@staticmethod
 	def get_total_energy(folder):
 		""" Returns the total energy in Hartree."""
-		data = cclib.io.ccread('%s/run.log' % folder)
+		logfile = '%s/run.log' % folder
+		try:
+			data = cclib.io.ccread(logfile)
+		except:
+			mqm.log.log('Unable to read energy from log file.', filename=logfile, level='error')
+			return 0
 		energy = None
 		energy = data.scfenergies
 		try:
