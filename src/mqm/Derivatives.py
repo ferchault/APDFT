@@ -189,7 +189,8 @@ class DerivativeFolders(mqm.physics.APDFT):
 			d_nuc_nuc = mqm.physics.Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
 			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + d_nuc_nuc
 			nuc_dipole = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-			dipoles[targetidx] = -np.sum(gridcoords.T * rhotarget * gridweights, axis=1) + nuc_dipole
+			ed = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rhotarget * gridweights)
+			dipoles[targetidx] = ed + nuc_dipole
 
 		# optional comparison to true properties
 		if explicit_reference:
@@ -198,8 +199,8 @@ class DerivativeFolders(mqm.physics.APDFT):
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
 
 				rho = self._cached_reader(path, gridcoords, gridweights, num_electrons)
-				ed = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-				nd = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rho * gridweights)
+				nd = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+				ed = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rho * gridweights)
 				comparison_dipoles[targetidx] = ed + nd
 		else:
 			comparison_energies = None
