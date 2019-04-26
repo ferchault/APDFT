@@ -118,7 +118,7 @@ class APDFT(object):
 		# pyscf grid is in a.u.
 		return grid.coords/angstrom, grid.weights
 
-	def enumerate_all_targets(self, max_charge=2):
+	def enumerate_all_targets(self, max_charge=0):
 		""" Builds a list of all possible targets.
 
 		Note that the order is not guaranteed to be stable.
