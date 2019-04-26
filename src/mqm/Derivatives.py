@@ -77,7 +77,9 @@ class DerivativeFolders(mqm.physics.APDFT):
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None))
 		if explicit_reference:
-			for target in self.enumerate_all_targets():
+			targets = self.enumerate_all_targets()
+			mqm.log.log('All targets listed for comparison run.', level='info', count=len(targets))
+			for target in targets:
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				os.makedirs(path, exist_ok=True)
 
