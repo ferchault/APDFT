@@ -6,26 +6,32 @@ from . import Calculator
 from . import Derivatives
 
 # setup output
-import structlog
-my_styles = structlog.dev.ConsoleRenderer.get_default_level_styles()
-my_styles["RESULT"] = my_styles["info"]
+def _setup_logging():
+	import structlog
+	my_styles = structlog.dev.ConsoleRenderer.get_default_level_styles()
+	my_styles["RESULT"] = my_styles["info"]
 
-if sys.stdout.isatty():
-	renderer = structlog.dev.ConsoleRenderer(level_styles=my_styles)
-else:
-	renderer = structlog.processors.JSONRenderer()
+	if sys.stdout.isatty():
+		renderer = structlog.dev.ConsoleRenderer(level_styles=my_styles)
+	else:
+		renderer = structlog.processors.JSONRenderer()
 
-structlog.configure(
-	processors=[
-		structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M"),
-		structlog.processors.StackInfoRenderer(),
-		structlog.processors.format_exc_info,
-		renderer
-	],
-	context_class=dict,
-	cache_logger_on_first_use=True,
-)
-log = structlog.get_logger()
+	structlog.configure(
+		processors=[
+			structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M"),
+			structlog.processors.StackInfoRenderer(),
+			structlog.processors.format_exc_info,
+			renderer
+		],
+		context_class=dict,
+		cache_logger_on_first_use=True,
+	)
+	return structlog.get_logger()
+try:
+	log = _setup_logging()
+except TypeError:
+	# mocking environment
+	log = None
 
 def get_methods():
 	calculators = [getattr(Calculator, _) for _ in dir(Calculator) if 'Calculator' in _ and _ != 'Calculator']

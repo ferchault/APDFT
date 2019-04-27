@@ -47,6 +47,8 @@ extensions = [
     'sphinx.ext.githubpages',
 ]
 
+autodoc_mock_imports = 'numpy jinja2 basis_set_exchange Cython scipy h5py pyscf cclib structlog colorama orbkit'.split()
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
