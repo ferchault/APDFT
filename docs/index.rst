@@ -10,7 +10,8 @@ Welcome to multiQM's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   mqm
+   multiQM
 
 Indices and tables
 ==================
