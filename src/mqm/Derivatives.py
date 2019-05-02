@@ -121,95 +121,64 @@ class DerivativeFolders(mqm.physics.APDFT):
 			mqm.log.log('Calculation failed.', level='error', folder=fail[0])
 		return len(failed) == 0
 
-	def _cached_reader(self, folder, gridcoords, gridweights, num_electrons):
+	def _cached_reader(self, folder):
 		if folder not in self._reader_cache:
-			rho = self._calculator.get_density_on_grid(folder, gridcoords)
+			rho = self._calculator.get_density_on_grid(folder, self._gridcoords)
 			self._reader_cache[folder] = rho
-			int_electrons = np.sum(rho * gridweights)
+			int_electrons = np.sum(rho * self._gridweights)
+			num_electrons = sum(self._nuclear_numbers)
 			if abs(num_electrons - int_electrons) > 1e-2:
 				mqm.log.log('Electron count mismatch.', level='error', expected=num_electrons, found=int_electrons, path=folder)
 
 		return self._reader_cache[folder]
 
-	def analyse(self, explicit_reference=False):
+	def get_density_derivative(self, sites):
+		num_electrons = sum(self._nuclear_numbers)
+		if len(sites) == 0:
+			return self._cached_reader('multiqm-run/order-0/site-all-cc')
+		if len(sites) == 1:
+			rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % sites[0])
+			rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % sites[0])
+			return (rhoup - rhodn) / (2 * self._delta)
+		if len(sites) == 2:
+			i, j = sites
+			rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i)
+			rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i)
+			rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j)
+			rhojdn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % j)
+			rhoup = self._cached_reader('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)))
+			rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)))
+
+			if i == j:
+				deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)
+			else:
+				deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2 * self._delta**2)
+			return deriv
+		raise NotImplementedError()
+
+	def get_density_from_reference(self, nuclear_charges):
+		return self._cached_reader('multiqm-run/comparison-%s' % ('-'.join(map(str, nuclear_charges))))
+
+	def get_energy_from_reference(self, nuclear_charges):
+		return self._calculator.get_total_energy('multiqm-run/comparison-%s' % ('-'.join(map(str, nuclear_charges))))
+
+	def analyse(self, explicit_reference=False, do_energies=True, do_dipoles=True):
 		""" Performs actual analysis and integration. Prints results"""
-		targets = self.enumerate_all_targets()
-		energies = np.zeros(len(targets))
-		dipoles = np.zeros((len(targets), 3))
-		comparison_energies = np.zeros(len(targets))
-		comparison_dipoles = np.zeros((len(targets), 3))
-		natoms = len(self._coordinates)
-		own_nuc_nuc = mqm.physics.Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
+		targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
 
-		num_electrons = np.sum(self._nuclear_numbers)
-
-		# get base information
-		gridcoords, gridweights = self._get_grid()
-		grid_ds = np.linalg.norm(gridcoords * mqm.physics.angstrom, axis=1)
-		ds = []
-		for site in self._coordinates:
-			ds.append(np.linalg.norm((gridcoords - site)*mqm.physics.angstrom, axis=1))
-		refenergy = self._calculator.get_total_energy('multiqm-run/order-0/site-all-cc')
-
-		# get target predictions
-		for targetidx, target in enumerate(targets):
-			deltaZ = target - self._nuclear_numbers
-
-			deltaV = np.zeros(len(gridweights))
-			for atomidx in range(natoms):
-				deltaV += deltaZ[atomidx] / ds[atomidx]
-
-			# zeroth order
-			rho = self._cached_reader('multiqm-run/order-0/site-all-cc', gridcoords, gridweights, num_electrons)
-			rhotilde = rho.copy()
-			rhotarget = rho.copy()
-
-			# first order
-			for atomidx in range(natoms):
-				rhoup = self._cached_reader('multiqm-run/order-1/site-%d-up' % atomidx, gridcoords, gridweights, num_electrons)
-				rhodn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % atomidx, gridcoords, gridweights, num_electrons)
-				deriv = (rhoup - rhodn)/(2*self._delta)
-				rhotilde += deriv * deltaZ[atomidx] / 2
-				rhotarget += deriv * deltaZ[atomidx]
-
-			# second order
-			for i in range(natoms):
-				rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i, gridcoords, gridweights, num_electrons)
-				rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i, gridcoords, gridweights, num_electrons)
-				for j in range(natoms):
-					rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j, gridcoords, gridweights, num_electrons)
-					rhojdn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % j, gridcoords, gridweights, num_electrons)
-					rhoup = self._cached_reader('multiqm-run/order-2/site-%d-%d-up' % (min(i, j), max(i, j)), gridcoords, gridweights, num_electrons)
-					rhodn = self._cached_reader('multiqm-run/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)), gridcoords, gridweights, num_electrons)
-
-					if i == j:
-						deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)
-					else:
-						deriv = (rhoup + rhodn + 2 * rho - rhoiup - rhoidn - rhojup - rhojdn) / (2*self._delta**2)
-
-					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
-					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
-
-			d_nuc_nuc = mqm.physics.Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
-			energies[targetidx] = -np.sum(rhotilde * deltaV * gridweights) + d_nuc_nuc
-			nuc_dipole = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-			ed = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rhotarget * gridweights)
-			dipoles[targetidx] = ed + nuc_dipole
-
-		# optional comparison to true properties
 		if explicit_reference:
+			comparison_energies = energies.copy() * 0
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
 
-				rho = self._cached_reader(path, gridcoords, gridweights, num_electrons)
+				rho = self._cached_reader(path)
 				nd = mqm.physics.Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-				ed = mqm.physics.Dipoles.electron_density([0, 0, 0], gridcoords, rho * gridweights)
+				ed = mqm.physics.Dipoles.electron_density([0, 0, 0], self._gridcoords, rho * self._gridweights)
 				comparison_dipoles[targetidx] = ed + nd
 		else:
 			comparison_energies = None
-
-		energies += refenergy
+			comparison_dipoles = None
 
 		self._print_energies(targets, energies, comparison_energies)
 		self._print_dipoles(targets, dipoles, comparison_dipoles)

@@ -95,7 +95,10 @@ def charge_to_label(Z):
 	return bse.lut.element_sym_from_Z(Z, normalize=True)
 
 class APDFT(object):
-	""" Implementation of alchemical perturbation density functional theory."""
+	""" Implementation of alchemical perturbation density functional theory.
+
+	This is an abstract base class. This means that for any use, one needs to inherit from this class.
+	The subclass needs to implement all functions that raise a NotImplementedError upon invocation."""
 	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0, max_deltaz=3):
 		if highest_order > 2:
 			raise NotImplementedError()
@@ -106,6 +109,8 @@ class APDFT(object):
 		self._delta = 0.05
 		self._max_charge = max_charge
 		self._max_deltaz = max_deltaz
+		self._gridweights = None
+		self._gridcoords = None
 
 	def _get_grid(self):
 		""" Returns the integration grid in Angstrom."""
@@ -119,6 +124,9 @@ class APDFT(object):
 		grid.build()
 		# pyscf grid is in a.u.
 		return grid.coords/angstrom, grid.weights
+
+	def update_grid(self):
+		self._gridcoords, self._gridweights = self._get_grid()
 
 	def enumerate_all_targets(self):
 		""" Builds a list of all possible targets.
@@ -158,3 +166,96 @@ class APDFT(object):
 
 		coverage = len(self.enumerate_all_targets())
 		return cost, coverage
+
+	def get_energy_from_reference(self, nuclear_charges):
+		""" Retreives the total energy from a QM reference. Abstract function.
+
+		Light function, will not be called often, so no caching needed.
+
+		Args:
+			nuclear_charges: 	Integer list of nuclear charges. [e]
+		Returns:
+			The total energy. [Hartree]"""
+		raise NotImplementedError()
+
+	def get_density_from_reference(self, nuclear_charges):
+		""" Retreives the density from a QM reference. Abstract function.
+
+		Light function, will not be called often, so no caching needed.
+
+		Args:
+			nuclear_charges: 	Integer list of nuclear charges. [e]
+			gridcoords: 		Grid coordinates. [Angstrom]
+		Returns:
+			A numpy array of electron density at the grid coordinates."""
+		raise NotImplementedError()
+
+	def get_density_derivative(self, sites):
+		""" Retrieves the n-th order density derivative.
+
+		Heavy function, will be called often, caching needed. 
+		The order of the derivative is implicitly known since it's the length of *sites* argument via the chain rule.
+
+		Args:
+			sites:				Integer list of sites that are perturbed.
+		Returns:
+			A numpy array of electron density at the grid coordinates."""
+		raise NotImplementedError()
+
+	def predict_all_targets(self, do_energies=True, do_dipoles=True):
+		# assert one order of targets
+		targets = self.enumerate_all_targets()
+		self.update_grid()
+
+		# allocate output
+		if do_energies:
+			energies = np.zeros(len(targets))
+		else:
+			energies = None
+		if do_dipoles:
+			dipoles = np.zeros((len(targets), 3))
+		else:
+			dipoles = None
+		natoms = len(self._coordinates)
+
+		# get base information
+		grid_ds = np.linalg.norm(self._gridcoords * mqm.physics.angstrom, axis=1)
+		ds = []
+		for site in self._coordinates:
+			ds.append(np.linalg.norm((self._gridcoords - site)*mqm.physics.angstrom, axis=1))
+		refenergy = self.get_total_energy(self._nuclear_numbers)
+
+		# get target predictions
+		for targetidx, target in enumerate(targets):
+			deltaZ = target - self._nuclear_numbers
+
+			deltaV = np.zeros(len(gridweights))
+			for atomidx in range(natoms):
+				deltaV += deltaZ[atomidx] / ds[atomidx]
+
+			# zeroth order
+			rho = self.get_density_derivative([])
+			rhotilde = rho.copy()
+			rhotarget = rho.copy()
+
+			# first order
+			for atomidx in range(natoms):
+				deriv = self.get_density_derivative([atomidx])
+				rhotilde += deriv * deltaZ[atomidx] / 2
+				rhotarget += deriv * deltaZ[atomidx]
+
+			# second order
+			for i in range(natoms):
+				for j in range(natoms):
+					deriv = self.get_density_derivative([i, j])
+					rhotilde += (deriv * deltaZ[i] * deltaZ[j])/6
+					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
+
+			d_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
+			energies[targetidx] = -np.sum(rhotilde * deltaV * self._gridweights) + d_nuc_nuc
+			nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+			ed = Dipoles.electron_density([0, 0, 0], self._gridcoords, rhotarget * self._gridweights)
+			dipoles[targetidx] = ed + nuc_dipole
+
+		# return results
+		return targets, energies, dipoles
