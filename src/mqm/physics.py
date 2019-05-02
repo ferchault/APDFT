@@ -126,7 +126,7 @@ class APDFT(object):
 		Note that the order is not guaranteed to be stable.
 
 		Args:
-			self:		Class instance from which the total charge and numebr of sites is determined.
+			self:		Class instance from which the total charge and number of sites is determined.
 		Returns:
 			A list of lists with the integer nuclear charges."""
 		if self._max_deltaz is None:
@@ -144,3 +144,17 @@ class APDFT(object):
 				continue
 			res += mqm.math.IntegerPartitions.partition(nprotons + shift, nsites, around, limit)
 		return res
+
+	def estimate_cost_and_coverage(self):
+		""" Estimates number of single points (cost) and number of targets (coverage).
+
+		Args:
+			self:		Class instance from which the total charge and number of sites is determined.
+		Returns:
+			Tuple of ints: number of single points, number of targets."""
+
+		N = len(self._nuclear_numbers)
+		cost = sum({0: 1, 1: N, 2: 2*N*N}[_] for _ in self._orders)
+
+		coverage = len(self.enumerate_all_targets())
+		return cost, coverage

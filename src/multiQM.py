@@ -11,8 +11,9 @@ parser.add_argument('--remote-host', help='A SSH host to run the calculations in
 parser.add_argument('--remote-preload', help='A command to run on the remote host to make QM codes available.')
 parser.add_argument('--parallel', type=int, help='Number of parallel executions allowed. If 0, uses all available CPU.')
 parser.add_argument('--do-explicit-reference', action='store_true', help='Whether to do a reference calculation for every target.')
-parser.add_argument('--max-charge', type=int, help='The maximal formal molecular charge for targets.')
+parser.add_argument('--max-charge', type=int, default=0, help='The maximal formal molecular charge for targets.')
 parser.add_argument('--max-deltaz', type=int, help='The maximal difference in the Z vector for targets.')
+parser.add_argument('--dry-run', action='store_true', help='Estimates the number of required calculations only.')
 
 if __name__ == '__main__':
 	args = parser.parse_args()
@@ -21,10 +22,16 @@ if __name__ == '__main__':
 	nuclear_numbers, coordinates = mqm.read_xyz(args.geometry)
 
 	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, args.max_charge, args.max_deltaz)
-	derivatives.assign_calculator(calculator)
-	derivatives.prepare(args.do_explicit_reference)
-	success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
-	if not success:
-		mqm.log.log('Incomplete calculations. Aborting', level='critical')
-		sys.exit(1)
-	derivatives.analyse(args.do_explicit_reference)
+	if args.dry_run:
+		cost, coverage = derivatives.estimate_cost_and_coverage()
+		if args.do_explicit_reference:
+			cost += coverage
+		mqm.log.log('Cost estimated.', number_calculations=cost, number_prediction=coverage, level='RESULT')
+	else:
+		derivatives.assign_calculator(calculator)
+		derivatives.prepare(args.do_explicit_reference)
+		success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
+		if not success:
+			mqm.log.log('Incomplete calculations. Aborting', level='critical')
+			sys.exit(1)
+		derivatives.analyse(args.do_explicit_reference)
