@@ -12,7 +12,7 @@ parser.add_argument('--remote-preload', help='A command to run on the remote hos
 parser.add_argument('--parallel', type=int, help='Number of parallel executions allowed. If 0, uses all available CPU.')
 parser.add_argument('--do-explicit-reference', action='store_true', help='Whether to do a reference calculation for every target.')
 parser.add_argument('--max-charge', type=int, default=0, help='The maximal formal molecular charge for targets.')
-parser.add_argument('--max-deltaz', type=int, help='The maximal difference in the Z vector for targets.')
+parser.add_argument('--max-deltaz', type=int, default=3, help='The maximal difference in the Z vector for targets.')
 parser.add_argument('--dry-run', action='store_true', help='Estimates the number of required calculations only.')
 
 if __name__ == '__main__':
