@@ -206,6 +206,7 @@ class APDFT(object):
 		# assert one order of targets
 		targets = self.enumerate_all_targets()
 		self.update_grid()
+		own_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
 
 		# allocate output
 		if do_energies:
@@ -223,13 +224,13 @@ class APDFT(object):
 		ds = []
 		for site in self._coordinates:
 			ds.append(np.linalg.norm((self._gridcoords - site)*mqm.physics.angstrom, axis=1))
-		refenergy = self.get_total_energy(self._nuclear_numbers)
+		refenergy = self.get_energy_from_reference(self._nuclear_numbers)
 
 		# get target predictions
 		for targetidx, target in enumerate(targets):
 			deltaZ = target - self._nuclear_numbers
 
-			deltaV = np.zeros(len(gridweights))
+			deltaV = np.zeros(len(self._gridweights))
 			for atomidx in range(natoms):
 				deltaV += deltaZ[atomidx] / ds[atomidx]
 
@@ -252,7 +253,7 @@ class APDFT(object):
 					rhotarget += (deriv * deltaZ[i] * deltaZ[j])/2
 
 			d_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
-			energies[targetidx] = -np.sum(rhotilde * deltaV * self._gridweights) + d_nuc_nuc
+			energies[targetidx] = -np.sum(rhotilde * deltaV * self._gridweights) + d_nuc_nuc + refenergy
 			nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
 			ed = Dipoles.electron_density([0, 0, 0], self._gridcoords, rhotarget * self._gridweights)
 			dipoles[targetidx] = ed + nuc_dipole

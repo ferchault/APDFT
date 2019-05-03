@@ -142,6 +142,7 @@ class DerivativeFolders(mqm.physics.APDFT):
 			return (rhoup - rhodn) / (2 * self._delta)
 		if len(sites) == 2:
 			i, j = sites
+			rho = self.get_density_derivative([])
 			rhoiup = self._cached_reader('multiqm-run/order-1/site-%d-up' % i)
 			rhoidn = self._cached_reader('multiqm-run/order-1/site-%d-dn' % i)
 			rhojup = self._cached_reader('multiqm-run/order-1/site-%d-up' % j)
@@ -167,7 +168,8 @@ class DerivativeFolders(mqm.physics.APDFT):
 		targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
 
 		if explicit_reference:
-			comparison_energies = energies.copy() * 0
+			comparison_energies = np.zeros(len(targets))
+			comparison_dipoles = np.zeros((len(targets), 3))
 			for targetidx, target in enumerate(targets):
 				path = 'multiqm-run/comparison-%s' % ('-'.join(map(str, target)))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
