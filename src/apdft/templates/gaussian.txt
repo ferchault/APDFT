@@ -1,0 +1,11 @@
+%Chk=run.chk
+#{{ method }} Gen scf=tight Massage integral=NoXCTest Pop=Dipole Density=Current NoSymm
+
+run
+
+{{ moleculecharge }} 1
+{{ coordinates }}
+
+{{ basisset }}
+
+{{ nuclearcharges }}
