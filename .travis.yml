@@ -17,5 +17,5 @@ install:
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:
-  - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
+  - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=apdft
   - codecov
