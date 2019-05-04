@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 
-import mqm.physics as phys
+import apdft.physics as phys
 
 def test_dipole_magnitude():
 	coordinates = np.array([[0., 0., 1.], [0., 0., 0.]])

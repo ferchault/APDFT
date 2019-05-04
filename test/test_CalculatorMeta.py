@@ -3,14 +3,14 @@ import pytest
 import numpy as np
 import os
 import tempfile
-import mqm.Calculator as mqmc
+import apdft.Calculator as apc
 import getpass
 
 def test_local_execution():
 	method = 'CCSD'
 	basisset = 'STO-3G'
-	c = mqmc.MockCalculator(method, basisset)
-	c2 = mqmc.GaussianCalculator(method, basisset)
+	c = apc.MockCalculator(method, basisset)
+	c2 = apc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
@@ -32,23 +32,23 @@ def test_local_execution():
 		os.chdir('..')
 
 def test_ssh_constr():
-	result = mqmc.Calculator._parse_ssh_constr('username:password@host+port:path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username:password@host+port:path/to/dir')
 	assert result == ('username', 'password', 'host', 'port', 'path/to/dir')
-	result = mqmc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
 	assert result == ('username', None, 'host', 'port', 'path/to/dir')
-	result = mqmc.Calculator._parse_ssh_constr('username@host+port:')
+	result = apc.Calculator._parse_ssh_constr('username@host+port:')
 	assert result == ('username', None, 'host', 'port', '.')
-	result = mqmc.Calculator._parse_ssh_constr('username@host:path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username@host:path/to/dir')
 	assert result == ('username', None, 'host', 22, 'path/to/dir')
-	result = mqmc.Calculator._parse_ssh_constr('username@host')
+	result = apc.Calculator._parse_ssh_constr('username@host')
 	assert result == ('username', None, 'host', 22, '.')
-	result = mqmc.Calculator._parse_ssh_constr('host')
+	result = apc.Calculator._parse_ssh_constr('host')
 	assert result == (getpass.getuser(), None, 'host', 22, '.')
 
 def test_gaussian_input():
 	method = 'CCSD'
 	basisset = 'STO-3G'
-	c = mqmc.GaussianCalculator(method, basisset)
+	c = apc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])

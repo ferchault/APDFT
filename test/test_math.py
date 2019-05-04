@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 
-import mqm.math as math
+import apdft.math as math
 
 def test_partition_single():
 	res = math.IntegerPartitions.partition(2, 1)

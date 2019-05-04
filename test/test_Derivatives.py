@@ -6,18 +6,18 @@ import shutil
 
 import numpy as np
 
-import mqm
-import mqm.Derivatives as mqmd
-import mqm.Calculator as mqmc
+import apdft
+import apdft.Derivatives as apd
+import apdft.Calculator as apc
 
 @pytest.fixture
 def mock_derivatives():
-	d = mqmd.DerivativeFolders(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), 0, 5)
+	d = apd.DerivativeFolders(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), 0, 5)
 	return d
 
 @pytest.fixture(scope="module")
 def sample_rundir():
-	tmpdir = os.path.abspath(mqmc.Calculator._get_tempname())
+	tmpdir = os.path.abspath(apc.Calculator._get_tempname())
 	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 	shutil.copytree(path + '/data/multiqm-run', '%s/multiqm-run' % tmpdir)
 	yield tmpdir
@@ -27,11 +27,11 @@ def test_readfile(sample_rundir):
 	pwd = os.path.abspath(os.getcwd())
 	os.chdir(sample_rundir)
 
-	calculator = mqmc.GaussianCalculator('HF', 'STO-3G')
-	nuclear_numbers, coordinates = mqm.read_xyz('multiqm-run/n2.xyz')
+	calculator = apc.GaussianCalculator('HF', 'STO-3G')
+	nuclear_numbers, coordinates = apdft.read_xyz('multiqm-run/n2.xyz')
 
 	# with reference
-	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
+	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
 	derivatives.assign_calculator(calculator)
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
 
@@ -42,7 +42,7 @@ def test_readfile(sample_rundir):
 	assert abs(comparison_energies[pos] - -177.78263968061) < 1e-7
 
 	# without reference
-	derivatives = mqm.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
+	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
 	derivatives.assign_calculator(calculator)
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=False)
 
@@ -55,8 +55,8 @@ def test_readfile(sample_rundir):
 	os.chdir(pwd)
 
 def test_grid():
-	c = mqmc.MockCalculator('HF', 'STO-3G')
-	d = mqmd.DerivativeFolders(0, [1, 1], [[0, 0, 1], [0, 0, 2]])
+	c = apc.MockCalculator('HF', 'STO-3G')
+	d = apd.DerivativeFolders(0, [1, 1], [[0, 0, 1], [0, 0, 2]])
 	d.assign_calculator(c)
 	coords, weights = d._get_grid()
 	center = np.average(coords, axis=0)
@@ -71,12 +71,12 @@ def test_targets(mock_derivatives):
 
 def test_filecontents():
 	pwd = os.path.abspath(os.getcwd())
-	tmpdir = os.path.abspath(mqmc.Calculator._get_tempname())
+	tmpdir = os.path.abspath(apc.Calculator._get_tempname())
 	os.mkdir(tmpdir)
 	os.chdir(tmpdir)
 
-	c = mqmc.GaussianCalculator('HF', 'STO-3G')
-	d = mqmd.DerivativeFolders(2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 0, 6)
+	c = apc.GaussianCalculator('HF', 'STO-3G')
+	d = apd.DerivativeFolders(2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 0, 6)
 	d.assign_calculator(c)
 	assert d._orders == [0, 1, 2]
 	d.prepare(explicit_reference=True)
@@ -119,4 +119,4 @@ def test_filecontents():
 
 def test_too_high_order():
 	with pytest.raises(NotImplementedError):
-		d = mqmd.DerivativeFolders(3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]))
+		d = apd.DerivativeFolders(3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]))
