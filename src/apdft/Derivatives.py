@@ -118,7 +118,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 		failed = [_ for _ in results if _ is not None]
 		for fail in failed:
-			apdft.log.log('Calculation failed.', level='error', folder=fail[0])
+			apdft.log.log('Calculation failed.', level='error', folder=fail[0], error=fail[1])
 		return len(failed) == 0
 
 	def _cached_reader(self, folder):
