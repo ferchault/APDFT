@@ -11,6 +11,7 @@ First, clone APDFT from github:
 .. code ::
 
     git clone git@github.com:ferchault/APDFT.git
+    cd APDFT
 
 APDFT requires python 3.6 or newer. If that is met, all dependencies can be installed as follows:
 
