@@ -116,7 +116,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 		# find folders to execute
 		folders = [os.path.dirname(_) for _ in glob.glob('%s/**/run.sh' % self._projectname, recursive=True)]
-		haslog = [os.path.dirname(_) for _ in glob.glob('%s/**/run.log' & self._projectname, recursive=True)]
+		haslog = [os.path.dirname(_) for _ in glob.glob('%s/**/run.log' % self._projectname, recursive=True)]
 		folders = set(folders) - set(haslog)
 
 		with mp.Pool(parallel) as pool:
