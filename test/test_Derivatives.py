@@ -19,7 +19,7 @@ def mock_derivatives():
 def sample_rundir():
 	tmpdir = os.path.abspath(apc.Calculator._get_tempname())
 	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-	shutil.copytree(path + '/data/multiqm-run', '%s/apdft-run' % tmpdir)
+	shutil.copytree(path + '/data/apdft-run', '%s/apdft-run' % tmpdir)
 	yield tmpdir
 	shutil.rmtree('%s/apdft-run' % tmpdir)
 
