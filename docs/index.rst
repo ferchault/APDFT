@@ -15,9 +15,9 @@ All gaussian basis sets from the `EMSL Basis Set Exchange <https://www.basissete
 .. toctree::
    :maxdepth: 2
 
-   apdft
    installation
    features
+   apdft
 
 Indices and tables
 ==================
