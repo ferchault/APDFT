@@ -7,6 +7,7 @@ import functools
 import traceback
 
 import numpy as np
+import pandas as pd
 import basis_set_exchange as bse
 
 import apdft
@@ -18,20 +19,24 @@ class DerivativeFolders(apdft.physics.APDFT):
 	def assign_calculator(self, calculator):
 		self._calculator = calculator
 
+	@staticmethod
+	def _get_target_name(target):
+		return ','.join([apdft.physics.charge_to_label(_) for _ in target])
+
 	def _print_energies(self, targets, energies, comparison_energies):
 		if comparison_energies is None:
 			for target, energy in zip(targets, energies):
-				targetname = ','.join([apdft.physics.charge_to_label(_) for _ in target])
+				targetname = DerivativeFolders._get_target_name(target)
 				apdft.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname)
 		else:
 			for target, energy, comparison in zip(targets, energies, comparison_energies):
-				targetname = ','.join([apdft.physics.charge_to_label(_) for _ in target])
+				targetname = DerivativeFolders._get_target_name(target)
 				apdft.log.log('Energy calculated', level='RESULT', value=energy, kind='total_energy', target=target, targetname=targetname, reference=comparison, error=energy - comparison)
 
 	def _print_dipoles(self, targets, dipoles, comparison_dipoles):
 		if comparison_dipoles is not None:
 			for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
-				targetname = ','.join([apdft.physics.charge_to_label(_) for _ in target])
+				targetname = DerivativeFolders._get_target_name(target)
 				apdft.log.log('Dipole calculated',
 					level='RESULT',
 					kind='total_dipole',
@@ -184,5 +189,25 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 		self._print_energies(targets, energies, comparison_energies)
 		self._print_dipoles(targets, dipoles, comparison_dipoles)
+
+		# persist results to disk
+		targetnames = [DerivativeFolders._get_target_name(_) for _ in targets]
+		result_energies = {
+			'targets': targetnames,
+			'total_energy': energies
+			}
+		result_dipoles = {
+			'targets': targetnames,
+			'dipole_moment_x': dipoles[:, 0],
+			'dipole_moment_y': dipoles[:, 1],
+			'dipole_moment_z': dipoles[:, 2]
+			}
+		if explicit_reference:
+			result_energies['reference_energy'] = comparison_energies
+			result_dipoles['reference_dipole_x'] = comparison_dipoles[:, 0]
+			result_dipoles['reference_dipole_y'] = comparison_dipoles[:, 1]
+			result_dipoles['reference_dipole_z'] = comparison_dipoles[:, 2]
+		pd.DataFrame(result_energies).to_csv('multiqm-run/energies.csv')
+		pd.DataFrame(result_dipoles).to_csv('multiqm-run/dipoles.csv')
 
 		return targets, energies, comparison_energies
