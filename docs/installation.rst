@@ -16,7 +16,7 @@ APDFT requires python 3.6 or newer. If that is met, all dependencies can be inst
 
 .. code ::
     
-    pip install jinja2 basis_set_exchange Cython numpy scipy h5py pyscf cclib structlog colorama
+    pip3 install jinja2 basis_set_exchange Cython numpy scipy h5py pyscf cclib structlog colorama
 
 Since one of the dependencies, orbkit, is not pre-packaged, it needs to be installed manually. To that end, please run
 
