@@ -19,16 +19,16 @@ def mock_derivatives():
 def sample_rundir():
 	tmpdir = os.path.abspath(apc.Calculator._get_tempname())
 	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-	shutil.copytree(path + '/data/multiqm-run', '%s/multiqm-run' % tmpdir)
+	shutil.copytree(path + '/data/multiqm-run', '%s/apdft-run' % tmpdir)
 	yield tmpdir
-	shutil.rmtree('%s/multiqm-run' % tmpdir)
+	shutil.rmtree('%s/apdft-run' % tmpdir)
 
 def test_readfile(sample_rundir):
 	pwd = os.path.abspath(os.getcwd())
 	os.chdir(sample_rundir)
 
 	calculator = apc.GaussianCalculator('HF', 'STO-3G')
-	nuclear_numbers, coordinates = apdft.read_xyz('multiqm-run/n2.xyz')
+	nuclear_numbers, coordinates = apdft.read_xyz('apdft-run/n2.xyz')
 
 	# with reference
 	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
@@ -88,31 +88,31 @@ def test_filecontents():
 		return zs
 
 	delta = 0.05
-	assert _get_Zs_from_file('multiqm-run/order-0/site-all-cc/run.inp') == [2., 3.]
+	assert _get_Zs_from_file('apdft-run/order-0/site-all-cc/run.inp') == [2., 3.]
 
-	assert _get_Zs_from_file('multiqm-run/order-1/site-0-up/run.inp') == [2.+delta, 3.]
-	assert _get_Zs_from_file('multiqm-run/order-1/site-0-dn/run.inp') == [2.-delta, 3.]
-	assert _get_Zs_from_file('multiqm-run/order-1/site-1-up/run.inp') == [2., 3.+delta]
-	assert _get_Zs_from_file('multiqm-run/order-1/site-1-dn/run.inp') == [2., 3.-delta]
+	assert _get_Zs_from_file('apdft-run/order-1/site-0-up/run.inp') == [2.+delta, 3.]
+	assert _get_Zs_from_file('apdft-run/order-1/site-0-dn/run.inp') == [2.-delta, 3.]
+	assert _get_Zs_from_file('apdft-run/order-1/site-1-up/run.inp') == [2., 3.+delta]
+	assert _get_Zs_from_file('apdft-run/order-1/site-1-dn/run.inp') == [2., 3.-delta]
 
-	assert _get_Zs_from_file('multiqm-run/order-2/site-0-0-up/run.inp') == [2.+delta, 3.]
-	assert _get_Zs_from_file('multiqm-run/order-2/site-0-0-dn/run.inp') == [2.-delta, 3.]
-	assert _get_Zs_from_file('multiqm-run/order-2/site-1-1-up/run.inp') == [2., 3.+delta]
-	assert _get_Zs_from_file('multiqm-run/order-2/site-1-1-dn/run.inp') == [2., 3.-delta]
-	assert _get_Zs_from_file('multiqm-run/order-2/site-0-1-up/run.inp') == [2.+delta, 3.+delta]
-	assert _get_Zs_from_file('multiqm-run/order-2/site-0-1-dn/run.inp') == [2.-delta, 3.-delta]
+	assert _get_Zs_from_file('apdft-run/order-2/site-0-0-up/run.inp') == [2.+delta, 3.]
+	assert _get_Zs_from_file('apdft-run/order-2/site-0-0-dn/run.inp') == [2.-delta, 3.]
+	assert _get_Zs_from_file('apdft-run/order-2/site-1-1-up/run.inp') == [2., 3.+delta]
+	assert _get_Zs_from_file('apdft-run/order-2/site-1-1-dn/run.inp') == [2., 3.-delta]
+	assert _get_Zs_from_file('apdft-run/order-2/site-0-1-up/run.inp') == [2.+delta, 3.+delta]
+	assert _get_Zs_from_file('apdft-run/order-2/site-0-1-dn/run.inp') == [2.-delta, 3.-delta]
 
-	assert _get_Zs_from_file('multiqm-run/comparison-0-5/run.inp') == [0., 5.]
-	assert _get_Zs_from_file('multiqm-run/comparison-1-4/run.inp') == [1., 4.]
-	assert _get_Zs_from_file('multiqm-run/comparison-2-3/run.inp') == [2., 3.]
-	assert _get_Zs_from_file('multiqm-run/comparison-3-2/run.inp') == [3., 2.]
-	assert _get_Zs_from_file('multiqm-run/comparison-4-1/run.inp') == [4., 1.]
-	assert _get_Zs_from_file('multiqm-run/comparison-5-0/run.inp') == [5., 0.]
+	assert _get_Zs_from_file('apdft-run/comparison-0-5/run.inp') == [0., 5.]
+	assert _get_Zs_from_file('apdft-run/comparison-1-4/run.inp') == [1., 4.]
+	assert _get_Zs_from_file('apdft-run/comparison-2-3/run.inp') == [2., 3.]
+	assert _get_Zs_from_file('apdft-run/comparison-3-2/run.inp') == [3., 2.]
+	assert _get_Zs_from_file('apdft-run/comparison-4-1/run.inp') == [4., 1.]
+	assert _get_Zs_from_file('apdft-run/comparison-5-0/run.inp') == [5., 0.]
 
-	assert set(map(os.path.basename, glob.glob('multiqm-run/*'))) == set('order-0 order-1 order-2 comparison-0-5 comparison-1-4 comparison-2-3 comparison-3-2 comparison-4-1 comparison-5-0'.split())
-	assert set(map(os.path.basename, glob.glob('multiqm-run/order-0/*'))) == set('site-all-cc'.split())
-	assert set(map(os.path.basename, glob.glob('multiqm-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
-	assert set(map(os.path.basename, glob.glob('multiqm-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
+	assert set(map(os.path.basename, glob.glob('apdft-run/*'))) == set('order-0 order-1 order-2 comparison-0-5 comparison-1-4 comparison-2-3 comparison-3-2 comparison-4-1 comparison-5-0'.split())
+	assert set(map(os.path.basename, glob.glob('apdft-run/order-0/*'))) == set('site-all-cc'.split())
+	assert set(map(os.path.basename, glob.glob('apdft-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
+	assert set(map(os.path.basename, glob.glob('apdft-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
 
 	os.chdir(pwd)
 	shutil.rmtree(tmpdir)

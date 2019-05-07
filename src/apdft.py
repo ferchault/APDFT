@@ -14,6 +14,7 @@ parser.add_argument('--do-explicit-reference', action='store_true', help='Whethe
 parser.add_argument('--max-charge', type=int, default=0, help='The maximal formal molecular charge for targets.')
 parser.add_argument('--max-deltaz', type=int, default=3, help='The maximal difference in the Z vector for targets.')
 parser.add_argument('--dry-run', action='store_true', help='Estimates the number of required calculations only.')
+parser.add_argument('--projectname', type=str, default='apdft-run', help='Project name to be used for folders on disk.')
 
 if __name__ == '__main__':
 	args = parser.parse_args()
@@ -28,7 +29,7 @@ if __name__ == '__main__':
 			cost += coverage
 		apdft.log.log('Cost estimated.', number_calculations=cost, number_prediction=coverage, level='RESULT')
 	else:
-		derivatives.assign_calculator(calculator)
+		derivatives.assign_calculator(calculator, args.projectname)
 		derivatives.prepare(args.do_explicit_reference)
 		success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
 		if not success:
