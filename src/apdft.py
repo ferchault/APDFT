@@ -15,11 +15,12 @@ parser.add_argument('--max-charge', type=int, default=0, help='The maximal forma
 parser.add_argument('--max-deltaz', type=int, default=3, help='The maximal difference in the Z vector for targets.')
 parser.add_argument('--dry-run', action='store_true', help='Estimates the number of required calculations only.')
 parser.add_argument('--projectname', type=str, default='apdft-run', help='Project name to be used for folders on disk.')
+parser.add_argument('--superimpose', action='store_true', help='Superimpose basis functions of neighbouring elements.')
 
 if __name__ == '__main__':
 	args = parser.parse_args()
 
-	calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset)
+	calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset, args.superimpose)
 	nuclear_numbers, coordinates = apdft.read_xyz(args.geometry)
 
 	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, args.max_charge, args.max_deltaz)
