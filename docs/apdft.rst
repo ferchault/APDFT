@@ -1,11 +1,11 @@
 apdft package
-===========
+=============
 
 Submodules
 ----------
 
 apdft.Calculator module
----------------------
+-----------------------
 
 .. automodule:: apdft.Calculator
     :members:
@@ -13,7 +13,7 @@ apdft.Calculator module
     :show-inheritance:
 
 apdft.Derivatives module
-----------------------
+------------------------
 
 .. automodule:: apdft.Derivatives
     :members:
@@ -21,14 +21,14 @@ apdft.Derivatives module
     :show-inheritance:
 
 apdft.physics module
-------------------
+--------------------
 
 .. automodule:: apdft.physics
     :members:
     :undoc-members:
 
 apdft.math module
-------------------
+-----------------
 
 .. automodule:: apdft.math
     :members:

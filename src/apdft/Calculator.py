@@ -24,9 +24,10 @@ import orbkit
 class Calculator(object):
 	""" A concurrency-safe blocking interface for an external QM code."""
 
-	def __init__(self, method, basisset):
+	def __init__(self, method, basisset, superimpose=False):
 		self._method = method
 		self._basisset = basisset
+		self._superimpose = superimpose
 
 	def get_methods(self):
 		return list(self._methods.keys())
@@ -160,10 +161,13 @@ class GaussianCalculator(Calculator):
 		return ret[:-1]
 
 	@staticmethod
-	def _format_basisset(nuclear_charges, basisset):
+	def _format_basisset(nuclear_charges, basisset, superimposed=False):
 		res = ''
 		for atomid, nuclear_charge in enumerate(nuclear_charges):
-			elements = set([max(1, int(_(nuclear_charge))) for _ in (np.round,)])
+			if superimposed:
+				elements = set([max(1, int(_(nuclear_charge))) for _ in (np.round, lambda _: np.round(_ + 1), lambda _: np.round(_ - 1))])
+			else:
+				elements = set([max(1, int(_(nuclear_charge))) for _ in (np.round,)])
 			output = bse.get_basis(basisset, elements=list(elements), fmt='gaussian94')
 
 			res += '%d 0\n' % (atomid + 1)
@@ -209,7 +213,7 @@ class GaussianCalculator(Calculator):
 			template = j.Template(fh.read())
 
 		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
-		env_basis = GaussianCalculator._format_basisset(nuclear_charges, self._basisset)
+		env_basis = GaussianCalculator._format_basisset(nuclear_charges, self._basisset, self._superimpose)
 		env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
 		env_molcharge = int(np.sum(nuclear_charges) - np.sum(nuclear_numbers))
 		return template.render(coordinates=env_coord, method=self._methods[self._method], basisset=env_basis, nuclearcharges=env_nuc, moleculecharge=env_molcharge)

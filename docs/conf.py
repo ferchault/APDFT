@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'multiQM'
+project = 'APDFT'
 copyright = '2019, Guido Falk von Rudorff'
 author = 'Guido Falk von Rudorff'
 
@@ -47,7 +47,7 @@ extensions = [
     'sphinx.ext.githubpages',
 ]
 
-autodoc_mock_imports = 'numpy jinja2 basis_set_exchange Cython scipy h5py pyscf cclib structlog colorama orbkit'.split()
+autodoc_mock_imports = 'pandas numpy jinja2 basis_set_exchange Cython scipy h5py pyscf cclib structlog colorama orbkit'.split()
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
