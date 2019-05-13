@@ -3,7 +3,9 @@
 
 import argparse
 import sys
+import os
 import itertools as it
+import numpy as np
 import apdft
 
 parser = argparse.ArgumentParser(description='Generates complementary isomers.')
@@ -13,8 +15,7 @@ parser.add_argument('basisset', help='A basis set. All of Basis Set Exchange sup
 parser.add_argument('directory', help='Output directory, must exist.')
 
 if __name__ == '__main__':
-	args = parser.parse_args()
-
+    args = parser.parse_args()
     nuclear_numbers, coordinates = apdft.read_xyz(args.geometry)
 
     carbons = np.where(nuclear_numbers == 6)[0]
@@ -33,6 +34,8 @@ if __name__ == '__main__':
         thisnumbers[combination[1]] = 7
         dn = calc.get_input(coordinates, thisnumbers, thisnumbers, None)
 
-        with direction, inputfile in {'mid': mid, 'up': up, 'dn': dn}.items():
-            with open('%s/%d-%d-%s/run.inp' % (args.directory, combination[0], combination[1], direction), 'w') as fh:
+        for direction, inputfile in {'mid': mid, 'up': up, 'dn': dn}.items():
+            path = '%s/%d-%d-%s' % (args.directory, combination[0], combination[1], direction)
+            os.makedirs(path, exist_ok=True)
+            with open(path + '/run.inp', 'w') as fh:
                 fh.write(inputfile)
