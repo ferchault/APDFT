@@ -46,7 +46,9 @@ def get_element_number(element):
 
 def read_xyz(fn):
 	with open(fn) as fh:
-		lines = fh.readlines()[2:]
+		lines = fh.readlines()
+	numatoms = int(lines[0].strip())
+	lines = lines[2:2 + numatoms]
 	nuclear_numbers = []
 	coordinates = []
 	for line in lines:
