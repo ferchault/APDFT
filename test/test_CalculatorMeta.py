@@ -3,25 +3,26 @@ import pytest
 import numpy as np
 import os
 import tempfile
-import mqm.Calculator as mqmc
+import apdft.Calculator as apc
+import getpass
 
 def test_local_execution():
-	c = mqmc.MockCalculator()
-	c2 = mqmc.GaussianCalculator()
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = apc.MockCalculator(method, basisset)
+	c2 = apc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	method = 'CCSD'
-	basisset = 'STO-3G'
-	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
+	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 
 	with tempfile.TemporaryDirectory() as tmpname:
 		os.chdir(tmpname)
 		with open('run.inp', 'w') as fh:
 			fh.write(inputfile)
 		with open('run.sh', 'w') as fh:
-			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset))
+			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid))
 		os.chmod('run.sh', 0o777)
 
 		c.execute('.')
@@ -30,31 +31,31 @@ def test_local_execution():
 			assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
 		os.chdir('..')
 
-def test_horton_has_methods():
-	assert 'HF' in mqmc.HortonCalculator._methods.keys()
-
-def test_horton():
-	return
-	c = mqmc.HortonCalculator()
-	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
-	nuclear_numbers = np.array([1, 1])
-	nuclear_charges = np.array([1., 1.])
-	grid = None
-	method = 'HF'
-	basisset = 'STO-3G'
-	c.evaluate(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
+def test_ssh_constr():
+	result = apc.Calculator._parse_ssh_constr('username:password@host+port:path/to/dir')
+	assert result == ('username', 'password', 'host', 'port', 'path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
+	assert result == ('username', None, 'host', 'port', 'path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username@host+port:')
+	assert result == ('username', None, 'host', 'port', '.')
+	result = apc.Calculator._parse_ssh_constr('username@host:path/to/dir')
+	assert result == ('username', None, 'host', 22, 'path/to/dir')
+	result = apc.Calculator._parse_ssh_constr('username@host')
+	assert result == ('username', None, 'host', 22, '.')
+	result = apc.Calculator._parse_ssh_constr('host')
+	assert result == (getpass.getuser(), None, 'host', 22, '.')
 
 def test_gaussian_input():
-	c = mqmc.GaussianCalculator()
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = apc.GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	method = 'CCSD'
-	basisset = 'STO-3G'
-	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid, method, basisset)
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 	expected = '''%Chk=run.chk
-#CCSD(Full,MaxCyc=100) Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
+#CCSD(Full,MaxCyc=100) Gen scf=tight Massage integral=NoXCTest Pop=Dipole Density=Current NoSymm
 
 run
 

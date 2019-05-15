@@ -10,10 +10,13 @@ install:
   - pip install Cython
   - pip install scipy
   - pip install h5py
+  - pip install numpy pandas
   - pip install pyscf
   - pip install cclib
+  - pip install structlog colorama
+  - pip install sphinx_rtd_theme
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:
-  - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=mqm
+  - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=apdft --ignore=prototyping
   - codecov
