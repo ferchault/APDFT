@@ -6,7 +6,7 @@ Created on Mon Apr 15 14:51:43 2019
 @author: giorgiod
 """
 
-from horton import*
+from horton import *
 import numpy as np
 
 def st3g_uhf(distance,pseudo_numbers):
@@ -44,7 +44,7 @@ def st3g_uhf(distance,pseudo_numbers):
     #print(exp_alpha.coeffs)
     
     occ_model=AufbauOccModel(7,7)
-     occ_model.assign(exp_alpha, exp_beta)
+    occ_model.assign(exp_alpha, exp_beta)
      
     external = {'nn': compute_nucnuc(mol.coordinates, mol.pseudo_numbers)}
     terms = [
