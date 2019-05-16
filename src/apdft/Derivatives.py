@@ -65,6 +65,8 @@ class DerivativeFolders(apdft.physics.APDFT):
 		for order in self._orders:
 			# only upper triangle with diagonal
 			for combination in it.combinations_with_replacement(list(range(len(self._nuclear_numbers))), order):
+				if len(combination) == 2 and combination[0] == combination[1]:
+					continue
 				if order > 0:
 					label = '-' + '-'.join(map(str, combination))
 					directions = ['up', 'dn']
@@ -151,10 +153,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 			rho = self.get_density_derivative([])
 			rhoiup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, i))
 			rhoidn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, i))
-			rhojup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, j))
-			rhojdn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, j))
-			rhoup = self._cached_reader('%s/order-2/site-%d-%d-up' % (self._projectname, min(i, j), max(i, j)))
-			rhodn = self._cached_reader('%s/order-2/site-%d-%d-dn' % (self._projectname, min(i, j), max(i, j)))
+			if i != j:
+				rhojup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, j))
+				rhojdn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, j))
+				rhoup = self._cached_reader('%s/order-2/site-%d-%d-up' % (self._projectname, min(i, j), max(i, j)))
+				rhodn = self._cached_reader('%s/order-2/site-%d-%d-dn' % (self._projectname, min(i, j), max(i, j)))
 
 			if i == j:
 				deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)

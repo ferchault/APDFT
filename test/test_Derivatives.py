@@ -95,10 +95,6 @@ def test_filecontents():
 	assert _get_Zs_from_file('apdft-run/order-1/site-1-up/run.inp') == [2., 3.+delta]
 	assert _get_Zs_from_file('apdft-run/order-1/site-1-dn/run.inp') == [2., 3.-delta]
 
-	assert _get_Zs_from_file('apdft-run/order-2/site-0-0-up/run.inp') == [2.+delta, 3.]
-	assert _get_Zs_from_file('apdft-run/order-2/site-0-0-dn/run.inp') == [2.-delta, 3.]
-	assert _get_Zs_from_file('apdft-run/order-2/site-1-1-up/run.inp') == [2., 3.+delta]
-	assert _get_Zs_from_file('apdft-run/order-2/site-1-1-dn/run.inp') == [2., 3.-delta]
 	assert _get_Zs_from_file('apdft-run/order-2/site-0-1-up/run.inp') == [2.+delta, 3.+delta]
 	assert _get_Zs_from_file('apdft-run/order-2/site-0-1-dn/run.inp') == [2.-delta, 3.-delta]
 
@@ -112,7 +108,7 @@ def test_filecontents():
 	assert set(map(os.path.basename, glob.glob('apdft-run/*'))) == set('order-0 order-1 order-2 comparison-0-5 comparison-1-4 comparison-2-3 comparison-3-2 comparison-4-1 comparison-5-0'.split())
 	assert set(map(os.path.basename, glob.glob('apdft-run/order-0/*'))) == set('site-all-cc'.split())
 	assert set(map(os.path.basename, glob.glob('apdft-run/order-1/*'))) == set('site-0-up site-0-dn site-1-up site-1-dn'.split())
-	assert set(map(os.path.basename, glob.glob('apdft-run/order-2/*'))) == set('site-0-0-up site-0-0-dn site-1-1-up site-1-1-dn site-0-1-up site-0-1-dn'.split())
+	assert set(map(os.path.basename, glob.glob('apdft-run/order-2/*'))) == set('site-0-1-up site-0-1-dn'.split())
 
 	os.chdir(pwd)
 	shutil.rmtree(tmpdir)

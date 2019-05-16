@@ -162,7 +162,7 @@ class APDFT(object):
 			Tuple of ints: number of single points, number of targets."""
 
 		N = len(self._nuclear_numbers)
-		cost = sum({0: 1, 1: N, 2: 2*N*N}[_] for _ in self._orders)
+		cost = sum({0: 1, 1: N, 2: 2*N*N-2*N}[_] for _ in self._orders)
 
 		coverage = len(self.enumerate_all_targets())
 		return cost, coverage
