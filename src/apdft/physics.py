@@ -99,7 +99,7 @@ class APDFT(object):
 
 	This is an abstract base class. This means that for any use, one needs to inherit from this class.
 	The subclass needs to implement all functions that raise a NotImplementedError upon invocation."""
-	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0, max_deltaz=3):
+	def __init__(self, highest_order, nuclear_numbers, coordinates, max_charge=0, max_deltaz=3, include_atoms=None):
 		if highest_order > 2:
 			raise NotImplementedError()
 		self._orders = list(range(0, highest_order+1))
@@ -111,6 +111,10 @@ class APDFT(object):
 		self._max_deltaz = max_deltaz
 		self._gridweights = None
 		self._gridcoords = None
+		if include_atoms is None:
+			self._include_atoms = list(range(len(self._nuclear_numbers)))
+		else:
+			self._include_atoms = include_atoms
 
 	def _get_grid(self):
 		""" Returns the integration grid in Angstrom."""
@@ -151,6 +155,10 @@ class APDFT(object):
 			if nprotons + shift < 1:
 				continue
 			res += apdft.math.IntegerPartitions.partition(nprotons + shift, nsites, around, limit)
+
+		# filter for included atoms
+		if len(self._include_atoms) != len(self._nuclear_numbers):
+			res = [_ for _ in res if [_[idx] for idx in self._include_atoms] == [self._nuclear_numbers[idx] for idx in self._include_atoms]]
 		return res
 
 	def estimate_cost_and_coverage(self):
@@ -161,7 +169,7 @@ class APDFT(object):
 		Returns:
 			Tuple of ints: number of single points, number of targets."""
 
-		N = len(self._nuclear_numbers)
+		N = len(self._include_atoms)
 		cost = sum({0: 1, 1: N, 2: 2*N*N-2*N}[_] for _ in self._orders)
 
 		coverage = len(self.enumerate_all_targets())

@@ -16,6 +16,7 @@ parser.add_argument('--max-deltaz', type=int, default=3, help='The maximal diffe
 parser.add_argument('--dry-run', action='store_true', help='Estimates the number of required calculations only.')
 parser.add_argument('--projectname', type=str, default='apdft-run', help='Project name to be used for folders on disk.')
 parser.add_argument('--superimpose', action='store_true', help='Superimpose basis functions of neighbouring elements.')
+parser.add_argument('--include-atoms', type=str, help='Comma-separated list of atom indices (0-based) to perturb.')
 
 if __name__ == '__main__':
 	args = parser.parse_args()
@@ -23,7 +24,11 @@ if __name__ == '__main__':
 	calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset, args.superimpose)
 	nuclear_numbers, coordinates = apdft.read_xyz(args.geometry)
 
-	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, args.max_charge, args.max_deltaz)
+	# included atoms
+	if args.include_atoms is not None:
+		args.include_atoms = [int(_) for _ in args.include_atoms.split(',')]
+
+	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, args.max_charge, args.max_deltaz, args.include_atoms)
 	if args.dry_run:
 		cost, coverage = derivatives.estimate_cost_and_coverage()
 		if args.do_explicit_reference:

@@ -116,3 +116,9 @@ def test_filecontents():
 def test_too_high_order():
 	with pytest.raises(NotImplementedError):
 		d = apd.DerivativeFolders(3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]))
+
+def test_restricted_atom_set():
+	d = apd.DerivativeFolders(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), 0, 5, [0,])
+	targets = set([tuple(_) for _ in d.enumerate_all_targets()])
+	expected = set([(2, 2)])
+	assert targets == expected

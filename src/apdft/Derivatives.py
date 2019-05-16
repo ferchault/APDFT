@@ -64,7 +64,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 		for order in self._orders:
 			# only upper triangle with diagonal
-			for combination in it.combinations_with_replacement(list(range(len(self._nuclear_numbers))), order):
+			for combination in it.combinations_with_replacement(self._include_atoms, order):
 				if len(combination) == 2 and combination[0] == combination[1]:
 					continue
 				if order > 0:
