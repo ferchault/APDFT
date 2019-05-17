@@ -2,6 +2,9 @@ dep/orbkit
 .vscode
 *.png
 *.jpg
+apdft-run
+coord
+*.xyz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
