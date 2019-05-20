@@ -151,7 +151,11 @@ class MrccCalculator(Calculator):
 	}
 
 	def density_on_grid(inputfile, grid):
-		raise NotImplementedError()
+		with open('/mnt/c/Users/guido/workcopies/apdft/apdft-run/order-0/site-all-cc/DENSITY', 'r') as fh:
+			_ = np.fromfile(fh, 'i4')
+			q = _[3:-1].view(np.float64)
+			ccdensity = q.reshape((-1, 10))
+		return ccdensity[:, 5]
 	
 	@staticmethod
 	def _format_charges(coordinates, nuclear_numbers, nuclear_charges):
