@@ -17,11 +17,16 @@ parser.add_argument('--dry-run', action='store_true', help='Estimates the number
 parser.add_argument('--projectname', type=str, default='apdft-run', help='Project name to be used for folders on disk.')
 parser.add_argument('--superimpose', action='store_true', help='Superimpose basis functions of neighbouring elements.')
 parser.add_argument('--include-atoms', type=str, help='Comma-separated list of atom indices (0-based) to perturb.')
+parser.add_argument('--mrcc', action='store_true', help='Use MRCC instead of Gaussian.')
 
 if __name__ == '__main__':
 	args = parser.parse_args()
 
-	calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset, args.superimpose)
+	if args.mrcc:
+		calculator = apdft.Calculator.MrccCalculator(args.method, args.basisset, args.superimpose)
+	else:
+		calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset, args.superimpose)
+
 	nuclear_numbers, coordinates = apdft.read_xyz(args.geometry)
 
 	# included atoms

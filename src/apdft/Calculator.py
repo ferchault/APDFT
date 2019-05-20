@@ -145,6 +145,52 @@ class MockCalculator(Calculator):
 		return template.render()
 
 
+class MrccCalculator(Calculator):
+	_methods = {
+		'CCSD': 'ccsd',
+	}
+
+	def density_on_grid(inputfile, grid):
+		raise NotImplementedError()
+	
+	@staticmethod
+	def _format_charges(coordinates, nuclear_numbers, nuclear_charges):
+		ret = []
+		for coord, Z_ref, Z_tar in zip(coordinates, nuclear_numbers, nuclear_charges):
+			ret.append('%f %f %f %f' % (coord[0], coord[1], coord[2], (Z_tar - Z_ref)))
+		return '\n'.join(ret)
+
+	def get_input(self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False):
+		basedir = os.path.dirname(os.path.abspath(__file__))
+		with open('%s/templates/mrcc.txt' % basedir) as fh:
+			template = j.Template(fh.read())
+		
+		env_coord = GaussianCalculator._format_coordinates(nuclear_numbers, coordinates)
+		env_basis = self._basisset
+		env_numatoms = len(nuclear_numbers)
+		env_charged = MrccCalculator._format_charges(coordinates, nuclear_numbers, nuclear_charges)
+		
+		return template.render(coordinates=env_coord, method=self._methods[self._method], basisset=env_basis, numatoms=env_numatoms, charges=env_charged)
+
+	@classmethod
+	def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):
+		basedir = os.path.dirname(os.path.abspath(__file__))
+		with open('%s/templates/mrcc-run.sh' % basedir) as fh:
+			template = j.Template(fh.read())
+		return template.render()
+
+	def get_density_on_grid(self, folder, gridpoints):
+		raise NotImplementedError()
+
+	@staticmethod
+	def get_total_energy(folder):
+		""" Returns the total energy in Hartree."""
+		raise NotImplementedError()
+
+	@staticmethod
+	def get_electronic_dipole(folder, gridcoords, gridweights):
+		raise NotImplementedError()
+
 class GaussianCalculator(Calculator):
 	_methods = {
 		'CCSD': 'CCSD(Full,MaxCyc=100)',
