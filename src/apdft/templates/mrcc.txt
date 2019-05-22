@@ -1,6 +1,6 @@
 calc={{ method }}
 mem=5GB
-core=corr
+core=frozen
 basis={{ basisset }}
 grdens=on
 rgrid=Log3
