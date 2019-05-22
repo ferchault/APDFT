@@ -116,21 +116,9 @@ class APDFT(object):
 		else:
 			self._include_atoms = include_atoms
 
-	def _get_grid(self):
-		""" Returns the integration grid in Angstrom."""
-		mol = pyscf.gto.Mole()
-		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
-			# pyscf molecule init is in Angstrom
-			mol.atom.extend([[nuclear, *coord]])
-		mol.build()
-		grid = dft.gen_grid.Grids(mol)
-		grid.level = 3
-		grid.build()
-		# pyscf grid is in a.u.
-		return grid.coords/angstrom, grid.weights
-
 	def update_grid(self):
-		self._gridcoords, self._gridweights = self._get_grid()
+		""" Ensures that the current integration grid is initialised."""
+		raise NotImplementedError()
 
 	def enumerate_all_targets(self):
 		""" Builds a list of all possible targets.

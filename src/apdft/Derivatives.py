@@ -56,6 +56,27 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 		return baseline
 
+	def _get_grid(self):
+		""" Returns the default integration grid in Angstrom."""
+		mol = pyscf.gto.Mole()
+		for nuclear, coord in zip(self._nuclear_numbers, self._coordinates):
+			# pyscf molecule init is in Angstrom
+			mol.atom.extend([[nuclear, *coord]])
+		mol.build()
+		grid = dft.gen_grid.Grids(mol)
+		grid.level = 3
+		grid.build()
+		# pyscf grid is in a.u.
+		return grid.coords/angstrom, grid.weights
+
+	def update_grid(self):
+		""" Loads the integration grid from the calculator or provides a default one."""
+		calcgrid = self._calculator.get_grid(self._nuclear_numbers, self._coordinates, '%s/order-0/site-all-cc' % self._projectname)
+		if calcgrid is None:
+			self._gridcoords, self._gridweights = self._get_grid()
+		else:
+			self._gridcoords, self._gridweights = calcgrid
+
 	def prepare(self, explicit_reference=False):
 		""" Builds a complete folder list of all relevant calculations."""
 		if os.path.isdir(self._projectname):

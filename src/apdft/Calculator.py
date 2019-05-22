@@ -67,6 +67,13 @@ class Calculator(object):
 		return 'apdft-tmp-' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
 	@staticmethod
+	def get_grid(nuclear_numbers, coordinates, outputfolder):
+		""" Returns the integration grid used by this calculator for a given set of nuclei and geometry.
+
+		Grid weights and coordinates may be in internal units. Return value should be coords, weights. If return value is None, a default grid is used."""
+		return None
+
+	@staticmethod
 	def execute(folder, remote_constr=None, remote_preload=None):
 		""" Run a calculation with the input file in folder."""
 
@@ -150,13 +157,27 @@ class MrccCalculator(Calculator):
 		'CCSD': 'ccsd',
 	}
 
-	def density_on_grid(inputfile, grid):
-		with open('/mnt/c/Users/guido/workcopies/apdft/apdft-run/order-0/site-all-cc/DENSITY', 'r') as fh:
+	@staticmethod
+	def _parse_densityfile(densityfile):
+		with open(densityfile, 'r') as fh:
 			_ = np.fromfile(fh, 'i4')
 			q = _[3:-1].view(np.float64)
 			ccdensity = q.reshape((-1, 10))
-		return ccdensity[:, 5]
+		return ccdensity[:, 1:6]
+
+	@staticmethod
+	def density_on_grid(inputfile, grid):
+		ccdensity = MrccCalculator._parse_densityfile('%s/DENSITY' % outputfolder)
+		if not np.allclose(grid, ccdensity[:3]):
+			raise ValueError('Trying to combine different grids.')
+		return ccdensity[5]
 	
+	@staticmethod
+	def get_grid(nuclear_numbers, coordinates, outputfolder):
+		""" Obtains the integration grid from one of the MRCC output files. """
+		ccdensity = MrccCalculator._parse_densityfile('%s/DENSITY' % outputfolder)
+		return ccdensity[:, :3], ccdensity[:, 3]
+
 	@staticmethod
 	def _format_charges(coordinates, nuclear_numbers, nuclear_charges):
 		ret = []
@@ -184,7 +205,7 @@ class MrccCalculator(Calculator):
 		return template.render()
 
 	def get_density_on_grid(self, folder, gridpoints):
-		raise NotImplementedError()
+		return MrccCalculator.density_on_grid(folder + '/DENSITY', grid)
 
 	@staticmethod
 	def get_total_energy(folder):
