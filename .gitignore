@@ -1,4 +1,5 @@
 dep/orbkit
+*.gz
 .vscode
 *.png
 *.jpg
