@@ -41,14 +41,15 @@ def uhf (mol,basis_set='6-31g',compute_grad=True):
     scf_solver = EDIIS2SCFSolver(1e-10,maxiter=200)
     scf_solver(ham, lf, olp, occ_model, dm_alpha, dm_beta)
     
-    grid=BeckeMolGrid(mol.coordinates,mol.numbers,random_rotate=False,agspec='insane')
-    rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
-    rho_beta = obasis.compute_grid_density_dm(dm_beta, grid.points)
-    rho=rho_alpha+rho_beta
-    gradient=[]
+
     
     #calculate the analytical force on the atoms
     if compute_grad==True:
+        grid=BeckeMolGrid(mol.coordinates,mol.numbers,random_rotate=False,agspec='insane')
+        rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
+        rho_beta = obasis.compute_grid_density_dm(dm_beta, grid.points)
+        rho=rho_alpha+rho_beta
+        gradient=[]
         for x in range(mol.natom):
             force=np.zeros(3)
             dRx=grid.points[:,0]-mol.coordinates[x][0]
@@ -132,7 +133,7 @@ def gradient_from_scf(mol):
     g=(eng[0::2]-eng[1::2])/2./h
     return g
 
-def grad_opt2():
+def grad_opt2(mol):
     conv=False
     while not conv:
         g=gradient_from_scf(mol)
@@ -141,6 +142,7 @@ def grad_opt2():
         g2=gradient_from_scf(mol)
         g2=np.dot(g,g2)/(norm(g))**2*g          #projection on g
         DX=-norm(g2)/(norm(g2)-norm(g))
+        
         mol.coordinates+=dx*DX
         if norm(g)<1e-3:
             conv=True

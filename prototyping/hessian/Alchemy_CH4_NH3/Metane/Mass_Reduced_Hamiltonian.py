@@ -24,32 +24,64 @@ methane=IOData.from_file('Methane.xyz')
 
 
 ## forward difference for getting derivatives
+#h=.001
+#a=[]
+#a.append(gradient_from_scf(methane))
+#for x in methane.coordinates:
+#    x[0]+=h
+#    a.append(gradient_from_scf(methane))
+#    x[0]-=h
+#    x[1]+=h
+#    a.append(gradient_from_scf(methane))
+#    x[1]-=h
+#    x[2]+=h
+#    a.append(gradient_from_scf(methane))
+#    x[2]-=h
+hessian=np.ndarray((3*methane.natom,3*methane.natom))
+#for i in range(3*methane.natom-2):
+#    hessian[i]=(a[i+1]-a[0])/h
+#    hessian[i+1]=(a[i+2]-a[0])/h
+#    hessian[i+2]=(a[i+3]-a[0])/h
+ 
+ 
+ 
 h=.01
-a=[]
-a.append(gradient_from_scf(methane))
-for x in methane.coordinates:
-    x[0]+=h
-    a.append(gradient_from_scf(methane))
-    x[0]-=h
-    x[1]+=h
-    a.append(gradient_from_scf(methane))
-    x[1]-=h
-    x[2]+=h
-    a.append(gradient_from_scf(methane))
-    x[2]-=h
-    
-print 'a   ='
-print a
-print '*******************---------------------------*************************'
+en0=uhf(methane,compute_grad=False)
+
+def comp_hess_el(i,j,mol):
+    p=[]
+    if i==j:
+        mol.coordinates[i//3][i-i//3*3]+=h
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[i//3][i-i//3*3]-=2*h
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[i//3][i-i//3*3]+=h
+        return (p[1]+p[0]-2*en0)/h**2
+    if i!=j:
+        mol.coordinates[i//3][i-i//3*3]+=h
+        mol.coordinates[j//3][j-j//3*3]+=h  #1,1
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[i//3][i-i//3*3]-=2*h # -1,1
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[j//3][j-j//3*3]-=2*h  #-1,-1
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[i//3][i-i//3*3]+=2*h  # 1,-1
+        p.append(uhf(mol,compute_grad=False))
+        mol.coordinates[i//3][i-i//3*3]-=h
+        mol.coordinates[j//3][j-j//3*3]+=h
+        return (p[0]+p[2]-p[1]-p[3])/(4*h**2)
+
+
+for i in range(hessian.shape[0]):
+    for j in range(i+1):
+        hessian[i][j]=comp_hess_el(i,j,methane)
+        if i!=j:
+            hessian[j][i]=hessian[i][j]
+
 
 ##  Building up the Hessian Matrix from the derivativesw of the gradient 
 
-hessian=np.ndarray((3*methane.natom,3*methane.natom))
 
-for i in range(3*methane.natom-2):
-    hessian[i]=(a[i+1]-a[0])/h
-    hessian[i+1]=(a[i+2]-a[0])/h
-    hessian[i+2]=(a[i+3]-a[0])/h
 #print '************  hessian  *******************  '
 #print hessian
 
@@ -75,4 +107,7 @@ def normalModes(rH=red_hessian):
         freq.append(to_cm(i))
     return freq
         
-normalModes()
+print normalModes()
+
+for i in eig(red_hessian)[0]:
+    print to_cm(i)
