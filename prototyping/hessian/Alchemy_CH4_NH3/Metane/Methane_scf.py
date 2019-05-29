@@ -17,7 +17,7 @@ def UHF(mol,basis_set='sto-3g'):
     #exp_alpha.randomize()
     #exp_beta.randomize()
     
-    occ_model=AufbauOccModel(7,7)
+    occ_model=AufbauOccModel(5,5)
     occ_model.assign(exp_alpha, exp_beta)
     
     external = {'nn': compute_nucnuc(mol.coordinates, mol.pseudo_numbers)}
