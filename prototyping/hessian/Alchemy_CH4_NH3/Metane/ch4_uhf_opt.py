@@ -43,7 +43,7 @@ def uhf (mol,basis_set='6-31g',compute_grad=True):
     
 
     
-    #calculate the analytical force on the atoms
+    #calculate the analytical force on the atoms (erroneous Hellman-Feynman approximation )
     if compute_grad==True:
         grid=BeckeMolGrid(mol.coordinates,mol.numbers,random_rotate=False,agspec='insane')
         rho_alpha = obasis.compute_grid_density_dm(dm_alpha, grid.points)
