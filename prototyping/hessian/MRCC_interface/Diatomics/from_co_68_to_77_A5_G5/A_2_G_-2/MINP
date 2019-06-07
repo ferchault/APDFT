@@ -1,0 +1,23 @@
+calc=CCSD 
+mem=5GB 
+core=corr 
+ccprog=mrcc 
+basis=cc-pVTZ 
+grdens=on 
+rgrid=Log3 
+grtol=10 
+agrid=LD0770 
+molden=off
+unit=angs 
+geom=xyz
+
+2 
+6  0.0  0.0  0.0  
+8  1.0169957845232878  0.0  0.0  
+
+qmmm=Amber
+pointcharges
+ 
+2 
+-0.1  0.0  0.0  0.0
+0.1  1.0169957845232878  0.0  0.0  
