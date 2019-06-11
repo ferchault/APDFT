@@ -216,22 +216,22 @@ class MrccCalculator(Calculator):
 		except:
 			apdft.log.log('Unable to read energy from log file.', filename=logfile, level='error')
 			return 0
-		return energy_cc / 27.21138602
+		return energy_cc # / 27.211386245988
 	@staticmethod
 	def parse_energy_cc_Mrcc(log_file):
-    """Parse the couple cluster energy from an MRCC output file"""
-    with open(log_file,'r') as logf:
-        while True:
-            line=logf.readline()
-            if "Final results:" in line:
-                good_line=logf.readline()
-            if "Total CCSD energy" in gl:
-                for x in gl.split(' '):
-                    try:
-                        float(x)
-                        return (float(x))
-                    except:
-                        pass  
+		"""Parse the couple cluster energy from an MRCC output file"""
+		with open(log_file,'r') as logf:
+			while True:
+				line=logf.readline()
+				if "Final results:" in line:
+					good_line=logf.readline()
+					if "Total CCSD energy" in good_line:
+						for x in good_line.split(' '):
+							try:
+								float(x)
+								return (float(x))
+							except:
+								pass  
 	@staticmethod
 	def get_electronic_dipole(folder, gridcoords, gridweights):
 		raise NotImplementedError()
@@ -334,7 +334,7 @@ class GaussianCalculator(Calculator):
 			energy = data.ccenergies
 		except AttributeError:
 			pass
-		return energy / 27.21138602
+		return energy / 27.21138602   
 
 	@staticmethod
 	def get_electronic_dipole(folder, gridcoords, gridweights):
