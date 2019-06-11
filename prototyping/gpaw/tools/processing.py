@@ -23,6 +23,8 @@ class Func_3var():
     spacing = None
     dv = None # volume per gridpoint
     
+    bohr = 1.0 # used for conversion from Angstrom to Bohr
+    
     # derivatives
     gradient = None
     hessian = None
@@ -32,6 +34,9 @@ class Func_3var():
     
     def __init__(self, calc_obj=None, **kwargs):
         
+        if kwargs.get('bohr', False):
+            self.bohr = Bohr
+            
         if type(calc_obj) == type(None): # initialization without calc_obj 
             self.func_value = kwargs['func_value'] # values of function
             self.shape = np.shape(self.func_value) # number of gridpoints along each axis
@@ -39,7 +44,7 @@ class Func_3var():
             
             self.length_cell = [None] * self.dim # length of cell along each axis
             for i in range(0, self.dim):
-                self.length_cell[i] = kwargs['length_cell'][i]/Bohr
+                self.length_cell[i] = kwargs['length_cell'][i]/self.bohr
                 
             self.spacing = [None] * self.dim # spacing between gridpoints along each axis
             for i in range(0, self.dim):
@@ -60,7 +65,7 @@ class Func_3var():
             
             self.length_cell = [None] * self.dim # length of cell along each axis
             for idx, val in enumerate(calc_obj.atoms.cell):
-                self.length_cell[idx] = val[idx]/Bohr # conversion from Angstrom to Bohr
+                self.length_cell[idx] = val[idx]/self.bohr # conversion from Angstrom to Bohr
                 
             self.spacing = calc_obj.density.gd.get_grid_spacings() # get spacing in Bohr from calc object
             
@@ -198,7 +203,7 @@ class Func_3var_no_pbc(Func_3var):
             
             self.length_cell = [None] * self.dim # length of cell along each axis
             for idx, val in enumerate(calc_obj.atoms.cell):
-                self.length_cell[idx] = val[idx]/Bohr # conversion from Angstrom to Bohr
+                self.length_cell[idx] = val[idx]/self.bohr # conversion from Angstrom to Bohr
                 
             self.spacing = calc_obj.density.gd.get_grid_spacings() # get spacing in Bohr from calc object
             
