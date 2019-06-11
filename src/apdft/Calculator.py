@@ -168,9 +168,9 @@ class MrccCalculator(Calculator):
 	@staticmethod  
 	def density_on_grid(densityfile, grid):   
 		ccdensity = MrccCalculator._parse_densityfile(densityfile)
-		if not np.allclose(grid, ccdensity[:3]):
+		if not np.allclose(grid, ccdensity[:, :3]):
 			raise ValueError('Unable to combine different grids.')
-		return ccdensity[5]
+		return ccdensity[:, 4]
 	
 	@staticmethod
 	def get_grid(nuclear_numbers, coordinates, outputfolder):
