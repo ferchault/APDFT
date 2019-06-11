@@ -210,8 +210,28 @@ class MrccCalculator(Calculator):
 	@staticmethod
 	def get_total_energy(folder):
 		""" Returns the total energy in Hartree."""
-		raise NotImplementedError()
-
+		logfile = '%s/run.log' % folder
+		try:
+			energy_cc = cclib.io.ccread(logfile)
+		except:
+			apdft.log.log('Unable to read energy from log file.', filename=logfile, level='error')
+			return 0
+		return energy_cc / 27.21138602
+	@staticmethod
+	def parse_energy_cc_Mrcc(log_file):
+    """Parse the couple cluster energy from an MRCC output file"""
+    with open(log_file,'r') as logf:
+        while True:
+            line=logf.readline()
+            if "Final results:" in line:
+                good_line=logf.readline()
+            if "Total CCSD energy" in gl:
+                for x in gl.split(' '):
+                    try:
+                        float(x)
+                        return (float(x))
+                    except:
+                        pass  
 	@staticmethod
 	def get_electronic_dipole(folder, gridcoords, gridweights):
 		raise NotImplementedError()
