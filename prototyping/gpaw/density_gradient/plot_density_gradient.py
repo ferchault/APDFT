@@ -18,14 +18,12 @@ import numpy as np
 from gpaw import GPAW
 import processing as pr
 from matplotlib import pyplot as plt
-from ase.units import Bohr, Hartree
 
 calc_obj = GPAW(r'/home/misa/APDFT/prototyping/gpaw/OFDFT/result_64_gpts.gpw') # load data from SCF calculation
 cell_param = calc_obj.atoms.cell
 cell_dim = [ cell_param[0][0], cell_param[1][1], cell_param[2][2] ]
 
 sqrt_pseudo_dens = np.sqrt(calc_obj.get_pseudo_density()) # take sqrt of pseudo density to get "orbital" \sqrt{\tilde{\rho}}
-sqrt_pseudo_dens = np.sqrt(calc_obj.density.nt_sG[0]) # take sqrt of pseudo density to get "orbital" \sqrt{\tilde{\rho}}
 
 ### kinetic energy
 kin_operator = np.zeros(sqrt_pseudo_dens.shape, dtype=float) # create grid for kinetic energy operator applied to orbital
@@ -50,22 +48,22 @@ def get_slice(Func_obj): # returns x,y coordinates and func value of plane throu
     return(Func_obj.coordinates[0], Func_obj.coordinates[1], plane)
 
 ### comparison of kinetic part before and after scaling with 1/\sqrt{\tilde{\rho}}
-#func_value_list = [kin_operator, kin_operator/sqrt_pseudo_dens]
-#titles = [r'$ -\frac{1}{2}\nabla^2 \sqrt{\tilde{\rho}} $', r'$ -\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}} $ ']
-#xlims = [ [4, 8], [4 ,8] ]
-#ylims = [ [4.5, 7.5], [4.5, 7.5] ]
-#xlabel = r'$a_x$'
-#ylabel = r'$a_y$'
-#pos = np.array( [ [6.0, 6.0], [5.625, 6.375] ] ) # position of H nuclei
-
-### plot of kinetic part, effective potential and sum of both
-func_value_list = [kin_operator/sqrt_pseudo_dens, eff_potential, dens_grad]
-titles = [r'$ -\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}} $ ', r'$\upsilon_{\text{eff}}$', r'$-\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}}+\upsilon_{\text{eff}}$']
-xlims = [ [4, 8], [4 ,8], [4 ,8] ]
-ylims = [ [4.5, 7.5], [4.5, 7.5], [4.5, 7.5] ]
+func_value_list = [kin_operator, kin_operator/sqrt_pseudo_dens]
+titles = [r'$ -\frac{1}{2}\nabla^2 \sqrt{\tilde{\rho}} $', r'$ -\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}} $ ']
+xlims = [ [4, 8], [4 ,8] ]
+ylims = [ [4.5, 7.5], [4.5, 7.5] ]
 xlabel = r'$a_x$'
 ylabel = r'$a_y$'
 pos = np.array( [ [6.0, 6.0], [5.625, 6.375] ] ) # position of H nuclei
+
+### plot of kinetic part, effective potential and sum of both
+#func_value_list = [kin_operator/sqrt_pseudo_dens, eff_potential, dens_grad]
+#titles = [r'$ -\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}} $ ', r'$\upsilon_{\text{eff}}$', r'$-\frac{1}{2 \sqrt{\tilde{\rho}} } \nabla^2 \sqrt{\tilde{\rho}}+\upsilon_{\text{eff}}$']
+#xlims = [ [4, 8], [4 ,8], [4 ,8] ]
+#ylims = [ [4.5, 7.5], [4.5, 7.5], [4.5, 7.5] ]
+#xlabel = r'$a_x$'
+#ylabel = r'$a_y$'
+#pos = np.array( [ [6.0, 6.0], [5.625, 6.375] ] ) # position of H nuclei
 
 Obj_list = []
 
