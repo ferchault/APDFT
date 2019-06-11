@@ -23,6 +23,7 @@ from gpaw import GPAW
 import processing as pr
 from matplotlib import pyplot as plt
 from ase.units import Bohr, Hartree
+from scipy.ndimage.filters import laplace
 
 
 ################################################################################
@@ -103,13 +104,21 @@ kwargs_pseuod_dens = {'func_value': sqrt_pseudo_dens, 'length_cell':[a_x, a_y, a
 Pseudo_Wf = pr.Func_3var(**kwargs_pseuod_dens) 
 kin_op = Pseudo_Wf.get_kin_en_op()
 
+
+
 # create func object for \hat{T} sqrt_ps_density
 kwargs_kin_op = kwargs_pseuod_dens = {'func_value': kin_op, 'length_cell':[a_x, a_y, a_z]}
 Kinetic = pr.Func_3var(**kwargs_kin_op) 
 
 # plot planes through \hat{T} sqrt_ps_density
-get_plots(Kinetic, 'own function for kinetic energy')
+#get_plots(Kinetic, 'own function for kinetic energy')
 
+###############################################################################
+# scipy laplace operator
+
+lapl=laplace(sqrt_pseudo_dens)
+kwargs_kinetic_scipy = {'func_value' : -0.5*lapl, 'length_cell' : [12.0, 12.0, 12.0]}
+Kinetic_Scipy = pr.Func_3var(**kwargs_kinetic_scipy)
 
 ###############################################################################
 
@@ -122,10 +131,8 @@ kwargs_kin_gpaw = {'func_value': kin_op_gpaw, 'length_cell':[a_x, a_y, a_z]}
 Kinetic_gpaw = pr.Func_3var(**kwargs_kin_gpaw)
 
 # plot planes through gpaw \hat{T} sqrt_ps_density
-get_plots(Kinetic_gpaw, 'gpaw function for kinetic energy operator')
+#get_plots(Kinetic_gpaw, 'gpaw function for kinetic energy operator')
 
-# plot line along bond axis
-z_line_along_bond_gpaw = Kinetic_gpaw.select_line(['x', 'y'], [6.0, 6.0])
 
 ################################################################################
 
@@ -137,8 +144,110 @@ kwargs_vt_G = {'func_value': vt_G, 'length_cell':[a_x, a_y, a_z]}
 Kinetic_vt_G = pr.Func_3var(**kwargs_vt_G)
 
 # plot planes through gpaw \hat{T} sqrt_ps_density
-get_plots(Kinetic_vt_G, 'gpaw grid used for calculation of kinetic energy')
+#get_plots(Kinetic_vt_G, 'gpaw grid used for calculation of kinetic energy')
 
-# plot line along bond axis
-z_line_along_bond_vtg = Kinetic_vt_G.select_line(['x', 'y'], [6.0, 6.0])
+
+###############################################################################
+# contour plots with different # gpts with own algorithm and gpaw method
+
+## load results from GPAW calculation
+#gpt64 = GPAW('/home/misa/APDFT/prototyping/gpaw/OFDFT/result_64_gpts.gpw')
+#gpt100 = GPAW('/home/misa/APDFT/prototyping/gpaw/OFDFT/result_100_gpts.gpw')
+#gpt128 = GPAW('/home/misa/APDFT/prototyping/gpaw/OFDFT/result_128_gpts.gpw')
+#gpt200 = GPAW('/home/misa/APDFT/prototyping/gpaw/OFDFT/result_200_gpts.gpw')
+#
+#calc_obj_list = calc_obj_list = [gpt64, gpt100, gpt128, gpt200]
+#fig_gpt, ax_gpt = plt.subplots(len(calc_obj_list), 2)
+#
+## plot parallel to bond orthogonal to x-axis
+#for idx, calc_obj in enumerate(calc_obj_list):
+#
+#    sqrt_pseudo_dens = np.sqrt(calc_obj.density.nt_sG[0]) # sqrt ps_dens
+#    
+#    # plot using own method 
+#    kwargs_pseuod_dens = {'func_value': sqrt_pseudo_dens, 'length_cell':[12, 12, 12]}
+#    Pseudo_Wf = pr.Func_3var(**kwargs_pseuod_dens) 
+#    kin_op = Pseudo_Wf.get_kin_en_op()
+#    kwargs_kin_op = kwargs_pseuod_dens = {'func_value': kin_op, 'length_cell':[12, 12, 12]}
+#    Kinetic = pr.Func_3var(**kwargs_kin_op)
+#    
+#    x_plane_parallel_bond = Kinetic.select_plane('x', 6.0/Bohr)
+#    
+#    y, z = Kinetic.coordinates[1], Kinetic.coordinates[2]
+#    ax_gpt[idx][0].set_xlim(8.5, 14.5)
+#    ax_gpt[idx][0].set_ylim(9.5, 13.5)
+#    ax_gpt[idx][0].contour(y, z, x_plane_parallel_bond)
+#
+#    # plot using gpaw method
+#    kin_op_gpaw = np.zeros(sqrt_pseudo_dens.shape, dtype=float) # use gpaw function to apply \hat{T} to sqrt ps dens
+#    calc_obj.wfs.kin.apply(sqrt_pseudo_dens, kin_op_gpaw, phase_cd=None)
+#    kwargs_kin_gpaw = {'func_value': kin_op_gpaw, 'length_cell':[12, 12, 12]} # create func object for gpaw \hat{T} sqrt_ps_density
+#    Kinetic_gpaw = pr.Func_3var(**kwargs_kin_gpaw)
+#    
+#    x_plane_parallel_bond_gpaw = Kinetic_gpaw.select_plane('x', 6.0/Bohr)
+#    
+#    y_gpaw, z_gpaw = Kinetic_gpaw.coordinates[1], Kinetic_gpaw.coordinates[2]
+#    ax_gpt[idx][1].set_xlim(8.5, 14.5)
+#    ax_gpt[idx][1].set_ylim(9.5, 13.5)
+#    ax_gpt[idx][1].contour(y_gpaw, z_gpaw, x_plane_parallel_bond_gpaw)
+
+
+
+## plot orthogonal to bond through H1
+#for idx, calc_obj in enumerate(calc_obj_list):
+#
+#    sqrt_pseudo_dens = np.sqrt(calc_obj.density.nt_sG[0]) # sqrt ps_dens
+#    
+#    # plot using own method 
+#    kwargs_pseuod_dens = {'func_value': sqrt_pseudo_dens, 'length_cell':[12, 12, 12]}
+#    Pseudo_Wf = pr.Func_3var(**kwargs_pseuod_dens) 
+#    kin_op = Pseudo_Wf.get_kin_en_op()
+#    kwargs_kin_op = kwargs_pseuod_dens = {'func_value': kin_op, 'length_cell':[12, 12, 12]}
+#    Kinetic = pr.Func_3var(**kwargs_kin_op)
+#    
+#    z_plane_kin_o_bond_h1 = Kinetic.select_plane('z', 5.625/Bohr)
+#    
+#    y, z = Kinetic.coordinates[0], Kinetic.coordinates[1]
+#    ax_gpt[idx][0].set_xlim(8.5, 14.5)
+#    ax_gpt[idx][0].set_ylim(9.5, 13.5)
+#    ax_gpt[idx][0].contour(y, z, z_plane_kin_o_bond_h1)
+#
+#    # plot using gpaw method
+#    kin_op_gpaw = np.zeros(sqrt_pseudo_dens.shape, dtype=float) # use gpaw function to apply \hat{T} to sqrt ps dens
+#    calc_obj.wfs.kin.apply(sqrt_pseudo_dens, kin_op_gpaw, phase_cd=None)
+#    kwargs_kin_gpaw = {'func_value': kin_op_gpaw, 'length_cell':[12, 12, 12]} # create func object for gpaw \hat{T} sqrt_ps_density
+#    Kinetic_gpaw = pr.Func_3var(**kwargs_kin_gpaw)
+#    
+#    z_plane_kin_o_bond_h1_gpaw = Kinetic_gpaw.select_plane('z', 5.625/Bohr)
+#    
+#    y_gpaw, z_gpaw = Kinetic_gpaw.coordinates[0], Kinetic_gpaw.coordinates[1]
+#    ax_gpt[idx][1].set_xlim(8.5, 14.5)
+#    ax_gpt[idx][1].set_ylim(9.5, 13.5)
+#    ax_gpt[idx][1].contour(y_gpaw, z_gpaw, z_plane_kin_o_bond_h1_gpaw)
+    
+
+
+
+###############################################################################
+# contour plots with different algorithms parallel to bond axis
+    
+fig_algos, ax_algos = plt.subplots(1, 3)
+algo_list = [Kinetic, Kinetic_Scipy, Kinetic_gpaw]
+
+for idx, algo in enumerate(algo_list):
+    plane = algo.select_plane('x', 6.0/Bohr)
+    y, z = algo.coordinates[1], algo.coordinates[2]
+    ax_algos[idx].set_xlim(8.5, 14.5)
+    ax_algos[idx].set_ylim(9.5, 13.5)
+    ax_algos[idx].contour(y, z, plane)
+
+
+
+
+
+
+
+
+
+
 
