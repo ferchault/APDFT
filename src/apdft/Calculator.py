@@ -165,11 +165,11 @@ class MrccCalculator(Calculator):
 			ccdensity = q.reshape((-1, 10))
 		return ccdensity[:, 1:6]
 
-	@staticmethod
-	def density_on_grid(inputfile, grid):
-		ccdensity = MrccCalculator._parse_densityfile('%s/DENSITY' % outputfolder)
+	@staticmethod  
+	def density_on_grid(densityfile, grid):   
+		ccdensity = MrccCalculator._parse_densityfile(densityfile)
 		if not np.allclose(grid, ccdensity[:3]):
-			raise ValueError('Trying to combine different grids.')
+			raise ValueError('Unable to combine different grids.')
 		return ccdensity[5]
 	
 	@staticmethod
@@ -204,7 +204,7 @@ class MrccCalculator(Calculator):
 			template = j.Template(fh.read())
 		return template.render()
 
-	def get_density_on_grid(self, folder, gridpoints):
+	def get_density_on_grid(self, folder, grid):
 		return MrccCalculator.density_on_grid(folder + '/DENSITY', grid)
 
 	@staticmethod
