@@ -69,7 +69,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 		grid.level = 3
 		grid.build()
 		# pyscf grid is in a.u.
-		return grid.coords/angstrom, grid.weights
+		return grid.coords/apdft.physics.angstrom, grid.weights
 
 	def update_grid(self):
 		""" Loads the integration grid from the calculator or provides a default one."""
