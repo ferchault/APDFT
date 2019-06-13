@@ -24,7 +24,7 @@ def optimiz2(scf,r,th=1e-4,h=0.1,maxiter=15):
             return energies
         dr=-f1/f2
         r=r+dr
-        h=max(dr/2,1e-4)
+        h=max(dr/2,1e-5)
         
         
 
