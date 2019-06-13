@@ -9,6 +9,8 @@ import traceback
 import numpy as np
 import pandas as pd
 import basis_set_exchange as bse
+import pyscf
+from pyscf import dft
 
 import apdft
 import apdft.Calculator as apc
