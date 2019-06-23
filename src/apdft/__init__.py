@@ -4,6 +4,8 @@ import sys
 from basis_set_exchange import lut
 from . import Calculator
 from . import Derivatives
+from . import commandline
+from . import settings
 
 # setup output
 def _setup_logging():
