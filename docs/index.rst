@@ -5,6 +5,7 @@
 
    about
    installation
+   usage
    features
    apdft
 
