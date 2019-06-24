@@ -6,6 +6,9 @@ class CodeEnum(enum.Enum):
     MRCC = 'MRCC'
     G09 = 'G09'
 
+def intrange(val):
+    return [int(_) for _ in val.split(',')]
+
 class Option():
     """ Represents a single configuration option. """
     def __init__(self, category, name, validator, default, description):
@@ -38,10 +41,15 @@ class Configuration():
         options = [
             # Section apdft: relevant for all invocations
             Option('apdft', 'maxdz', int, 3, 'Restricts target molecules to have at most this change in nuclear charge per atom'),
-            Option('apdft', 'basisset', str, 'def2-TZVP', 'The basis set to be used.'),
-            Option('apdft', 'method', str, 'CCSD', 'Method to be used.'),
-            Option('apdft', 'validation', bool, False, 'Whether to perform validation calculations for all target molecules.'),
-            Option('energy', 'code', CodeEnum, CodeEnum.MRCC, 'QM code to be used.'),
+            Option('apdft', 'maxcharge', int, 0, 'Restricts target molecules to have at most this total molecular charge'),
+            Option('apdft', 'basisset', str, 'def2-TZVP', 'The basis set to be used'),
+            Option('apdft', 'method', str, 'CCSD', 'Method to be used'),
+            Option('apdft', 'includeonly', intrange, None, 'Include only these atom indices, e.g. 0,1,5,7'),
+            Option('debug', 'validation', bool, False, 'Whether to perform validation calculations for all target molecules'),
+            Option('debug', 'superimpose', bool, False, 'Whether to superimpose atomic basis set functions from neighboring elements for fractional nuclear charges'),
+            Option('energy', 'code', CodeEnum, CodeEnum.MRCC, 'QM code to be used'),
+            Option('energy', 'dryrun', bool, False, 'Whether to just estimate the number of targets'),
+            Option('energy', 'geometry', str, 'inp.xzy', 'XYZ file of the reference molecule'),
         ]
         self.__dict__['_options'] = {}
         for option in options:
