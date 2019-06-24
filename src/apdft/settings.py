@@ -49,7 +49,7 @@ class Configuration():
             Option('debug', 'superimpose', bool, False, 'Whether to superimpose atomic basis set functions from neighboring elements for fractional nuclear charges'),
             Option('energy', 'code', CodeEnum, CodeEnum.MRCC, 'QM code to be used'),
             Option('energy', 'dryrun', bool, False, 'Whether to just estimate the number of targets'),
-            Option('energy', 'geometry', str, 'inp.xzy', 'XYZ file of the reference molecule'),
+            Option('energy', 'geometry', str, 'inp.xyz', 'XYZ file of the reference molecule'),
         ]
         self.__dict__['_options'] = {}
         for option in options:

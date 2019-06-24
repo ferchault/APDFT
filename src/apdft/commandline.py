@@ -6,14 +6,22 @@ import apdft
 import apdft.settings as aconf
 import apdft.Calculator as acalc
 
-def mode_energies(conf):
+def mode_energies(conf, modeshort=None):
+    print (modeshort)
+    # deal with modeshort
+    if modeshort is not None:
+        conf['energy_geometry'].set_value(modeshort)
+
+    # select QM code
     if conf.energy_code == aconf.CodeEnum.MRCC:
         calculator = acalc.MrccCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
     else:
         calculator = acalc.GaussianCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
 
+    # parse input
     nuclear_numbers, coordinates = apdft.read_xyz(conf.energy_geometry)
 
+    # call APDFT library
     derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, conf.apdft_maxcharge, conf.apdft_maxdeltaz, conf.apdft_includeonly)
     if conf.energy_dryrun:
         cost, coverage = derivatives.estimate_cost_and_coverage()
@@ -36,8 +44,16 @@ def build_main_commandline():
 
     parser = argparse.ArgumentParser(description='QM calculations on multiple systems at once.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    # mode selection
+    modes = ['energies']
+    parser.add_argument('mode', choices=modes, nargs=1, help='Mode to use. Supported: %s' % ', '.join(modes), metavar='mode')
+
+    # allow for shortcut where a mode gets one single argument of any kind
+    parser.add_argument('modeshort', type=str, nargs='?', help=argparse.SUPPRESS)
+
     # options
     for category in sorted(c.list_sections()):
+        group = parser.add_argument_group(category)
         for option_name in c.list_options(category):
             option = c[option_name]
             choices = None
@@ -46,12 +62,8 @@ def build_main_commandline():
                     choices = [_.name for _ in option.get_validator()]
             except TypeError:
                 pass
-            parser.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=option.get_value())
+            group.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=option.get_value(), metavar='')
     
-    # modes
-    subparsers = parser.add_subparsers(dest='mode')
-    energies = subparsers.add_parser('energies')
-
     return parser
 
 def parse_into(parser, configuration=None):
@@ -61,7 +73,7 @@ def parse_into(parser, configuration=None):
         parser:         An argparse parser instance.
         configuration:  A :class:`apdft.settings.Configuration` instance. If `None`, a new instance will be returned.
     Returns:
-        Mode of operation, updated configuration."""
+        Mode of operation, single optional argument, updated configuration."""
     
     if configuration is None:
         configuration = apdft.settings.Configuration()
@@ -69,11 +81,17 @@ def parse_into(parser, configuration=None):
     args = parser.parse_args()
     valid_options = configuration.list_options()
     mode = None
+    modeshort = None # single argument for a mode for simplicity
     for k, v in vars(args).items():
         if k in valid_options:
             if v is not None:
                 configuration[k].set_value(v)
         else:
-            mode = v
+            if k == 'mode':
+                mode = v[0]
+            elif k == 'modeshort':
+                modeshort = v
+            else:
+                raise ValueError('Unknown argument found.')
 
-    return mode, configuration
+    return mode, modeshort, configuration
