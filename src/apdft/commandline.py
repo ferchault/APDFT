@@ -34,7 +34,7 @@ def build_main_commandline():
 
     c = apdft.settings.Configuration()
 
-    parser = argparse.ArgumentParser(description='QM calculations on multiple systems at once.')
+    parser = argparse.ArgumentParser(description='QM calculations on multiple systems at once.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # options
     for category in sorted(c.list_sections()):
@@ -45,8 +45,8 @@ def build_main_commandline():
                 if issubclass(option.get_validator(), enum.Enum):
                     choices = [_.name for _ in option.get_validator()]
             except TypeError:
-                pass                
-            parser.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices)
+                pass
+            parser.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=option.get_value())
     
     # modes
     subparsers = parser.add_subparsers(dest='mode')
