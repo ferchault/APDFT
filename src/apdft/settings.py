@@ -58,11 +58,13 @@ class Configuration():
     def __getitem__(self, attribute):
         return self.__dict__['_options'][attribute]
     
-    def list_options(self, section):
+    def list_options(self, section=None):
         """ Gives all configurable options for a given section."""
-        return [_ for _ in self.__dict__['_options'].keys() if _.startswith('%s_' % section)]
+        options = [_ for _ in self.__dict__['_options'].keys()]
+        if section is not None:
+            options = [_ for _ in options if _.startswith('%s_' % section)]
+        return options
     
     def list_sections(self):
         """ Returns a list of all sections."""
         return list(set([_.split('_')[0] for _ in self.__dict__['_options'].keys()]))
-        

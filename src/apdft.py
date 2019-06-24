@@ -2,13 +2,14 @@
 import argparse
 import sys
 import apdft
+import apdft.commandline as acmd
+import apdft.settings as aconf
 
 if __name__ == '__main__':
-	parser = apdft.commandline.build_main_commandline()
+	parser = acmd.build_main_commandline()
+	mode, mode_args, conf = acmd.parse_into(parser)
 
-	args = parser.parse_args()
-
-	if args.mrcc:
+	if conf.energy_code == aconf.CodeEnum.MRCC:
 		calculator = apdft.Calculator.MrccCalculator(args.method, args.basisset, args.superimpose)
 	else:
 		calculator = apdft.Calculator.GaussianCalculator(args.method, args.basisset, args.superimpose)
