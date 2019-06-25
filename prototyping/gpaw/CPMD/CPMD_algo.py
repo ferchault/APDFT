@@ -17,22 +17,25 @@ from gpaw.projections import Projections
 import numpy as np
 from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
+from gpaw.forces import calculate_forces
 
 class CPMD():
     Calc_obj = None
     kinetic_energy_gradient = None
     effective_potential = None
     dE_drho = None
+    atomic_forces = None
     
     def __init__(self):
         self.Calc_obj = None
         self.kinetic_energy_gradient = None
         self.effective_potential = None
         self.dE_drho = None
+        self.atomic_forces = None
 
-###############################################################################
-###                             get dE/drho                                 ###
-###############################################################################
+    def initialize_GPAW_calculator(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
+        self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
         
     # create Calculator with correct nuclei position, DFT functional and wavefunction, density and hamiltonian objects
     def initialize_Calc_basics(self, kwargs_calc, kwargs_mol, coord_nuclei):
@@ -51,6 +54,8 @@ class CPMD():
         self.Calc_obj.wfs.calculate_atomic_density_matrices(self.Calc_obj.density.D_asp) # get correct atomic density matrix
         self.calculate_density()
         self.Calc_obj.density.calculate_pseudo_charge()
+        
+
         
     # assign correct wave function from previous CPMD calulation to the wave function object
     # and then recalculate integral of projector functions with pseudo wavefunction; needed for update of atomic density matrix
@@ -71,7 +76,7 @@ class CPMD():
                         Calc.wfs.bd.nbands, nproj_a,
                         kpt.P.atom_partition,
                         Calc.wfs.bd.comm,
-                        collinear=True, spin=Calc.wfs.nspins, dtype=Calc.wfs.dtype)
+                        collinear=True, spin=0, dtype=Calc.wfs.dtype)
     
             kpt.psit.matrix_elements(Calc.wfs.pt, out=kpt.P)
             
@@ -82,7 +87,15 @@ class CPMD():
         # interpolate to fine grid
         self.Calc_obj.density.interpolate_pseudo_density() # should give the same result as:
         # calc_NEW.density.nt_sg = calc_NEW.density.distribute_and_interpolate(calc_NEW.density.nt_sG, calc_NEW.density.nt_sg)
-     
+        
+        
+    def get_forces(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_GPAW_calculator(kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers)
+        self.calculate_dE_drho()
+        self.calculate_forces_on_nuclei()
+###############################################################################
+###                             get dE/drho                                 ###
+###############################################################################
         
     def calculate_effective_potential(self):
         # calculate potential
@@ -113,8 +126,49 @@ class CPMD():
         self.effective_potential = self.get_effective_potential()  
         self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
         self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
-
+        
+    # this function calculates forces on electron density and nuclei
+    # I have to put everything in one function, otherwise updating of 
+    # atomic hamiltonian does not work and I get the wrong values 
+    # for the forces on the nuclei??!
+    def calculate_forces_el_nuc(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
+        self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
+        self.calculate_effective_potential() # calculate effective potential
+        self.effective_potential = self.get_effective_potential()  
+        self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
+        self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
+        # calculate forces on nuclei
+        W_aL = self.Calc_obj.hamiltonian.calculate_atomic_hamiltonians(self.Calc_obj.density)
+        atomic_energies = self.Calc_obj.hamiltonian.update_corrections(self.Calc_obj.density, W_aL)
+        self.Calc_obj.wfs.eigensolver.initialize(self.Calc_obj.wfs)
+        self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
+        
+        self.atomic_forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
 
 ###############################################################################
+###                             get dE/dR                                   ###
+###############################################################################
+    def initialize_eigensolver(self):
+        self.Calc_obj.wfs.eigensolver.initialize(self.Calc_obj.wfs)
+        self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
         
+    def calculate_forces_on_nuclei(self):
+        self.initialize_eigensolver()
+        self.forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
+        
+###############################################################################
+###                             update density                              ###
+###############################################################################
+
+def update_density(self, pseudo_density, niter):
+    if niter > 0: # do verlet
+    else: # propagation for first step
+        
+        
+    
+
+###############################################################################
+###                             update nuclei                               ###
+###############################################################################     
         
