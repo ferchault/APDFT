@@ -39,7 +39,7 @@ class CPMD():
     coords_nuclei = None
     
     
-    def __init__(self, kwargs_calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords_nuclei):
+    def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None):
         self.Calc_obj = None
         self.kinetic_energy_gradient = None
         self.effective_potential = None
