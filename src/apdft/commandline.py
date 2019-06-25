@@ -7,7 +7,6 @@ import apdft.settings as aconf
 import apdft.Calculator as acalc
 
 def mode_energies(conf, modeshort=None):
-    print (modeshort)
     # deal with modeshort
     if modeshort is not None:
         conf['energy_geometry'].set_value(modeshort)
@@ -19,7 +18,11 @@ def mode_energies(conf, modeshort=None):
         calculator = acalc.GaussianCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
 
     # parse input
-    nuclear_numbers, coordinates = apdft.read_xyz(conf.energy_geometry)
+    try:
+        nuclear_numbers, coordinates = apdft.read_xyz(conf.energy_geometry)
+    except FileNotFoundError:
+        apdft.log.log('Unable to open input file "%s".' % conf.energy_geometry, level='error')
+        return
 
     # call APDFT library
     derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, conf.apdft_maxcharge, conf.apdft_maxdeltaz, conf.apdft_includeonly)
