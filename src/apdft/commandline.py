@@ -26,18 +26,14 @@ def mode_energies(conf, modeshort=None):
 
     # call APDFT library
     derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, conf.apdft_maxcharge, conf.apdft_maxdz, conf.apdft_includeonly)
-    if conf.energy_dryrun:
-        cost, coverage = derivatives.estimate_cost_and_coverage()
-        if conf.debug_validation:
-            cost += coverage
-        apdft.log.log('Cost estimated.', number_calculations=cost, number_prediction=coverage, level='RESULT')
-    else:
+    
+    cost, coverage = derivatives.estimate_cost_and_coverage()
+    if conf.debug_validation:
+        cost += coverage
+    apdft.log.log('Cost estimated.', number_calculations=cost, number_predictions=coverage, level='RESULT')
+    if not conf.energy_dryrun:
         derivatives.assign_calculator(calculator)
         derivatives.prepare(conf.debug_validation)
-        success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
-        if not success:
-            apdft.log.log('Incomplete calculations. Aborting', level='critical')
-            sys.exit(1)
         derivatives.analyse(conf.debug_validation)
 
 def build_main_commandline():

@@ -84,6 +84,8 @@ class DerivativeFolders(apdft.physics.APDFT):
 			apdft.log.log('Input folder exists. Reusing existing data.', level='warning')
 			return
 
+		commands = []
+
 		for order in self._orders:
 			# only upper triangle with diagonal
 			for combination in it.combinations_with_replacement(self._include_atoms, order):
@@ -106,6 +108,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 						fh.write(inputfile)
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None))
+					commands.append('cd %s && bash run.sh' % path)
 		if explicit_reference:
 			targets = self.enumerate_all_targets()
 			apdft.log.log('All targets listed for comparison run.', level='info', count=len(targets))
@@ -118,6 +121,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 					fh.write(inputfile)
 				with open('%s/run.sh' % path, 'w') as fh:
 					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None))
+				commands.append('cd %s && bash run.sh' % path)
+		
+		# write commands
+		with open('commands.sh', 'w') as fh:
+			fh.write('\n'.join(commands))
 
 	@staticmethod
 	def _wrapper(_, remote_host, remote_preload):
@@ -125,31 +133,6 @@ class DerivativeFolders(apdft.physics.APDFT):
 			apc.Calculator.execute(_, remote_host, remote_preload)
 		except Exception as e:
 			return _, traceback.format_exc()
-
-	def run(self, parallel=None, remote_host=None, remote_preload=None):
-		""" Executes all calculations if not done so already."""
-
-		# Obtain number of parallel executions
-		if parallel is None and remote_host is not None:
-			raise NotImplementedError('Remote parallelisation only with explicit process count.')
-
-		if parallel == 0:
-			parallel = mp.cpu_count()
-		if parallel is None:
-			parallel = 1
-
-		# find folders to execute
-		folders = [os.path.dirname(_) for _ in glob.glob('QM/**/run.sh', recursive=True)]
-		haslog = [os.path.dirname(_) for _ in glob.glob('QM/**/run.log', recursive=True)]
-		folders = set(folders) - set(haslog)
-
-		with mp.Pool(parallel) as pool:
-			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
-
-		failed = [_ for _ in results if _ is not None]
-		for fail in failed:
-			apdft.log.log('Calculation failed.', level='error', folder=fail[0], error=fail[1])
-		return len(failed) == 0
 
 	def _cached_reader(self, folder):
 		if folder not in self._reader_cache:
@@ -178,8 +161,8 @@ class DerivativeFolders(apdft.physics.APDFT):
 			if i != j:
 				rhojup = self._cached_reader('QM/order-1/site-%d-up' % j)
 				rhojdn = self._cached_reader('QM/order-1/site-%d-dn' % j)
-				rhoup = self._cached_reader('QM/order-2/site-%d-%d-up' % min(i, j), max(i, j))
-				rhodn = self._cached_reader('QM/order-2/site-%d-%d-dn' % min(i, j), max(i, j))
+				rhoup = self._cached_reader('QM/order-2/site-%d-%d-up' % (min(i, j), max(i, j)))
+				rhodn = self._cached_reader('QM/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)))
 
 			if i == j:
 				deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)
@@ -196,7 +179,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 	def analyse(self, explicit_reference=False, do_energies=True, do_dipoles=True):
 		""" Performs actual analysis and integration. Prints results"""
-		targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
+		try:
+			targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
+		except FileNotFoundError:
+			apdft.log.log('At least one of the QM calculations has not been performed yet. Please run all QM calculations first.', level='warning')
+			return
 
 		if explicit_reference:
 			comparison_energies = np.zeros(len(targets))
