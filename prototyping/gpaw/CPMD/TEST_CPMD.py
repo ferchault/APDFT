@@ -18,7 +18,7 @@ from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
 
 import numpy as np
-
+from gpaw.forces import calculate_forces
 ###############################################################################
 ##                      ref calc                                             ##
 ###############################################################################
@@ -976,11 +976,9 @@ def TEST_calculate_dE_drho_():
     Calc_ref.hamiltonian.update_pseudo_potential(Calc_ref.density) # calculate effective potential
     Calc_ref.hamiltonian.restrict_and_collect(Calc_ref.hamiltonian.vt_sg, Calc_ref.hamiltonian.vt_sG) # restrict to coarse grid
     vt_G_ref = Calc_ref.hamiltonian.gd.collect(Calc_ref.hamiltonian.vt_sG[0], broadcast=True) # get effective potential           
-    kinetic_energy_op_ref = None # calculate dT/drho
-    for kpt in Calc_ref.wfs.kpt_u:
-        kinetic_energy_op_ref = np.zeros(kpt.psit_nG[0].shape, dtype = float)
-        Calc_ref.wfs.kin.apply(kpt.psit_nG[0], kinetic_energy_op_ref, phase_cd=None)
-        kinetic_energy_op_ref = kinetic_energy_op_ref/kpt.psit_nG[0] # scaling for OFDFT (see paper Lehtomaeki)
+    kinetic_energy_op_ref = np.zeros(kpt.psit_nG[0].shape, dtype = float) # calculate dT/drho
+    Calc_ref.wfs.kin.apply(kpt.psit_nG[0], kinetic_energy_op_ref, phase_cd=None)
+    kinetic_energy_op_ref = kinetic_energy_op_ref/kpt.psit_nG[0] # scaling for OFDFT (see paper Lehtomaeki)
     dE_drho_ref = kinetic_energy_op_ref + vt_G_ref
     
     #def TEST_intialize_Calc_electronic_():
@@ -997,10 +995,11 @@ def TEST_calculate_dE_drho_():
     txt = 'output_test.txt'    
     kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensolver, 'mixer':mixer, 'setups':setups, 'txt':txt}
     CPMD_obj = CPMD()
+    #CPMD_obj.initialize_GPAW_calculator(kwargs_Calc, kwargs_mol, coords, Calc_ref.wfs.kpt_u[0].psit_nG[0], Calc_ref.wfs.kpt_u[0].f_n)
     
     # test: calculate dE_drho
     CPMD_obj.calculate_dE_drho(kwargs_Calc, kwargs_mol, coords, Calc_ref.wfs.kpt_u[0].psit_nG[0], Calc_ref.wfs.kpt_u[0].f_n)
-    
+
     # assert    
     hard = np.alltrue(CPMD_obj.dE_drho == dE_drho_ref)
     soft = np.allclose(CPMD_obj.dE_drho, dE_drho_ref)
@@ -1014,6 +1013,78 @@ def TEST_calculate_dE_drho_():
         print('calculate_dE_drho() returns correct values!')
     else:
         print('calculate_dE_drho() DOES NOT return correct values!')
+
+    if hard:
+        return('Passed')
+    else:
+        return('Failed')
+        
+###############################################################################
+# test calculation of atomic forces
+def TEST_calculate_forces_el_nuc_():
+    # create reference calc object
+    Calc_ref = create_ref_Calc()
+    forces_ref_before_update = calculate_forces(Calc_ref.wfs, Calc_ref.density, Calc_ref.hamiltonian)
+    nproj_a = [setup.ni for setup in Calc_ref.wfs.setups] # atomic density matirx
+    for kpt in Calc_ref.wfs.kpt_u:
+    
+        kpt.P = Projections(
+                    Calc_ref.wfs.bd.nbands, nproj_a,
+                    kpt.P.atom_partition,
+                    Calc_ref.wfs.bd.comm,
+                    collinear=True, spin=0, dtype=Calc_ref.wfs.dtype)
+    
+    kpt.psit.matrix_elements(Calc_ref.wfs.pt, out=kpt.P)    
+    Calc_ref.wfs.calculate_atomic_density_matrices(Calc_ref.density.D_asp)
+    Calc_ref.density.calculate_pseudo_density(Calc_ref.wfs) # electron density
+    Calc_ref.density.interpolate_pseudo_density()
+    Calc_ref.density.calculate_pseudo_charge() # charge density
+    Calc_ref.hamiltonian.update_pseudo_potential(Calc_ref.density) # calculate effective potential
+    Calc_ref.hamiltonian.restrict_and_collect(Calc_ref.hamiltonian.vt_sg, Calc_ref.hamiltonian.vt_sG) # restrict to coarse grid
+    vt_G_ref = Calc_ref.hamiltonian.gd.collect(Calc_ref.hamiltonian.vt_sG[0], broadcast=True) # get effective potential           
+    kinetic_energy_op_ref = np.zeros(kpt.psit_nG[0].shape, dtype = float) # calculate dT/drho
+    Calc_ref.wfs.kin.apply(kpt.psit_nG[0], kinetic_energy_op_ref, phase_cd=None)
+    kinetic_energy_op_ref = kinetic_energy_op_ref/kpt.psit_nG[0] # scaling for OFDFT (see paper Lehtomaeki)
+    dE_drho_ref = kinetic_energy_op_ref + vt_G_ref
+    
+    
+    # atomic forces
+    W_aL = Calc_ref.hamiltonian.calculate_atomic_hamiltonians(Calc_ref.density)
+    atomic_energies = Calc_ref.hamiltonian.update_corrections(Calc_ref.density, W_aL)
+    Calc_ref.wfs.eigensolver.subspace_diagonalize(Calc_ref.hamiltonian, Calc_ref.wfs, Calc_ref.wfs.kpt_u[0]) 
+    forces_ref = calculate_forces(Calc_ref.wfs, Calc_ref.density, Calc_ref.hamiltonian)
+    
+    #def TEST_intialize_Calc_electronic_():
+    # initialize
+    kwargs_mol = {'symbols':'H2', 'cell':(12,12,12), 'pbc':True }
+    coords = [(6.0, 6.0, 5.35), (6.0, 6.0, 6.65)]
+    gpts = (32, 32, 32)
+    xc = '1.0_LDA_K_TF+1.0_LDA_X+1.0_LDA_C_PW'
+    maxiter = 500
+    lambda_coeff = 1.0
+    eigensolver = CG(tw_coeff=lambda_coeff)
+    mixer = Mixer()
+    setups = 'lambda_' + str(lambda_coeff)
+    txt = 'output_test.txt'
+    kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensolver, 'mixer':mixer, 'setups':setups, 'txt':txt}
+    CPMD_obj = CPMD()
+    
+    # test: calculate dE_drho
+    CPMD_obj.calculate_forces_el_nuc(kwargs_Calc, kwargs_mol, coords, Calc_ref.wfs.kpt_u[0].psit_nG[0], Calc_ref.wfs.kpt_u[0].f_n)
+    
+    # assert    
+    hard = np.alltrue(CPMD_obj.atomic_forces == forces_ref)
+    soft = np.allclose(CPMD_obj.atomic_forces, forces_ref)
+    
+    if hard:
+        print('Forces are identical!')
+    else:
+        print('Forces are NOT identical!')
+    
+    if soft:
+        print('calculate_forces_el_nuc() returns correct atomic forces!')
+    else:
+        print('calculate_forces_el_nuc() DOES NOT return correct atomic forces')
     
     if hard:
         return('Passed')
