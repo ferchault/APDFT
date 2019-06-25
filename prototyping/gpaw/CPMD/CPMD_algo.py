@@ -26,12 +26,35 @@ class CPMD():
     dE_drho = None
     atomic_forces = None
     
-    def __init__(self):
+    kwargs_calc = None
+    kwargs_mol = None
+    occupation_numbers = None
+    
+    # CPMD stuff
+    mu = None
+    dt = None
+    niter_max = None
+    
+    pseudo_wf = None
+    coords_nuclei = None
+    
+    
+    def __init__(self, kwargs_calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords_nuclei):
         self.Calc_obj = None
         self.kinetic_energy_gradient = None
         self.effective_potential = None
         self.dE_drho = None
         self.atomic_forces = None
+        # set
+        self.kwargs_calc = kwargs_calc
+        self.kwargs_mol = kwargs_mol
+        self.occupation_numbers = occupation_numbers
+        self.mu = mu
+        self.dt = dt
+        self.niter_max = niter_max
+        
+        self.pseudo_wf = pseudo_wf
+        self.coords_nuclei = coords_nuclei
 
     def initialize_GPAW_calculator(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
@@ -130,7 +153,7 @@ class CPMD():
     # this function calculates forces on electron density and nuclei
     # I have to put everything in one function, otherwise updating of 
     # atomic hamiltonian does not work and I get the wrong values 
-    # for the forces on the nuclei??!
+    # for the forces on the nuclei??! 
     def calculate_forces_el_nuc(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
         self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
@@ -161,14 +184,32 @@ class CPMD():
 ###                             update density                              ###
 ###############################################################################
 
-def update_density(self, pseudo_density, niter):
-    if niter > 0: # do verlet
-    else: # propagation for first step
-        
-        
+def update_density(self, pseudo_wf, f_n, niter, dE_drho):
     
+    # scale wave function to get pseudo valence density (sqrt_ps_dens)
+    # we propagate the square root of the pseudo density \sqrt{\tilde{n}} without core contribution?, but
+    # we get only the pseudo wave function \tilde{\psi}, that is related to \tilde{n} as
+    # \tilde{n} = f_n |\tilde{\psi}|^2, where f_n is the number of valence electrons
+    # therefore \sqrt{\tilde{n}} = \sqrt{f_n} \tilde{\psi}
+    # f_n is an array, but in OFDFT we have only one f_n value therefore access f_n[0]
+    sqrt_ps_dens = np.sqrt(f_n[0])*pseudo_wf
+    sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens.shape)
+    
+    
+    if niter > 0: # do verlet
+        do = 'some stuff'
+    else: # propagation for first step   
+        sqrt_ps_dens1_unconstrained = sqrt_ps_dens + 0.5*self.dt**2*(-dE_drho/self.mu)
+        
+        # calculate lambda constraint to ensure that pseudo density remains constant
+        lam = 1 - sqrt_ps_dens1_unconstrained/sqrt_ps_dens
+        constraint = lam*sqrt_ps_dens
+        
+        # add constraint
+        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + constraint 
+        
+   
+    self.pseudo_wf = sqrt_ps_dens1/np.sqrt(f_n[0]) # undo scaling to get pseudo valence density without occupation
+        
 
-###############################################################################
-###                             update nuclei                               ###
-###############################################################################     
         
