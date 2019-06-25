@@ -1067,10 +1067,18 @@ def TEST_calculate_forces_el_nuc_():
     setups = 'lambda_' + str(lambda_coeff)
     txt = 'output_test.txt'
     kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensolver, 'mixer':mixer, 'setups':setups, 'txt':txt}
-    CPMD_obj = CPMD()
+    
+    occupation_numbers = Calc_ref.wfs.kpt_u[0].f_n
+    pseudo_wf = Calc_ref.wfs.kpt_u[0].psit_nG[0]
+    mu = 300
+    dt = 0.1
+    niter_max = 10
+    
+    # test initialization
+    CPMD_obj = CPMD(kwargs_Calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords)
     
     # test: calculate dE_drho
-    CPMD_obj.calculate_forces_el_nuc(kwargs_Calc, kwargs_mol, coords, Calc_ref.wfs.kpt_u[0].psit_nG[0], Calc_ref.wfs.kpt_u[0].f_n)
+    CPMD_obj.calculate_forces_el_nuc(CPMD_obj.kwargs_calc, CPMD_obj.kwargs_mol, CPMD_obj.coords_nuclei, CPMD_obj.pseudo_wf, CPMD_obj.occupation_numbers)
     
     # assert    
     hard = np.alltrue(CPMD_obj.atomic_forces == forces_ref)
@@ -1090,3 +1098,52 @@ def TEST_calculate_forces_el_nuc_():
         return('Passed')
     else:
         return('Failed')
+
+###############################################################################
+# test calculation of atomic forces
+def TEST__init__():
+    # create reference calc object
+    Calc_ref = create_ref_Calc()
+    
+    # initialize
+    kwargs_mol = {'symbols':'H2', 'cell':(12,12,12), 'pbc':True }
+    coords = [(6.0, 6.0, 5.35), (6.0, 6.0, 6.65)]
+    gpts = (32, 32, 32)
+    xc = '1.0_LDA_K_TF+1.0_LDA_X+1.0_LDA_C_PW'
+    maxiter = 500
+    lambda_coeff = 1.0
+    eigensolver = CG(tw_coeff=lambda_coeff)
+    mixer = Mixer()
+    setups = 'lambda_' + str(lambda_coeff)
+    txt = 'output_test.txt'
+    kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensolver, 'mixer':mixer, 'setups':setups, 'txt':txt}
+    
+    occupation_numbers = Calc_ref.wfs.kpt_u[0].f_n
+    pseudo_wf = Calc_ref.wfs.kpt_u[0].psit_nG[0]
+    mu = 300
+    dt = 0.1
+    niter_max = 10
+    
+    # test initialization
+    CPMD_obj = CPMD(kwargs_Calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords)
+    
+    # assert
+    kwargs_calc_bool = CPMD_obj.kwargs_calc == kwargs_Calc
+    kwargs_mol_bool = CPMD_obj.kwargs_mol == kwargs_mol
+    
+    occupation_numbers_bool = np.alltrue(CPMD_obj.occupation_numbers == Calc_ref.wfs.kpt_u[0].f_n)
+    mu_bool = CPMD_obj.mu == 300
+    dt_bool = CPMD_obj.dt == 0.1
+    niter_max_bool = CPMD_obj.niter_max == 10
+    
+    pseudo_wf_bool = np.alltrue(CPMD_obj.pseudo_wf == Calc_ref.wfs.kpt_u[0].psit_nG[0])
+    coords_bool = CPMD_obj.coords_nuclei == coords
+    
+    
+    if kwargs_calc_bool and kwargs_mol_bool and occupation_numbers_bool and mu_bool and dt_bool and niter_max_bool and pseudo_wf_bool and coords_bool:
+        print('CPMD object correctly initialized!')
+        return('Passed')
+    else:
+        print('CPMD object NOT correctly initialized!')
+        return('Failed')
+
