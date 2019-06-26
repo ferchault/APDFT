@@ -18,6 +18,7 @@ from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
 
 import numpy as np
+import math
 from gpaw.forces import calculate_forces
 ###############################################################################
 ##                      ref calc                                             ##
@@ -58,6 +59,37 @@ def create_ref_Calc():
         energy_arr[idx] = molecule.get_total_energy()
         #Calc_ref.write('result_32_gpts_d_'+str(d)+'.gpw', mode='all')
     return(Calc_ref)
+
+def create_CPMD_with_forces():
+    # create reference calc object
+    Calc_ref = create_ref_Calc()
+    
+    #def TEST_intialize_Calc_electronic_():
+    # initialize
+    kwargs_mol = {'symbols':'H2', 'cell':(12,12,12), 'pbc':True }
+    coords = Calc_ref.atoms.get_positions()#[(6.0, 6.0, 5.35), (6.0, 6.0, 6.65)]
+    gpts = (32, 32, 32)
+    xc = '1.0_LDA_K_TF+1.0_LDA_X+1.0_LDA_C_PW'
+    maxiter = 500
+    lambda_coeff = 1.0
+    eigensolver = CG(tw_coeff=lambda_coeff)
+    mixer = Mixer()
+    setups = 'lambda_' + str(lambda_coeff)
+    txt = 'output_test.txt'
+    kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensolver, 'mixer':mixer, 'setups':setups, 'txt':txt}
+    
+    occupation_numbers = Calc_ref.wfs.kpt_u[0].f_n
+    pseudo_wf = Calc_ref.wfs.kpt_u[0].psit_nG[0]
+    mu = 300
+    dt = 4.0
+    niter_max = 10
+    
+    # test initialization
+    CPMD_obj = CPMD(kwargs_Calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords)
+    
+    # test: calculate dE_drho
+    CPMD_obj.calculate_forces_el_nuc(CPMD_obj.kwargs_calc, CPMD_obj.kwargs_mol, CPMD_obj.coords_nuclei, CPMD_obj.pseudo_wf, CPMD_obj.occupation_numbers)
+    return(CPMD_obj)
 
 ###############################################################################
 ### test initialization with keywords
@@ -1147,3 +1179,39 @@ def TEST__init__():
         print('CPMD object NOT correctly initialized!')
         return('Failed')
 
+###############################################################################
+
+def TEST_calculate_lambda_constraint_():
+    # initialize
+    CPMD_obj = create_CPMD_with_forces()
+    
+    volume_gpt = CPMD_obj.Calc_obj.density.gd.dv
+    sqrt_ps_dens = np.sqrt(CPMD_obj.occupation_numbers[0])*CPMD_obj.pseudo_wf
+    sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens.shape)
+    niter = 0
+    if niter > 0: # do verlet
+        do = 'verlet'
+    else: # propagation for first step   
+        sqrt_ps_dens1_unconstrained = sqrt_ps_dens + 0.5*CPMD_obj.dt**2/CPMD_obj.mu*(-CPMD_obj.dE_drho)
+
+    # test: calculation of correct lambda
+    tau = CPMD_obj.calculate_lambda_constraint(sqrt_ps_dens, sqrt_ps_dens1_unconstrained, volume_gpt)
+    int_ps_wf0 = np.sum( np.power(sqrt_ps_dens,2)*volume_gpt )
+    ps_wf1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens
+    int_ps_wf1 = np.sum( np.power(ps_wf1,2)*volume_gpt )    
+    
+    # assert
+    if np.isclose(int_ps_wf0, int_ps_wf1):
+        print('Integral of phi_1 is equal to integral of phi_0!')
+        return('Passed')
+    else:
+        print('Integral of phi_1 is NOT equal to integral of phi_0!')
+        return('Failed')
+
+    
+###############################################################################
+    
+    #TEST_update_density_scaling_ps_wf_()
+    
+    
+    
