@@ -37,7 +37,9 @@ class CPMD():
     niter_max = None
     
     pseudo_wf = None
-    coords_nuclei = None
+    pseudo_wf_previous = None
+    coords = None
+    coords_previous = None
     
     
     def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None):
@@ -55,7 +57,9 @@ class CPMD():
         self.niter_max = niter_max
         
         self.pseudo_wf = pseudo_wf
-        self.coords_nuclei = coords_nuclei
+        self.pseudo_wf_previous = None
+        self.coords = coords_nuclei
+        self.coords_previous = None
 
     def initialize_GPAW_calculator(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
@@ -63,6 +67,7 @@ class CPMD():
         
     # create Calculator with correct nuclei position, DFT functional and wavefunction, density and hamiltonian objects
     def initialize_Calc_basics(self, kwargs_calc, kwargs_mol, coord_nuclei):
+        self.Calc_obj = None
         Molecule = Atoms(positions = coord_nuclei, **kwargs_mol) # molecule with new positions of nuclei
         self.Calc_obj = GPAW(**kwargs_calc) # Calc object with calculation parameters
         
@@ -212,10 +217,11 @@ class CPMD():
         volume_gpt = self.Calc_obj.density.gd.dv
         tau = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
         sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens0
-       
-        self.pseudo_wf = sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0]) # undo scaling to get pseudo valence density without occupation
+        
+        self.pseudo_wf_previous = self.pseudo_wf.copy()
+        self.pseudo_wf = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
     
-    
+    # calculation of the langrange multiplier necessary to ensure that number of electrons is conserved
     def calculate_lambda_constraint(self, sqrt_ps_dens, sqrt_ps_dens1_unconstrained, volume_gpt):
         int_phi0_squared = np.sum( np.power(sqrt_ps_dens, 2)*volume_gpt )
         int_phi1_tilde_squared = np.sum( np.power(sqrt_ps_dens1_unconstrained, 2)*volume_gpt )
@@ -234,10 +240,6 @@ class CPMD():
         if tau > 1:
             print('Warning: tau > 1 ')
         return(tau)
-            
-            
-            
-            
             
             
             
