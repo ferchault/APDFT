@@ -108,7 +108,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 						fh.write(inputfile)
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None))
-					commands.append('cd %s && bash run.sh' % path)
+					commands.append('( cd %s && bash run.sh )' % path)
 		if explicit_reference:
 			targets = self.enumerate_all_targets()
 			apdft.log.log('All targets listed for comparison run.', level='info', count=len(targets))
@@ -121,7 +121,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 					fh.write(inputfile)
 				with open('%s/run.sh' % path, 'w') as fh:
 					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None))
-				commands.append('cd %s && bash run.sh' % path)
+				commands.append('( cd %s && bash run.sh )' % path)
 		
 		# write commands
 		with open('commands.sh', 'w') as fh:
@@ -181,7 +181,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 		""" Performs actual analysis and integration. Prints results"""
 		try:
 			targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
-		except FileNotFoundError:
+		except (FileNotFoundError, AttributeError):
 			apdft.log.log('At least one of the QM calculations has not been performed yet. Please run all QM calculations first.', level='warning')
 			return
 
