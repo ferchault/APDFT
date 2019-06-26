@@ -17,22 +17,48 @@ from gpaw.projections import Projections
 import numpy as np
 from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
+from gpaw.forces import calculate_forces
 
 class CPMD():
     Calc_obj = None
     kinetic_energy_gradient = None
     effective_potential = None
     dE_drho = None
+    atomic_forces = None
     
-    def __init__(self):
+    kwargs_calc = None
+    kwargs_mol = None
+    occupation_numbers = None
+    
+    # CPMD stuff
+    mu = None
+    dt = None
+    niter_max = None
+    
+    pseudo_wf = None
+    coords_nuclei = None
+    
+    
+    def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None):
         self.Calc_obj = None
         self.kinetic_energy_gradient = None
         self.effective_potential = None
         self.dE_drho = None
+        self.atomic_forces = None
+        # set
+        self.kwargs_calc = kwargs_calc
+        self.kwargs_mol = kwargs_mol
+        self.occupation_numbers = occupation_numbers
+        self.mu = mu
+        self.dt = dt
+        self.niter_max = niter_max
+        
+        self.pseudo_wf = pseudo_wf
+        self.coords_nuclei = coords_nuclei
 
-###############################################################################
-###                             get dE/drho                                 ###
-###############################################################################
+    def initialize_GPAW_calculator(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
+        self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
         
     # create Calculator with correct nuclei position, DFT functional and wavefunction, density and hamiltonian objects
     def initialize_Calc_basics(self, kwargs_calc, kwargs_mol, coord_nuclei):
@@ -51,6 +77,8 @@ class CPMD():
         self.Calc_obj.wfs.calculate_atomic_density_matrices(self.Calc_obj.density.D_asp) # get correct atomic density matrix
         self.calculate_density()
         self.Calc_obj.density.calculate_pseudo_charge()
+        
+
         
     # assign correct wave function from previous CPMD calulation to the wave function object
     # and then recalculate integral of projector functions with pseudo wavefunction; needed for update of atomic density matrix
@@ -71,7 +99,7 @@ class CPMD():
                         Calc.wfs.bd.nbands, nproj_a,
                         kpt.P.atom_partition,
                         Calc.wfs.bd.comm,
-                        collinear=True, spin=Calc.wfs.nspins, dtype=Calc.wfs.dtype)
+                        collinear=True, spin=0, dtype=Calc.wfs.dtype)
     
             kpt.psit.matrix_elements(Calc.wfs.pt, out=kpt.P)
             
@@ -82,7 +110,15 @@ class CPMD():
         # interpolate to fine grid
         self.Calc_obj.density.interpolate_pseudo_density() # should give the same result as:
         # calc_NEW.density.nt_sg = calc_NEW.density.distribute_and_interpolate(calc_NEW.density.nt_sG, calc_NEW.density.nt_sg)
-     
+        
+        
+    def get_forces(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_GPAW_calculator(kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers)
+        self.calculate_dE_drho()
+        self.calculate_forces_on_nuclei()
+###############################################################################
+###                             get dE/drho                                 ###
+###############################################################################
         
     def calculate_effective_potential(self):
         # calculate potential
@@ -113,8 +149,67 @@ class CPMD():
         self.effective_potential = self.get_effective_potential()  
         self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
         self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
-
+        
+    # this function calculates forces on electron density and nuclei
+    # I have to put everything in one function, otherwise updating of 
+    # atomic hamiltonian does not work and I get the wrong values 
+    # for the forces on the nuclei??! 
+    def calculate_forces_el_nuc(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
+        self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
+        self.calculate_effective_potential() # calculate effective potential
+        self.effective_potential = self.get_effective_potential()  
+        self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
+        self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
+        # calculate forces on nuclei
+        W_aL = self.Calc_obj.hamiltonian.calculate_atomic_hamiltonians(self.Calc_obj.density)
+        atomic_energies = self.Calc_obj.hamiltonian.update_corrections(self.Calc_obj.density, W_aL)
+        self.Calc_obj.wfs.eigensolver.initialize(self.Calc_obj.wfs)
+        self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
+        
+        self.atomic_forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
 
 ###############################################################################
+###                             get dE/dR                                   ###
+###############################################################################
+    def initialize_eigensolver(self):
+        self.Calc_obj.wfs.eigensolver.initialize(self.Calc_obj.wfs)
+        self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
         
+    def calculate_forces_on_nuclei(self):
+        self.initialize_eigensolver()
+        self.forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
+        
+###############################################################################
+###                             update density                              ###
+###############################################################################
+
+def update_density(self, pseudo_wf, f_n, niter, dE_drho):
+    
+    # scale wave function to get pseudo valence density (sqrt_ps_dens)
+    # we propagate the square root of the pseudo density \sqrt{\tilde{n}} without core contribution?, but
+    # we get only the pseudo wave function \tilde{\psi}, that is related to \tilde{n} as
+    # \tilde{n} = f_n |\tilde{\psi}|^2, where f_n is the number of valence electrons
+    # therefore \sqrt{\tilde{n}} = \sqrt{f_n} \tilde{\psi}
+    # f_n is an array, but in OFDFT we have only one f_n value therefore access f_n[0]
+    sqrt_ps_dens = np.sqrt(f_n[0])*pseudo_wf
+    sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens.shape)
+    
+    
+    if niter > 0: # do verlet
+        do = 'some stuff'
+    else: # propagation for first step   
+        sqrt_ps_dens1_unconstrained = sqrt_ps_dens + 0.5*self.dt**2*(-dE_drho/self.mu)
+        
+        # calculate lambda constraint to ensure that pseudo density remains constant
+        lam = 1 - sqrt_ps_dens1_unconstrained/sqrt_ps_dens
+        constraint = lam*sqrt_ps_dens
+        
+        # add constraint
+        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + constraint 
+        
+   
+    self.pseudo_wf = sqrt_ps_dens1/np.sqrt(f_n[0]) # undo scaling to get pseudo valence density without occupation
+        
+
         
