@@ -323,7 +323,6 @@ class GaussianCalculator(Calculator):
 	def get_total_energy(folder):
 		""" Returns the total energy in Hartree."""
 		logfile = '%s/run.log' % folder
-		print (logfile)
 		try:
 			data = cclib.io.ccread(logfile)
 		except:
