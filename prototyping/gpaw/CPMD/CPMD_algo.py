@@ -18,6 +18,7 @@ import numpy as np
 from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
 from gpaw.forces import calculate_forces
+import math
 
 class CPMD():
     Calc_obj = None
@@ -150,11 +151,14 @@ class CPMD():
         self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
         self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
         
-    # this function calculates forces on electron density and nuclei
-    # I have to put everything in one function, otherwise updating of 
-    # atomic hamiltonian does not work and I get the wrong values 
-    # for the forces on the nuclei??! 
+
     def calculate_forces_el_nuc(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
+        """
+        this function calculates forces on electron density and nuclei
+        I have to put everything in one function, otherwise updating of 
+        atomic hamiltonian does not work and I get the wrong values 
+        for the forces on the nuclei??! 
+        """
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
         self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
         self.calculate_effective_potential() # calculate effective potential
@@ -184,32 +188,63 @@ class CPMD():
 ###                             update density                              ###
 ###############################################################################
 
-def update_density(self, pseudo_wf, f_n, niter, dE_drho):
+
+
+
+    # calculation of the new pseudo density in the CPMD cycle
+    def update_density(self, niter):
+        
+        # scale wave function to get pseudo valence density (sqrt_ps_dens)
+        # we propagate the square root of the pseudo density \sqrt{\tilde{n}} without core contribution?, but
+        # we get only the pseudo wave function \tilde{\psi}, that is related to \tilde{n} as
+        # \tilde{n} = f_n |\tilde{\psi}|^2, where f_n is the number of valence electrons
+        # therefore \sqrt{\tilde{n}} = \sqrt{f_n} \tilde{\psi}
+        # f_n is an array, but in OFDFT we have only one f_n value therefore access f_n[0]
+        sqrt_ps_dens0 = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf
+        sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens0.shape)
+        
+        if niter > 0: # do verlet
+            do = 'some stuff'
+        else: # propagation for first step   
+            sqrt_ps_dens1_unconstrained = sqrt_ps_dens0 + 0.5*self.dt**2/self.mu*(-self.dE_drho)
+
+        # add constraint                       
+        volume_gpt = self.Calc_obj.density.gd.dv
+        tau = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
+        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens0
+       
+        self.pseudo_wf = sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0]) # undo scaling to get pseudo valence density without occupation
     
-    # scale wave function to get pseudo valence density (sqrt_ps_dens)
-    # we propagate the square root of the pseudo density \sqrt{\tilde{n}} without core contribution?, but
-    # we get only the pseudo wave function \tilde{\psi}, that is related to \tilde{n} as
-    # \tilde{n} = f_n |\tilde{\psi}|^2, where f_n is the number of valence electrons
-    # therefore \sqrt{\tilde{n}} = \sqrt{f_n} \tilde{\psi}
-    # f_n is an array, but in OFDFT we have only one f_n value therefore access f_n[0]
-    sqrt_ps_dens = np.sqrt(f_n[0])*pseudo_wf
-    sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens.shape)
     
-    
-    if niter > 0: # do verlet
-        do = 'some stuff'
-    else: # propagation for first step   
-        sqrt_ps_dens1_unconstrained = sqrt_ps_dens + 0.5*self.dt**2*(-dE_drho/self.mu)
+    def calculate_lambda_constraint(self, sqrt_ps_dens, sqrt_ps_dens1_unconstrained, volume_gpt):
+        int_phi0_squared = np.sum( np.power(sqrt_ps_dens, 2)*volume_gpt )
+        int_phi1_tilde_squared = np.sum( np.power(sqrt_ps_dens1_unconstrained, 2)*volume_gpt )
+        int_mixed = np.sum( sqrt_ps_dens1_unconstrained*sqrt_ps_dens*volume_gpt )
         
-        # calculate lambda constraint to ensure that pseudo density remains constant
-        lam = 1 - sqrt_ps_dens1_unconstrained/sqrt_ps_dens
-        constraint = lam*sqrt_ps_dens
-        
-        # add constraint
-        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + constraint 
-        
-   
-    self.pseudo_wf = sqrt_ps_dens1/np.sqrt(f_n[0]) # undo scaling to get pseudo valence density without occupation
-        
+        p = 2*int_mixed/int_phi0_squared
+        q = ( int_phi1_tilde_squared - int_phi0_squared )/int_phi0_squared
+        tau_pos = -p/2 + math.sqrt( (-p/2)**2 - q )
+        tau_neg = -p/2 - math.sqrt( (-p/2)**2 - q )
+        tau = None
+        if ( abs(tau_pos) < abs(tau_neg) ):
+            tau = tau_pos
+        else:
+            tau = tau_neg
+           
+        if tau > 1:
+            print('Warning: tau > 1 ')
+        return(tau)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
         
