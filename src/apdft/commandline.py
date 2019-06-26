@@ -28,6 +28,7 @@ def mode_energies(conf, modeshort=None):
         cost += coverage
     apdft.log.log('Cost estimated.', number_calculations=cost, number_predictions=coverage, level='RESULT')
     if not conf.energy_dryrun:
+        print (type(calculator))
         derivatives.assign_calculator(calculator)
         derivatives.prepare(conf.debug_validation)
         derivatives.analyse(conf.debug_validation)
@@ -54,7 +55,7 @@ def build_main_commandline(set_defaults=True):
             choices = None
             try:
                 if issubclass(option.get_validator(), enum.Enum):
-                    choices = [_.name for _ in option.get_validator()]
+                    choices = list(option.get_validator())
             except TypeError:
                 pass
             default = None

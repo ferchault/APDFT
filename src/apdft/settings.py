@@ -7,6 +7,9 @@ class CodeEnum(enum.Enum):
     MRCC = 'MRCC'
     G09 = 'G09'
 
+    def __str__(self):
+        return self.value
+
 def intrange(val):
     if val is None:
         return val
@@ -19,7 +22,7 @@ class Option():
         self._name = name
         self._description = description
         self._validator = validator
-        self._value = default
+        self._value = self._validator(default)
     
     def get_attribute_name(self):
         return '%s_%s' % (self._category, self._name)

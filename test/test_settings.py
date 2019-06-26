@@ -64,3 +64,11 @@ def test_parse_into_implicit_parameter():
     acmd.parse_into(parser, configuration=conf, cliargs=args)
     assert conf.apdft_maxdz == 42
     assert conf.energy_geometry == 'co2.xyz'
+
+def test_parse_enum():
+    conf = s.Configuration()
+    assert conf.energy_code == s.CodeEnum.MRCC
+    parser = acmd.build_main_commandline()
+    args = ['energies', '--energy_code', 'MRCC']
+    acmd.parse_into(parser, configuration=conf, cliargs=args)
+    assert conf.energy_code == s.CodeEnum.MRCC
