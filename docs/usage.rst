@@ -38,7 +38,7 @@ apdft.conf
 .. _commands_sh:
 
 commands.sh
-    All required calls to QM software like Gaussian and MRCC to obtain the energies and electron densities apdft needs. This file assumes standard paths for each of the software package. If you system differs from that for any reason, you might need to adjust environment variables accordingly. Each line contains all required commands for a single calculation, therefore they can be executed independently from each other.
+    All required calls to QM software like Gaussian and MRCC to obtain the energies and electron densities apdft needs. This file assumes standard paths for each of the software package. If you system differs from that for any reason, you might need to adjust environment variables accordingly. Each line contains all required commands for a single calculation, therefore they can be executed independently from each other. The commands are written to be called from the directory the script is in.
 
 .. _folder_order:
 

@@ -18,9 +18,8 @@ import apdft.math
 import apdft.physics
 
 class DerivativeFolders(apdft.physics.APDFT):
-	def assign_calculator(self, calculator, projectname='apdft-run'):
+	def assign_calculator(self, calculator):
 		self._calculator = calculator
-		self._projectname = projectname
 
 	@staticmethod
 	def _get_target_name(target):
@@ -73,7 +72,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 	def update_grid(self):
 		""" Loads the integration grid from the calculator or provides a default one."""
-		calcgrid = self._calculator.get_grid(self._nuclear_numbers, self._coordinates, '%s/order-0/site-all-cc' % self._projectname)
+		calcgrid = self._calculator.get_grid(self._nuclear_numbers, self._coordinates, 'QM/order-0/site-all-cc')
 		if calcgrid is None:
 			self._gridcoords, self._gridweights = self._get_grid()
 		else:
@@ -81,9 +80,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 
 	def prepare(self, explicit_reference=False):
 		""" Builds a complete folder list of all relevant calculations."""
-		if os.path.isdir(self._projectname):
-			apdft.log.log('Project folder exists. Reusing existing data.', level='warning')
+		if os.path.isdir('QM'):
+			apdft.log.log('Input folder exists. Reusing existing data.', level='warning')
 			return
+
+		commands = []
 
 		for order in self._orders:
 			# only upper triangle with diagonal
@@ -98,7 +99,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 					label = '-all'
 
 				for direction in directions:
-					path = '%s/order-%d/site%s-%s' % (self._projectname, order, label, direction)
+					path = 'QM/order-%d/site%s-%s' % (order, label, direction)
 					os.makedirs(path, exist_ok=True)
 
 					charges = self._nuclear_numbers + self._calculate_delta_Z_vector(len(self._nuclear_numbers), order, combination, direction)
@@ -107,11 +108,12 @@ class DerivativeFolders(apdft.physics.APDFT):
 						fh.write(inputfile)
 					with open('%s/run.sh' % path, 'w') as fh:
 						fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, charges, None))
+					commands.append('( cd %s && bash run.sh )' % path)
 		if explicit_reference:
 			targets = self.enumerate_all_targets()
 			apdft.log.log('All targets listed for comparison run.', level='info', count=len(targets))
 			for target in targets:
-				path = '%s/comparison-%s' % (self._projectname, '-'.join(map(str, target)))
+				path = 'QM/comparison-%s' % ('-'.join(map(str, target)))
 				os.makedirs(path, exist_ok=True)
 
 				inputfile = self._calculator.get_input(self._coordinates, self._nuclear_numbers, target, None)
@@ -119,6 +121,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 					fh.write(inputfile)
 				with open('%s/run.sh' % path, 'w') as fh:
 					fh.write(self._calculator.get_runfile(self._coordinates, self._nuclear_numbers, target, None))
+				commands.append('( cd %s && bash run.sh )' % path)
+		
+		# write commands
+		with open('commands.sh', 'w') as fh:
+			fh.write('\n'.join(commands))
 
 	@staticmethod
 	def _wrapper(_, remote_host, remote_preload):
@@ -126,31 +133,6 @@ class DerivativeFolders(apdft.physics.APDFT):
 			apc.Calculator.execute(_, remote_host, remote_preload)
 		except Exception as e:
 			return _, traceback.format_exc()
-
-	def run(self, parallel=None, remote_host=None, remote_preload=None):
-		""" Executes all calculations if not done so already."""
-
-		# Obtain number of parallel executions
-		if parallel is None and remote_host is not None:
-			raise NotImplementedError('Remote parallelisation only with explicit process count.')
-
-		if parallel == 0:
-			parallel = mp.cpu_count()
-		if parallel is None:
-			parallel = 1
-
-		# find folders to execute
-		folders = [os.path.dirname(_) for _ in glob.glob('%s/**/run.sh' % self._projectname, recursive=True)]
-		haslog = [os.path.dirname(_) for _ in glob.glob('%s/**/run.log' % self._projectname, recursive=True)]
-		folders = set(folders) - set(haslog)
-
-		with mp.Pool(parallel) as pool:
-			results = pool.map(functools.partial(DerivativeFolders._wrapper, remote_host=remote_host, remote_preload=remote_preload), folders)
-
-		failed = [_ for _ in results if _ is not None]
-		for fail in failed:
-			apdft.log.log('Calculation failed.', level='error', folder=fail[0], error=fail[1])
-		return len(failed) == 0
 
 	def _cached_reader(self, folder):
 		if folder not in self._reader_cache:
@@ -166,21 +148,21 @@ class DerivativeFolders(apdft.physics.APDFT):
 	def get_density_derivative(self, sites):
 		num_electrons = sum(self._nuclear_numbers)
 		if len(sites) == 0:
-			return self._cached_reader('%s/order-0/site-all-cc' % self._projectname)
+			return self._cached_reader('QM/order-0/site-all-cc')
 		if len(sites) == 1:
-			rhoup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, sites[0]))
-			rhodn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, sites[0]))
+			rhoup = self._cached_reader('QM/order-1/site-%d-up' % sites[0])
+			rhodn = self._cached_reader('QM/order-1/site-%d-dn' % sites[0])
 			return (rhoup - rhodn) / (2 * self._delta)
 		if len(sites) == 2:
 			i, j = sites
 			rho = self.get_density_derivative([])
-			rhoiup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, i))
-			rhoidn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, i))
+			rhoiup = self._cached_reader('QM/order-1/site-%d-up' % i)
+			rhoidn = self._cached_reader('QM/order-1/site-%d-dn' % i)
 			if i != j:
-				rhojup = self._cached_reader('%s/order-1/site-%d-up' % (self._projectname, j))
-				rhojdn = self._cached_reader('%s/order-1/site-%d-dn' % (self._projectname, j))
-				rhoup = self._cached_reader('%s/order-2/site-%d-%d-up' % (self._projectname, min(i, j), max(i, j)))
-				rhodn = self._cached_reader('%s/order-2/site-%d-%d-dn' % (self._projectname, min(i, j), max(i, j)))
+				rhojup = self._cached_reader('QM/order-1/site-%d-up' % j)
+				rhojdn = self._cached_reader('QM/order-1/site-%d-dn' % j)
+				rhoup = self._cached_reader('QM/order-2/site-%d-%d-up' % (min(i, j), max(i, j)))
+				rhodn = self._cached_reader('QM/order-2/site-%d-%d-dn' % (min(i, j), max(i, j)))
 
 			if i == j:
 				deriv = (rhoiup + rhoidn - 2 * rho)/(self._delta**2)
@@ -190,20 +172,24 @@ class DerivativeFolders(apdft.physics.APDFT):
 		raise NotImplementedError()
 
 	def get_density_from_reference(self, nuclear_charges):
-		return self._cached_reader('%s/comparison-%s' % (self._projectname, '-'.join(map(str, nuclear_charges))))
+		return self._cached_reader('QM/comparison-%s' % '-'.join(map(str, nuclear_charges)))
 
 	def get_energy_from_reference(self, nuclear_charges):
-		return self._calculator.get_total_energy('%s/comparison-%s' % (self._projectname, '-'.join(map(str, nuclear_charges))))
+		return self._calculator.get_total_energy('QM/comparison-%s' % ('-'.join(map(str, nuclear_charges))))
 
 	def analyse(self, explicit_reference=False, do_energies=True, do_dipoles=True):
 		""" Performs actual analysis and integration. Prints results"""
-		targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
+		try:
+			targets, energies, dipoles = self.predict_all_targets(do_energies, do_dipoles)
+		except (FileNotFoundError, AttributeError):
+			apdft.log.log('At least one of the QM calculations has not been performed yet. Please run all QM calculations first.', level='warning')
+			return
 
 		if explicit_reference:
 			comparison_energies = np.zeros(len(targets))
 			comparison_dipoles = np.zeros((len(targets), 3))
 			for targetidx, target in enumerate(targets):
-				path = '%s/comparison-%s' % (self._projectname, '-'.join(map(str, target)))
+				path = 'QM/comparison-%s' % '-'.join(map(str, target))
 				comparison_energies[targetidx] = self._calculator.get_total_energy(path)
 
 				rho = self._cached_reader(path)
@@ -234,7 +220,7 @@ class DerivativeFolders(apdft.physics.APDFT):
 			result_dipoles['reference_dipole_x'] = comparison_dipoles[:, 0]
 			result_dipoles['reference_dipole_y'] = comparison_dipoles[:, 1]
 			result_dipoles['reference_dipole_z'] = comparison_dipoles[:, 2]
-		pd.DataFrame(result_energies).to_csv('%s/energies.csv' % self._projectname)
-		pd.DataFrame(result_dipoles).to_csv('%s/dipoles.csv' % self._projectname)
+		pd.DataFrame(result_energies).to_csv('energies.csv')
+		pd.DataFrame(result_dipoles).to_csv('dipoles.csv')
 
 		return targets, energies, comparison_energies

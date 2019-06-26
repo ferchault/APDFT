@@ -7,11 +7,6 @@ import apdft.settings as aconf
 import apdft.Calculator as acalc
 
 def mode_energies(conf, modeshort=None):
-    print (modeshort)
-    # deal with modeshort
-    if modeshort is not None:
-        conf['energy_geometry'].set_value(modeshort)
-
     # select QM code
     if conf.energy_code == aconf.CodeEnum.MRCC:
         calculator = acalc.MrccCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
@@ -19,25 +14,25 @@ def mode_energies(conf, modeshort=None):
         calculator = acalc.GaussianCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
 
     # parse input
-    nuclear_numbers, coordinates = apdft.read_xyz(conf.energy_geometry)
+    try:
+        nuclear_numbers, coordinates = apdft.read_xyz(conf.energy_geometry)
+    except FileNotFoundError:
+        apdft.log.log('Unable to open input file "%s".' % conf.energy_geometry, level='error')
+        return
 
     # call APDFT library
-    derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, conf.apdft_maxcharge, conf.apdft_maxdeltaz, conf.apdft_includeonly)
-    if conf.energy_dryrun:
-        cost, coverage = derivatives.estimate_cost_and_coverage()
-        if conf.debug_validation:
-            cost += coverage
-        apdft.log.log('Cost estimated.', number_calculations=cost, number_prediction=coverage, level='RESULT')
-    else:
-        derivatives.assign_calculator(calculator, args.projectname)
+    derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, conf.apdft_maxcharge, conf.apdft_maxdz, conf.apdft_includeonly)
+    
+    cost, coverage = derivatives.estimate_cost_and_coverage()
+    if conf.debug_validation:
+        cost += coverage
+    apdft.log.log('Cost estimated.', number_calculations=cost, number_predictions=coverage, level='RESULT')
+    if not conf.energy_dryrun:
+        derivatives.assign_calculator(calculator)
         derivatives.prepare(conf.debug_validation)
-        success = derivatives.run(args.parallel, args.remote_host, args.remote_preload)
-        if not success:
-            apdft.log.log('Incomplete calculations. Aborting', level='critical')
-            sys.exit(1)
         derivatives.analyse(conf.debug_validation)
 
-def build_main_commandline():
+def build_main_commandline(set_defaults=True):
     """ Builds an argparse object of the user-facing command line interface."""
 
     c = apdft.settings.Configuration()
@@ -59,26 +54,33 @@ def build_main_commandline():
             choices = None
             try:
                 if issubclass(option.get_validator(), enum.Enum):
-                    choices = [_.name for _ in option.get_validator()]
+                    choices = list(option.get_validator())
             except TypeError:
                 pass
-            group.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=option.get_value(), metavar='')
+            default = None
+            if set_defaults:
+                default = option.get_value()
+            group.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=default, metavar='')
     
     return parser
 
-def parse_into(parser, configuration=None):
+def parse_into(parser, configuration=None, cliargs=None):
     """ Updates the configuration with the values specified on the command line.
     
     Args:
         parser:         An argparse parser instance.
         configuration:  A :class:`apdft.settings.Configuration` instance. If `None`, a new instance will be returned.
+        args:           List of split arguments from the command line.
     Returns:
         Mode of operation, single optional argument, updated configuration."""
     
     if configuration is None:
         configuration = apdft.settings.Configuration()
     
-    args = parser.parse_args()
+    # help specified?
+    args = parser.parse_args(cliargs)
+    nodefaultparser = build_main_commandline(set_defaults=False)
+    args = nodefaultparser.parse_args(cliargs)
     valid_options = configuration.list_options()
     mode = None
     modeshort = None # single argument for a mode for simplicity
@@ -93,5 +95,8 @@ def parse_into(parser, configuration=None):
                 modeshort = v
             else:
                 raise ValueError('Unknown argument found.')
-
+    
+    if mode == 'energies':
+        if modeshort is not None:
+            configuration.energy_geometry = modeshort
     return mode, modeshort, configuration
