@@ -7,10 +7,6 @@ import apdft.settings as aconf
 import apdft.Calculator as acalc
 
 def mode_energies(conf, modeshort=None):
-    # deal with modeshort
-    if modeshort is not None:
-        conf['energy_geometry'].set_value(modeshort)
-
     # select QM code
     if conf.energy_code == aconf.CodeEnum.MRCC:
         calculator = acalc.MrccCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
@@ -36,7 +32,7 @@ def mode_energies(conf, modeshort=None):
         derivatives.prepare(conf.debug_validation)
         derivatives.analyse(conf.debug_validation)
 
-def build_main_commandline():
+def build_main_commandline(set_defaults=True):
     """ Builds an argparse object of the user-facing command line interface."""
 
     c = apdft.settings.Configuration()
@@ -61,23 +57,30 @@ def build_main_commandline():
                     choices = [_.name for _ in option.get_validator()]
             except TypeError:
                 pass
-            group.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=option.get_value(), metavar='')
+            default = None
+            if set_defaults:
+                default = option.get_value()
+            group.add_argument('--%s' % option.get_attribute_name(), type=option.get_validator(), help=option.get_description(), choices=choices, default=default, metavar='')
     
     return parser
 
-def parse_into(parser, configuration=None):
+def parse_into(parser, configuration=None, cliargs=None):
     """ Updates the configuration with the values specified on the command line.
     
     Args:
         parser:         An argparse parser instance.
         configuration:  A :class:`apdft.settings.Configuration` instance. If `None`, a new instance will be returned.
+        args:           List of split arguments from the command line.
     Returns:
         Mode of operation, single optional argument, updated configuration."""
     
     if configuration is None:
         configuration = apdft.settings.Configuration()
     
-    args = parser.parse_args()
+    # help specified?
+    args = parser.parse_args(cliargs)
+    nodefaultparser = build_main_commandline(set_defaults=False)
+    args = nodefaultparser.parse_args(cliargs)
     valid_options = configuration.list_options()
     mode = None
     modeshort = None # single argument for a mode for simplicity
@@ -92,5 +95,8 @@ def parse_into(parser, configuration=None):
                 modeshort = v
             else:
                 raise ValueError('Unknown argument found.')
-
+    
+    if mode == 'energies':
+        if modeshort is not None:
+            configuration.energy_geometry = modeshort
     return mode, modeshort, configuration
