@@ -72,3 +72,10 @@ def test_parse_enum():
     args = ['energies', '--energy_code', 'MRCC']
     acmd.parse_into(parser, configuration=conf, cliargs=args)
     assert conf.energy_code == s.CodeEnum.MRCC
+
+def test_configuration_boolean():
+    conf = s.Configuration()
+    assert conf.energy_dryrun == False
+    conf.to_file()
+    conf.from_file()
+    assert conf.energy_dryrun == False

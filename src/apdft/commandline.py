@@ -28,7 +28,6 @@ def mode_energies(conf, modeshort=None):
         cost += coverage
     apdft.log.log('Cost estimated.', number_calculations=cost, number_predictions=coverage, level='RESULT')
     if not conf.energy_dryrun:
-        print (type(calculator))
         derivatives.assign_calculator(calculator)
         derivatives.prepare(conf.debug_validation)
         derivatives.analyse(conf.debug_validation)
