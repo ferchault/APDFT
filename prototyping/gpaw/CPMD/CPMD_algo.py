@@ -240,7 +240,25 @@ class CPMD():
         if tau > 1:
             print('Warning: tau > 1 ')
         return(tau)
-            
+        
+    # calulation of new nuclei positions
+    def update_nuclei(self, niter):
+        coords_new = np.zeros(self.coords.shape)
+        if niter > 0:
+            do = 'verlet'
+        else:
+            for idx in range( 0, len(self.coords) ):
+                # get force on and mass of nucleus
+                atomic_force_nucleus = self.atomic_forces[idx]
+                mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
+                # calculate shift for nucleus
+                prefactor = 0.5*self.dt**2/mass_nucleus           
+                shift_nucleus = prefactor*atomic_force_nucleus
+                # update coordinate
+                coords_new[idx] = self.coords[idx] + shift_nucleus
+        
+        self.coords_previous = self.coords.copy()
+        self.coords = coords_new.copy()
             
             
             
