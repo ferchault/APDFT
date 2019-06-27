@@ -275,7 +275,7 @@ class CPMD():
         if tau > 1:
             print('Warning: tau > 1 ')
         print('tau = ' + str(tau))
-        return(tau)
+        return(tau_neg)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
