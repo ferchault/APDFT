@@ -241,7 +241,7 @@ class CPMD():
         sqrt_ps_dens_previous = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf_previous
         prefactor = self.dt**2/self.mu
         
-        sqrt_ps_dens1_unconstrained = 2*sqrt_ps_dens0 - sqrt_ps_dens_previous - prefactor*self.dE_drho
+        sqrt_ps_dens1_unconstrained = 2*sqrt_ps_dens0 - sqrt_ps_dens_previous + prefactor*self.dE_drho
         return(sqrt_ps_dens1_unconstrained)
     # applies verlet algorithm to single nucleus at position self.coords[idx]
     def verlet_algorithm_nucleus(self, idx):
@@ -262,6 +262,8 @@ class CPMD():
         
         p = 2*int_mixed/int_phi0_squared
         q = ( int_phi1_tilde_squared - int_phi0_squared )/int_phi0_squared
+        if (-p/2)**2 - q < 0:
+            print('Discriminant below zero!')
         tau_pos = -p/2 + math.sqrt( (-p/2)**2 - q )
         tau_neg = -p/2 - math.sqrt( (-p/2)**2 - q )
         tau = None
@@ -272,6 +274,7 @@ class CPMD():
            
         if tau > 1:
             print('Warning: tau > 1 ')
+        print('tau = ' + str(tau))
         return(tau)
             
     def run(self):
@@ -284,11 +287,13 @@ class CPMD():
         self.store_nuclei[0] = self.coords
         
         for niter in range(0, self.niter_max):
+            print('Start iteration: '+ str(niter))
             self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
             self.update_density(niter)
             self.update_nuclei(niter)
             
             self.store_dens[niter+1] = self.pseudo_wf
             self.store_nuclei[niter+1] = self.coords
+            
 
         
