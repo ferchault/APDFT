@@ -88,7 +88,7 @@ def create_CPMD_with_forces():
     CPMD_obj = CPMD(kwargs_Calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, pseudo_wf, coords)
     
     # test: calculate dE_drho
-    CPMD_obj.calculate_forces_el_nuc(CPMD_obj.kwargs_calc, CPMD_obj.kwargs_mol, CPMD_obj.coords_nuclei, CPMD_obj.pseudo_wf, CPMD_obj.occupation_numbers)
+    CPMD_obj.calculate_forces_el_nuc(CPMD_obj.kwargs_calc, CPMD_obj.kwargs_mol, CPMD_obj.coords, CPMD_obj.pseudo_wf, CPMD_obj.occupation_numbers)
     return(CPMD_obj)
 
 ###############################################################################
@@ -1211,7 +1211,43 @@ def TEST_calculate_lambda_constraint_():
     
 ###############################################################################
     
-    #TEST_update_density_scaling_ps_wf_()
+def test_update_nuclei_first_step():
+    CPMD_obj = create_CPMD_with_forces()
+    coords = CPMD_obj.coords.copy()
     
+    # test: update of nuclei coordinates after first CPMD step
+    CPMD_obj.update_nuclei(0)
     
+    previous_correct = np.alltrue(CPMD_obj.coords_previous == coords)
+    update_H1 = CPMD_obj.coords[0][2] != coords[0][2]
+    update_H2 = CPMD_obj.coords[1][2] != coords[1][2]
     
+    update_correct = update_H1 and update_H2
+    
+    if previous_correct:
+        print('self.previous gets correct value!')
+    else:
+        print('self.previous DOES NOT get correct value!')
+    if update_correct:
+        print('Positions of nuclei were updated!')
+    else:
+        print('Positions of nuclei were NOT updated!')
+        
+    if previous_correct and update_correct:
+        return('Passed')
+    else:
+        return('Failed')
+#CPMD_obj = create_CPMD_with_forces()        
+#coords_new = np.zeros(CPMD_obj.coords.shape)
+#
+#for idx in range( 0, len(CPMD_obj.coords) ):
+#    # get force on and mass of nucleus
+#    atomic_force_nucleus = CPMD_obj.atomic_forces[idx]
+#    mass_nucleus = CPMD_obj.Calc_obj.atoms.get_masses()[idx]
+#    # calculate shift for nucleus
+#    prefactor = 0.5*CPMD_obj.dt**2/mass_nucleus           
+#    shift_nucleus = prefactor*atomic_force_nucleus
+#    # update coordinate
+#    coords_new[idx] = CPMD_obj.coords[idx] + shift_nucleus
+#CPMD_obj.coords_previous = CPMD_obj.coords.copy()
+#CPMD_obj.coords = coords_new.copy()
