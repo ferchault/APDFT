@@ -275,12 +275,20 @@ class CPMD():
         return(tau)
             
     def run(self):
-#        self.store_dens = np.zeros((self.niter_max, self.pseudo_wf.shape))
-#        self.store_nuclei = np.zeros( (self.niter_max, self.coords.shape) )
+        shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
+        shape_coord_nuclei_store = tuple( [self.niter_max+1] ) + self.coords.shape
+        self.store_dens = np.zeros(shape_dens_store)
+        self.store_nuclei = np.zeros( shape_coord_nuclei_store )
+        
+        self.store_dens[0] = self.pseudo_wf
+        self.store_nuclei[0] = self.coords
+        
         for niter in range(0, self.niter_max):
             self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
             self.update_density(niter)
             self.update_nuclei(niter)
             
+            self.store_dens[niter+1] = self.pseudo_wf
+            self.store_nuclei[niter+1] = self.coords
 
         
