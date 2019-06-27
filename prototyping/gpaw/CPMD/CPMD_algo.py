@@ -205,7 +205,7 @@ class CPMD():
         sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens0.shape)
         
         if niter > 0: # do verlet
-            sqrt_ps_dens1_unconstrained = self.verlet_algorithm(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained)
+            sqrt_ps_dens1_unconstrained = self.verlet_algorithm_density(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained)
         else: # propagation for first step   
             sqrt_ps_dens1_unconstrained = sqrt_ps_dens0 + 0.5*self.dt**2/self.mu*(-self.dE_drho)
 
@@ -216,7 +216,44 @@ class CPMD():
         
         self.pseudo_wf_previous = self.pseudo_wf.copy()
         self.pseudo_wf = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
-    
+        
+    # calulation of new nuclei positions
+    def update_nuclei(self, niter):
+        coords_new = np.zeros(self.coords.shape)
+        if niter > 0:
+            for idx in range( 0, len(self.coords) ):
+                coords_new[idx] = self.verlet_algorithm_nucleus(idx)    
+        else:
+            for idx in range( 0, len(self.coords) ):
+                # get force on and mass of nucleus
+                atomic_force_nucleus = self.atomic_forces[idx]
+                mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
+                # calculate shift for nucleus
+                prefactor = 0.5*self.dt**2/mass_nucleus           
+                shift_nucleus = prefactor*atomic_force_nucleus
+                # update coordinate
+                coords_new[idx] = self.coords[idx] + shift_nucleus
+        
+        self.coords_previous = self.coords.copy()
+        self.coords = coords_new.copy()
+                        
+    def verlet_algorithm_density(self, sqrt_ps_dens0, sqrt_ps_dens1_unconstrained):
+        sqrt_ps_dens_previous = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf_previous
+        prefactor = self.dt**2/self.mu
+        
+        sqrt_ps_dens1_unconstrained = 2*sqrt_ps_dens0 - sqrt_ps_dens_previous - prefactor*self.dE_drho
+        return(sqrt_ps_dens1_unconstrained)
+    # applies verlet algorithm to single nucleus at position self.coords[idx]
+    def verlet_algorithm_nucleus(self, idx):
+        # get force on and mass of nucleus
+        atomic_force_nucleus = self.atomic_forces[idx]
+        mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
+        coord_nucleus = self.coords[idx]
+        coord_nucleus_previous = self.coords_previous[idx]
+        
+        coord_new = 2*coord_nucleus - coord_nucleus_previous + (self.dt**2/mass_nucleus)*atomic_force_nucleus
+        return(coord_new)
+                    
     # calculation of the langrange multiplier necessary to ensure that number of electrons is conserved
     def calculate_lambda_constraint(self, sqrt_ps_dens, sqrt_ps_dens1_unconstrained, volume_gpt):
         int_phi0_squared = np.sum( np.power(sqrt_ps_dens, 2)*volume_gpt )
@@ -236,39 +273,14 @@ class CPMD():
         if tau > 1:
             print('Warning: tau > 1 ')
         return(tau)
-        
-    # calulation of new nuclei positions
-    def update_nuclei(self, niter):
-        coords_new = np.zeros(self.coords.shape)
-        if niter > 0:
-            do = 'verlet'
-        else:
-            for idx in range( 0, len(self.coords) ):
-                # get force on and mass of nucleus
-                atomic_force_nucleus = self.atomic_forces[idx]
-                mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
-                # calculate shift for nucleus
-                prefactor = 0.5*self.dt**2/mass_nucleus           
-                shift_nucleus = prefactor*atomic_force_nucleus
-                # update coordinate
-                coords_new[idx] = self.coords[idx] + shift_nucleus
-        
-        self.coords_previous = self.coords.copy()
-        self.coords = coords_new.copy()
             
-    def verlet_algorithm_density(self, sqrt_ps_dens0, sqrt_ps_dens1_unconstrained):
-        sqrt_ps_dens_previous = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf_previous
-        prefactor = self.dt**2/self.mu
-        
-        sqrt_ps_dens1_unconstrained = 2*sqrt_ps_dens0 - sqrt_ps_dens_previous - prefactor*self.dE_drho
-        return(sqrt_ps_dens1_unconstrained)
-        
-
-        
-            
-            
-            
-            
+    def run(self):
+#        self.store_dens = np.zeros((self.niter_max, self.pseudo_wf.shape))
+#        self.store_nuclei = np.zeros( (self.niter_max, self.coords.shape) )
+        for niter in range(0, self.niter_max):
+            self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+            self.update_density(niter)
+            self.update_nuclei(niter)
             
 
         
