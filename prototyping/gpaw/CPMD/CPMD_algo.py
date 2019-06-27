@@ -190,15 +190,11 @@ class CPMD():
         self.forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
         
 ###############################################################################
-###                             update density                              ###
+###                      update density, nuclei                             ###
 ###############################################################################
 
-
-
-
     # calculation of the new pseudo density in the CPMD cycle
-    def update_density(self, niter):
-        
+    def update_density(self, niter):     
         # scale wave function to get pseudo valence density (sqrt_ps_dens)
         # we propagate the square root of the pseudo density \sqrt{\tilde{n}} without core contribution?, but
         # we get only the pseudo wave function \tilde{\psi}, that is related to \tilde{n} as
@@ -209,7 +205,7 @@ class CPMD():
         sqrt_ps_dens1_unconstrained = np.zeros(sqrt_ps_dens0.shape)
         
         if niter > 0: # do verlet
-            do = 'some stuff'
+            sqrt_ps_dens1_unconstrained = self.verlet_algorithm(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained)
         else: # propagation for first step   
             sqrt_ps_dens1_unconstrained = sqrt_ps_dens0 + 0.5*self.dt**2/self.mu*(-self.dE_drho)
 
@@ -260,7 +256,15 @@ class CPMD():
         self.coords_previous = self.coords.copy()
         self.coords = coords_new.copy()
             
-            
+    def verlet_algorithm_density(self, sqrt_ps_dens0, sqrt_ps_dens1_unconstrained):
+        sqrt_ps_dens_previous = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf_previous
+        prefactor = self.dt**2/self.mu
+        
+        sqrt_ps_dens1_unconstrained = 2*sqrt_ps_dens0 - sqrt_ps_dens_previous - prefactor*self.dE_drho
+        return(sqrt_ps_dens1_unconstrained)
+        
+
+        
             
             
             
