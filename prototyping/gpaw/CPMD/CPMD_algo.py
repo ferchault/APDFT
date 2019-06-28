@@ -19,6 +19,8 @@ from gpaw import setup_paths
 setup_paths.insert(0, '/home/misa/APDFT/prototyping/gpaw/OFDFT/setups')
 from gpaw.forces import calculate_forces
 import math
+from matplotlib import pyplot as plt
+import os
 
 class CPMD():
     Calc_obj = None
@@ -44,7 +46,7 @@ class CPMD():
     kinetic_energies = None
     total_energies = None
     
-    def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None):
+    def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None, main_path = None):
         self.Calc_obj = None
         self.kinetic_energy_gradient = None
         self.effective_potential = None
@@ -62,6 +64,8 @@ class CPMD():
         self.pseudo_wf_previous = None
         self.coords = coords_nuclei
         self.coords_previous = None
+        # storage path
+        self.main_path = main_path
 
     def initialize_GPAW_calculator(self, kwargs_calc, kwargs_mol, coord_nuclei, pseudo_wf, occupation_numbers):
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
@@ -269,10 +273,15 @@ class CPMD():
         
         p = 2*int_mixed/int_phi0_squared
         q = ( int_phi1_tilde_squared - int_phi0_squared )/int_phi0_squared
-        if (-p/2)**2 - q < 0:
-            print('Discriminant below zero!')
-        tau_pos = -p/2 + math.sqrt( (-p/2)**2 - q )
-        tau_neg = -p/2 - math.sqrt( (-p/2)**2 - q )
+#        if (-p/2)**2 - q < 0:
+#            print('Discriminant below zero!')
+        try:
+            tau_pos = -p/2 + math.sqrt( (-p/2)**2 - q )
+            tau_neg = -p/2 - math.sqrt( (-p/2)**2 - q )
+        except ValueError:
+            self.save_all()
+            raise Exception('Negative Discriminant in the calculation of tau!')
+            
         tau = None
         if ( abs(tau_pos) < abs(tau_neg) ):
             tau = tau_pos
@@ -315,5 +324,31 @@ class CPMD():
         self.potential_energies[self.niter_max] = potential_energies.copy()
         self.kinetic_energies[self.niter_max] = kinetic_energy
         self.total_energies[self.niter_max] = kinetic_energy + np.sum(potential_energies)
+        
+    def save_all(self):
+        # save distance along z-axis
+        path_dist = os.path.join(self.main_path, 'nuclei_dist.npy')
+        movement_H1 = self.store_nuclei[:, 0, 2]
+        movement_H2 = self.store_nuclei[:, 1, 2]
+        dist=abs(movement_H1-movement_H2)
+        dist_plot=dist[np.where(dist>0)]
+        np.save(path_dist, dist_plot)
+        # save position of nuclei
+        path_nuclei = os.path.join(self.main_path, 'nuclei_pos.npy')
+        np.save(path_nuclei, self.store_nuclei[0:len(dist_plot)])
+        # save time
+        path_time = os.path.join(self.main_path, 'time.npy')
+        time=np.linspace(0, self.dt*(len(dist_plot)-1), len(dist_plot))
+        np.save(path_time, time)
+        # save density
+        path_density = os.path.join(self.main_path, 'density.npy')
+        np.save(path_density, self.store_dens[0:len(dist_plot)])
+        # save pseudo energy
+        path_total_en = os.path.join(self.main_path, 'total_energy.npy')
+        path_kinetic_en = os.path.join(self.main_path, 'kinetic_energy.npy')
+        path_potential_en = os.path.join(self.main_path, 'potential_energy.npy')
+        np.save(path_total_en, self.total_energies[0:len(dist_plot)])
+        np.save(path_kinetic_en, self.kinetic_energies[0:len(dist_plot)])       
+        np.save(path_potential_en, self.potential_energies[0:len(dist_plot)])
 
         
