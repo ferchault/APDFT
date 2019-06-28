@@ -40,7 +40,9 @@ class CPMD():
     pseudo_wf_previous = None
     coords = None
     coords_previous = None
-    
+    potential_energies = None
+    kinetic_energies = None
+    total_energies = None
     
     def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None):
         self.Calc_obj = None
@@ -128,9 +130,10 @@ class CPMD():
         
     def calculate_effective_potential(self):
         # calculate potential
-        self.Calc_obj.hamiltonian.update_pseudo_potential(self.Calc_obj.density)
+        potential_energies = self.Calc_obj.hamiltonian.update_pseudo_potential(self.Calc_obj.density)
         # restrict to coarse grid
         self.Calc_obj.hamiltonian.restrict_and_collect(self.Calc_obj.hamiltonian.vt_sg, self.Calc_obj.hamiltonian.vt_sG)
+        return(potential_energies)
         
     def get_effective_potential(self):
         vt_G = self.Calc_obj.hamiltonian.gd.collect(self.Calc_obj.hamiltonian.vt_sG[0], broadcast=True)
@@ -166,7 +169,9 @@ class CPMD():
         """
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
         self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
-        self.calculate_effective_potential() # calculate effective potential
+        
+        potential_energies = self.calculate_effective_potential() # calculate effective potential, and collect potential energies of pseudo-density before update
+        kinetic_energy = self.Calc_obj.hamiltonian.calculate_kinetic_energy(self.Calc_obj.density)
         self.effective_potential = self.get_effective_potential()  
         self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
         self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
@@ -177,6 +182,8 @@ class CPMD():
         self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
         
         self.atomic_forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
+        
+        return(kinetic_energy, potential_energies)
 
 ###############################################################################
 ###                             get dE/dR                                   ###
@@ -286,14 +293,27 @@ class CPMD():
         self.store_dens[0] = self.pseudo_wf
         self.store_nuclei[0] = self.coords
         
+        # intialize storage for energies
+        self.potential_energies = np.zeros((self.niter_max+1, 4)) # e_coloumb, e_zero, e_external, e_xc
+        self.kinetic_energies = np.zeros(self.niter_max+1)
+        self.total_energies = np.zeros(self.niter_max+1)
+
+        
         for niter in range(0, self.niter_max):
             print('Start iteration: '+ str(niter))
-            self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+            kinetic_energy, potential_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+            self.potential_energies[niter] = potential_energies.copy()
+            self.kinetic_energies[niter] = kinetic_energy
+            self.total_energies[niter] = kinetic_energy + np.sum(potential_energies)
             self.update_density(niter)
             self.update_nuclei(niter)
             
             self.store_dens[niter+1] = self.pseudo_wf
             self.store_nuclei[niter+1] = self.coords
-            
+        # energies for last CPMD step
+        kinetic_energy, potential_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+        self.potential_energies[self.niter_max] = potential_energies.copy()
+        self.kinetic_energies[self.niter_max] = kinetic_energy
+        self.total_energies[self.niter_max] = kinetic_energy + np.sum(potential_energies)
 
         
