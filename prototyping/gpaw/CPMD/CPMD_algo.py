@@ -64,6 +64,7 @@ class CPMD():
         self.pseudo_wf_previous = None
         self.coords = coords_nuclei
         self.coords_previous = None
+        
         # storage path
         self.main_path = main_path
 
@@ -224,6 +225,9 @@ class CPMD():
         volume_gpt = self.Calc_obj.density.gd.dv
         tau = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
         sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens0
+        # save tau, change; change tells how big the change in wavefunction is during CPMD
+        self.tau[niter] = tau
+        self.change[niter] = np.sum(sqrt_ps_dens1_unconstrained / (tau*sqrt_ps_dens0))
         
         self.pseudo_wf_previous = self.pseudo_wf.copy()
         self.pseudo_wf = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
@@ -287,11 +291,8 @@ class CPMD():
             tau = tau_pos
         else:
             tau = tau_neg
-           
-        if tau > 1:
-            print('Warning: tau > 1 ')
-        print('tau = ' + str(tau))
-        return(tau_neg)
+        
+        return(tau_pos)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
@@ -307,6 +308,9 @@ class CPMD():
         self.kinetic_energies = np.zeros(self.niter_max+1)
         self.total_energies = np.zeros(self.niter_max+1)
 
+        #storage for tau, corrections
+        self.tau = np.zeros(self.niter_max+1)
+        self.change = np.zeros(self.niter_max+1)
         
         for niter in range(0, self.niter_max):
             print('Start iteration: '+ str(niter))
@@ -350,5 +354,8 @@ class CPMD():
         np.save(path_total_en, self.total_energies[0:len(dist_plot)])
         np.save(path_kinetic_en, self.kinetic_energies[0:len(dist_plot)])       
         np.save(path_potential_en, self.potential_energies[0:len(dist_plot)])
-
-        
+        # save tau and change of wf
+        path_tau = os.path.join(self.main_path, 'tau.npy')
+        path_change = os.path.join(self.main_path, 'change.npy')
+        np.save(path_tau, self.tau)
+        np.save(path_change, self.change)
