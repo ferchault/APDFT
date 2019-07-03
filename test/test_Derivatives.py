@@ -19,7 +19,13 @@ def mock_derivatives():
 def sample_rundir():
 	tmpdir = os.path.abspath(apc.Calculator._get_tempname())
 	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-	shutil.copytree(path + '/data/apdft-run', '%s/QM' % tmpdir)
+	try:
+		shutil.copytree(path + '/data/apdft-run', '%s/QM' % tmpdir)
+	except shutil.Error as e:
+		# on windows subsystem for linux, copying mistankenly reports E_BUSY
+		validerrors = [_ for _ in e if not e[2].startswith('[Errno 16] Device or resource busy')]
+		if len(validerrors) > 0:
+			raise
 	yield tmpdir
 	shutil.rmtree('%s/QM' % tmpdir)
 
