@@ -36,33 +36,6 @@ class Calculator(object):
 		raise NotImplementedError()
 
 	@staticmethod
-	def _parse_ssh_constr(constr):
-		""" Parses a connection string.
-
-		Accepted formats:
-		username:password@host+port:path/to/dir
-		username@host+port:path/to/dir
-		username@host+port:
-		username@host:path/to/dir
-		username@host
-		host
-		"""
-		regex = r"((?P<username>[^:@]+)(:(?P<password>[^@]+))?@)?(?P<host>[^+:]+)(\+(?P<port>[^:]+))?:?(?P<path>[^:@]*)"
-		matches = re.search(regex, constr)
-		groups = matches.groupdict()
-
-		if groups['port'] is None:
-			groups['port'] = 22
-
-		if groups['username'] is None:
-			groups['username'] = getpass.getuser()
-
-		if groups['path'] is '':
-			groups['path'] = '.'
-
-		return groups['username'], groups['password'], groups['host'], groups['port'], groups['path']
-
-	@staticmethod
 	def _get_tempname():
 		return 'apdft-tmp-' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
@@ -72,75 +45,6 @@ class Calculator(object):
 
 		Grid weights and coordinates may be in internal units. Return value should be coords, weights. If return value is None, a default grid is used."""
 		return None
-
-	@staticmethod
-	def execute(folder, remote_constr=None, remote_preload=None):
-		""" Run a calculation with the input file in folder."""
-
-		if remote_constr == None:
-			p = subprocess.run('%s/run.sh' % folder, universal_newlines=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)  # nosec
-			if p.returncode != 0:
-				print ('E + Error running %s/run.sh:')
-				for line in p.stdout.split('\n'):
-					print ('E | %s' % line)
-				print ('E + Run skipped.\n')
-		else:
-			import paramiko
-			with paramiko.SSHClient() as s:
-				# connect
-				#s.load_system_host_keys()
-
-				s.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-				username, password, host, port, path = Calculator._parse_ssh_constr(remote_constr)
-
-				try:
-					with warnings.catch_warnings():
-						warnings.simplefilter('ignore')
-						s.connect(host, port, username, password)
-				except paramiko.ssh_exception.NoValidConnectionsError:
-					apdft.log.log('Unable to establish SSH connection.', level='error', host=host, port=port, username=username, password=password)
-					return
-				except:
-					apdft.log.log('General SSH error.', level='error', host=host, port=port, username=username, password=password)
-					return
-				sftp = s.open_sftp()
-				sftp.chdir(path)
-
-				# create temporary folder
-				tmpname = Calculator._get_tempname()
-				sftp.mkdir(tmpname)
-				sftp.chdir(tmpname)
-				
-				# copy files
-				for fn in glob.glob('%s/*' % folder):
-					sftp.put(fn, os.path.basename(fn))
-				sftp.chmod('run.sh', 0o700)
-
-				# run
-				_ = s.exec_command('cd %s; cd %s' % (path, tmpname)) # nosec
-				stdout = _[0]
-				if stdout.channel.recv_exit_status() != 0:
-					apdft.log.log('Unable to navigate on remote machine.', level='error', host=host, port=port, username=username, password=password, path="%s/%s" % (path, tmpname))
-					return
-
-				if remote_preload == None:
-					remote_preload = ''
-				else:
-					remote_preload = '%s; ' % remote_preload
-				_ = s.exec_command('%scd %s; cd %s; ./run.sh' % (remote_preload, path, tmpname)) # nosec
-				stdout = _[0]
-				status = stdout.channel.recv_exit_status()
-				if status != 0:
-					msglines = stdout.readlines() + stderr.readlines()
-					apdft.log.log('Unable to execute runscript on remote machine.', level='error', host=host, port=port, username=username, password=password, path=folder, remotemsg=msglines)
-
-				# copy back
-				for fn in sftp.listdir():
-					sftp.get(fn, '%s/%s' % (folder, fn))
-
-				# clear
-				s.exec_command('cd %s; rm -rf "%s"' % (path, tmpname)) # nosec
-
 
 class MockCalculator(Calculator):
 	_methods = {}
