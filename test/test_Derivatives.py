@@ -27,7 +27,7 @@ def sample_rundir():
 		if len(validerrors) > 0:
 			raise
 	yield tmpdir
-	shutil.rmtree('%s/QM' % tmpdir)
+	shutil.rmtree(tmpdir)
 
 def test_readfile(sample_rundir):
 	pwd = os.path.abspath(os.getcwd())
