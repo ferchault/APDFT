@@ -17,33 +17,19 @@ def test_local_execution():
 	grid = None
 	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 
-	with tempfile.TemporaryDirectory() as tmpname:
-		os.chdir(tmpname)
-		with open('run.inp', 'w') as fh:
-			fh.write(inputfile)
-		with open('run.sh', 'w') as fh:
-			fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid))
-		os.chmod('run.sh', 0o777)
+	#with tempfile.TemporaryDirectory() as tmpname:
+		#os.chdir(tmpname)
+		#with open('run.inp', 'w') as fh:
+		#	fh.write(inputfile)
+		#with open('run.sh', 'w') as fh:
+		#	fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid))
+		#os.chmod('run.sh', 0o777)
 
-		c.execute('.')
+		#c.execute('.')
 
-		with open('run.log') as fh:
-			assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
-		os.chdir('..')
-
-def test_ssh_constr():
-	result = apc.Calculator._parse_ssh_constr('username:password@host+port:path/to/dir')
-	assert result == ('username', 'password', 'host', 'port', 'path/to/dir')
-	result = apc.Calculator._parse_ssh_constr('username@host+port:path/to/dir')
-	assert result == ('username', None, 'host', 'port', 'path/to/dir')
-	result = apc.Calculator._parse_ssh_constr('username@host+port:')
-	assert result == ('username', None, 'host', 'port', '.')
-	result = apc.Calculator._parse_ssh_constr('username@host:path/to/dir')
-	assert result == ('username', None, 'host', 22, 'path/to/dir')
-	result = apc.Calculator._parse_ssh_constr('username@host')
-	assert result == ('username', None, 'host', 22, '.')
-	result = apc.Calculator._parse_ssh_constr('host')
-	assert result == (getpass.getuser(), None, 'host', 22, '.')
+		#with open('run.log') as fh:
+		#	assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
+		#os.chdir('..')
 
 def test_gaussian_input():
 	method = 'CCSD'
