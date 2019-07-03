@@ -118,13 +118,12 @@ def reference(d, gpts):
 Calc_ref = reference(2.0, 32)
 
 # initialize
-kwargs_mol = {'symbols':'H2', 'cell':(12,12,12), 'pbc':True }
-coords = Calc_ref.atoms.get_positions()#[(6.0, 6.0, 5.35), (6.0, 6.0, 6.65)]
-gpts = (32, 32, 32)
-#gpts = (64, 64, 64)
-xc = '1.0_LDA_K_TF+1.0_LDA_X+1.0_LDA_C_PW'
+kwargs_mol = {'symbols':Calc_ref.atoms.symbols.get_chemical_formula(), 'cell':Calc_ref.atoms.cell.diagonal(), 'pbc':Calc_ref.atoms.pbc }
+coords = Calc_ref.atoms.get_positions()
+gpts = Calc_ref.get_number_of_grid_points()
+xc = Calc_ref.get_xc_functional()
 maxiter = 500
-lambda_coeff = 1.0
+lambda_coeff = float(Calc_ref.parameters['setups'][Calc_ref.parameters['setups'].find('lambda_')+7:])
 eigensolver = CG(tw_coeff=lambda_coeff)
 mixer = Mixer()
 setups = 'lambda_' + str(lambda_coeff)
