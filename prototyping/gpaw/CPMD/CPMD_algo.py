@@ -394,13 +394,19 @@ class CPMD():
         # save density
         path_density = os.path.join(self.main_path, 'density.npy')
         np.save(path_density, self.store_dens[0:len(dist_plot)])
-        # save pseudo energy
+        # save energy
+        path_total = os.path.join(self.main_path, 'total_energy.npy')
+        path_dynamics = os.path.join(self.main_path, 'dynamics_energy.npy')
         path_total_en_static = os.path.join(self.main_path, 'total_energies_static.npy')
         path_pseudo_en = os.path.join(self.main_path, 'pseudo_energies.npy')
         path_atomic_en = os.path.join(self.main_path, 'atomic_energies.npy')
+        np.save(path_total, self.total_energy[0:len(dist_plot)])
+        np.save(path_dynamics, self.dynamics_kin[0:len(dist_plot)])        
         np.save(path_total_en_static, self.total_energies_static[0:len(dist_plot)])
         np.save(path_pseudo_en, self.pseudo_energies[0:len(dist_plot)])       
         np.save(path_atomic_en, self.atomic_energies[0:len(dist_plot)])
+        
+        
         # save tau and change of wf
         path_tau = os.path.join(self.main_path, 'tau.npy')
         path_change = os.path.join(self.main_path, 'change.npy')
