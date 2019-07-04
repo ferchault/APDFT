@@ -211,16 +211,16 @@ class CPMD():
         total_free_energy = self.Calc_obj.hamiltonian.get_energy(self.Calc_obj.occupations)
         return(total_free_energy)
         
-    def kinetic_energy_dynamics(self):
+    def dynamics_nuc(self):
         # kinetic energy of nuclei
         v_nuclei = np.linalg.norm(self.coords_new - self.coords_previous)/(2.0*self.dt) # velocities of nuclei
         en_nuc = 0.5*np.sum(self.Calc_obj.atoms.get_masses()*np.power(np.sum(v_nuclei), 2))
-        
+        return(en_nuc)
+    def dynamics_dens(self):
         # kinetic energy of electron density
         v_dens = np.sqrt(self.occupation_numbers[0])*(self.pseudo_wf_new - self.pseudo_wf_previous)/(2.0*self.dt) # velocity of electron density
         en_dens = self.Calc_obj.density.gd.dv*(self.mu/np.linalg.det(self.Calc_obj.atoms.cell) )*np.sum(np.power(v_dens, 2)) # sum of kinetic energy at every gpt
-        kin_dynamics = en_nuc + en_dens
-        return(kin_dynamics, en_nuc, en_dens)
+        return(en_dens)
         
 ###############################################################################
 ###                             get dE/dR                                   ###
@@ -257,12 +257,17 @@ class CPMD():
         volume_gpt = self.Calc_obj.density.gd.dv
         tau = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
         sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens0
+        self.pseudo_wf_new = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
         # save tau, change; change tells how big the change in wavefunction is during CPMD
         self.tau[niter] = tau
         self.change[niter] = np.sum(sqrt_ps_dens1_unconstrained / (tau*sqrt_ps_dens0))
         
+        # calculate kinetic energy of density
+        if niter > 0:
+            self.dynamics_kin[niter][2] = self.dynamics_dens()
+        
         self.pseudo_wf_previous = self.pseudo_wf.copy()
-        self.pseudo_wf = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
+        self.pseudo_wf = self.pseudo_wf_new.copy()
         
     # calulation of new nuclei positions
     def update_nuclei(self, niter):
@@ -280,6 +285,10 @@ class CPMD():
                 shift_nucleus = prefactor*atomic_force_nucleus
                 # update coordinate
                 self.coords_new[idx] = self.coords[idx] + shift_nucleus
+        
+        # calculate kinetic energy of nuclei
+        if niter > 0:
+            self.dynamics_kin[niter][1] = self.dynamics_nuc()
         
         self.coords_previous = self.coords.copy()
         self.coords = self.coords_new.copy()
@@ -339,6 +348,7 @@ class CPMD():
         self.atomic_energies = np.zeros((self.niter_max+1, 5))
         self.total_energies_static = np.zeros(self.niter_max+1)
         self.dynamics_kin = np.zeros((self.niter_max+1, 3))
+        self.total_energy = np.zeros(self.niter_max+1)
 
         #storage for tau, corrections
         self.tau = np.zeros(self.niter_max+1)
@@ -346,17 +356,19 @@ class CPMD():
         
         for niter in range(0, self.niter_max):
             print('Start iteration: '+ str(niter))
-            # forces and energy
+            # forces
             pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
-            self.pseudo_energies[niter] = pseudo_energies.copy()
-            self.atomic_energies[niter] = atomic_energies.copy()
-            self.total_energies_static[niter] = self.get_total_energy_static()
-            
             # position of density and nuclei
             self.update_density(niter)
             self.update_nuclei(niter)
             self.store_dens[niter+1] = self.pseudo_wf
             self.store_nuclei[niter+1] = self.coords
+            # energies
+            self.pseudo_energies[niter] = pseudo_energies.copy()
+            self.atomic_energies[niter] = atomic_energies.copy()
+            self.total_energies_static[niter] = self.get_total_energy_static()
+            self.dynamics_kin[niter][0] = self.dynamics_kin[niter][1]+self.dynamics_kin[niter][2]
+            self.total_energy[niter] = self.total_energies_static[niter] + self.dynamics_kin[niter][0]
             
         # energies for last CPMD step
         pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
