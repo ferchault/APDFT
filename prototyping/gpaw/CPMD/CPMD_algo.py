@@ -251,7 +251,7 @@ class CPMD():
         if niter > 0: # do verlet
             sqrt_ps_dens1_unconstrained = self.verlet_algorithm_density(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained)
         else: # propagation for first step   
-            sqrt_ps_dens1_unconstrained = sqrt_ps_dens0 + 0.5*self.dt**2/self.mu*(-self.dE_drho)
+            sqrt_ps_dens1_unconstrained = sqrt_ps_dens0 + 0.5*self.dt**2/self.mu*(self.dE_drho)
 
         # add constraint                       
         volume_gpt = self.Calc_obj.density.gd.dv
@@ -338,7 +338,7 @@ class CPMD():
         self.pseudo_energies = np.zeros((self.niter_max+1, 5)) # kinetic, e_coloumb, e_zero, e_external, e_xc
         self.atomic_energies = np.zeros((self.niter_max+1, 5))
         self.total_energies_static = np.zeros(self.niter_max+1)
-#        self.dynamics_kin = 
+        self.dynamics_kin = np.zeros((self.niter_max+1, 3))
 
         #storage for tau, corrections
         self.tau = np.zeros(self.niter_max+1)
