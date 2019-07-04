@@ -255,12 +255,12 @@ class CPMD():
 
         # add constraint                       
         volume_gpt = self.Calc_obj.density.gd.dv
-        tau = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
-        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau*sqrt_ps_dens0
+        tau_pos, tau_neg = self.calculate_lambda_constraint(sqrt_ps_dens0, sqrt_ps_dens1_unconstrained, volume_gpt)
+        sqrt_ps_dens1 = sqrt_ps_dens1_unconstrained + tau_pos*sqrt_ps_dens0
         self.pseudo_wf_new = (sqrt_ps_dens1/np.sqrt(self.occupation_numbers[0])).copy() # undo scaling to get pseudo valence density without occupation
         # save tau, change; change tells how big the change in wavefunction is during CPMD
-        self.tau[niter] = tau
-        self.change[niter] = np.sum(sqrt_ps_dens1_unconstrained / (tau*sqrt_ps_dens0))
+        self.tau[niter] = tau_pos, tau_neg
+        self.change[niter] = np.sum(sqrt_ps_dens1_unconstrained / (tau_pos*sqrt_ps_dens0))
         
         # calculate kinetic energy of density
         if niter > 0:
@@ -327,12 +327,12 @@ class CPMD():
             self.save_all()
             raise Exception('Negative Discriminant in the calculation of tau!')
             
-        tau = None
-        if ( abs(tau_pos) < abs(tau_neg) ):
-            tau = tau_pos
-        else:
-            tau = tau_neg
-        return(tau_neg)
+#        tau = None
+#        if ( abs(tau_pos) < abs(tau_neg) ):
+#            tau = tau_pos
+#        else:
+#            tau = tau_neg
+        return(tau_pos, tau_neg)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
@@ -351,7 +351,7 @@ class CPMD():
         self.total_energy = np.zeros(self.niter_max+1)
 
         #storage for tau, corrections
-        self.tau = np.zeros(self.niter_max+1)
+        self.tau = np.zeros((self.niter_max+1, 2))
         self.change = np.zeros(self.niter_max+1)
         
         for niter in range(0, self.niter_max):
