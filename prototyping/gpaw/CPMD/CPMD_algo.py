@@ -42,9 +42,6 @@ class CPMD():
     pseudo_wf_previous = None
     coords = None
     coords_previous = None
-    potential_energies = None
-    kinetic_energies = None
-    total_energies = None
     
     def __init__(self, kwargs_calc=None, kwargs_mol=None, occupation_numbers=None, mu=None, dt=None, niter_max=None, pseudo_wf=None, coords_nuclei=None, main_path = None):
         self.Calc_obj = None
@@ -116,6 +113,14 @@ class CPMD():
     
             kpt.psit.matrix_elements(Calc.wfs.pt, out=kpt.P)
             
+            
+    # we need this for the calculation of the total energy
+    def update_occupations(self):
+        magmom_a=self.Calc_obj.atoms.get_initial_magnetic_moments()        
+        magmom_av = np.zeros((len(self.Calc_obj.atoms), 3))
+        magmom_av[:, 2] = magmom_a
+        self.Calc_obj.create_occupations(magmom_av[:, 2].sum(), True)
+        
     # calculate electron density on coarse and fine grid
     def calculate_density(self):
         # calculate pseudo dens on coarse grid from wavefunction and core density
@@ -175,21 +180,36 @@ class CPMD():
         self.initialize_Calc_basics(kwargs_calc, kwargs_mol, coord_nuclei) # ini step 1
         self.intialize_Calc_electronic(pseudo_wf, occupation_numbers) # ini step 2
         
-        potential_energies = self.calculate_effective_potential() # calculate effective potential, and collect potential energies of pseudo-density before update
-        kinetic_energy = self.Calc_obj.hamiltonian.calculate_kinetic_energy(self.Calc_obj.density)
+        pseudo_potential_energies = self.calculate_effective_potential() # calculate effective potential, and collect potential energies of pseudo-density before update
+        pseudo_kinetic_energy = self.Calc_obj.hamiltonian.calculate_kinetic_energy(self.Calc_obj.density)
         self.effective_potential = self.get_effective_potential()  
         self.kinetic_energy_gradient = self.calculate_kinetic_en_gradient()
         self.dE_drho = self.kinetic_energy_gradient + self.effective_potential
         # calculate forces on nuclei
         W_aL = self.Calc_obj.hamiltonian.calculate_atomic_hamiltonians(self.Calc_obj.density)
-        atomic_energies = self.Calc_obj.hamiltonian.update_corrections(self.Calc_obj.density, W_aL)
+        atomic_energies = self.Calc_obj.hamiltonian.update_corrections(self.Calc_obj.density, W_aL)    
         self.Calc_obj.wfs.eigensolver.initialize(self.Calc_obj.wfs)
         self.Calc_obj.wfs.eigensolver.subspace_diagonalize(self.Calc_obj.hamiltonian, self.Calc_obj.wfs, self.Calc_obj.wfs.kpt_u[0])
-        
         self.atomic_forces = calculate_forces(self.Calc_obj.wfs, self.Calc_obj.density, self.Calc_obj.hamiltonian)
         
-        return(kinetic_energy, potential_energies)
-
+        # add pseudo energies and PAW correction energies together
+        pseudo_energies = np.zeros(len(pseudo_potential_energies)+1)
+        pseudo_energies[0] = pseudo_kinetic_energy
+        pseudo_energies[1:] = pseudo_potential_energies # coulomb, zero, external, xc
+        energies = pseudo_energies+atomic_energies
+       
+        self.Calc_obj.hamiltonian.world.sum(energies)
+        (self.Calc_obj.hamiltonian.e_kinetic0, self.Calc_obj.hamiltonian.e_coulomb, self.Calc_obj.hamiltonian.e_zero, self.Calc_obj.hamiltonian.e_external, self.Calc_obj.hamiltonian.e_xc) = energies
+        return(pseudo_energies, atomic_energies)
+        
+        
+    # returns total energy; energy from SCF + eigenvalues
+    def get_total_energy(self):
+        # necessary to get eigenvalues of bands
+        self.update_occupations()
+        total_free_energy = self.Calc_obj.hamiltonian.get_energy(self.Calc_obj.occupations)
+        return(total_free_energy)
+        
 ###############################################################################
 ###                             get dE/dR                                   ###
 ###############################################################################
@@ -292,7 +312,7 @@ class CPMD():
         else:
             tau = tau_neg
         
-        return(tau_pos)
+        return(tau_neg)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
@@ -304,8 +324,8 @@ class CPMD():
         self.store_nuclei[0] = self.coords
         
         # intialize storage for energies
-        self.potential_energies = np.zeros((self.niter_max+1, 4)) # e_coloumb, e_zero, e_external, e_xc
-        self.kinetic_energies = np.zeros(self.niter_max+1)
+        self.pseudo_energies = np.zeros((self.niter_max+1, 5)) # e_coloumb, e_zero, e_external, e_xc
+        self.atomic_energies = np.zeros((self.niter_max+1, 5))
         self.total_energies = np.zeros(self.niter_max+1)
 
         #storage for tau, corrections
@@ -314,20 +334,23 @@ class CPMD():
         
         for niter in range(0, self.niter_max):
             print('Start iteration: '+ str(niter))
-            kinetic_energy, potential_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
-            self.potential_energies[niter] = potential_energies.copy()
-            self.kinetic_energies[niter] = kinetic_energy
-            self.total_energies[niter] = kinetic_energy + np.sum(potential_energies)
+            # forces and energy
+            pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+            self.pseudo_energies[niter] = pseudo_energies.copy()
+            self.atomic_energies[niter] = atomic_energies.copy()
+            self.total_energies[niter] = self.get_total_energy()
+            
+            # position of density and nuclei
             self.update_density(niter)
             self.update_nuclei(niter)
-            
             self.store_dens[niter+1] = self.pseudo_wf
             self.store_nuclei[niter+1] = self.coords
+            
         # energies for last CPMD step
-        kinetic_energy, potential_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
-        self.potential_energies[self.niter_max] = potential_energies.copy()
-        self.kinetic_energies[self.niter_max] = kinetic_energy
-        self.total_energies[self.niter_max] = kinetic_energy + np.sum(potential_energies)
+        pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+        self.pseudo_energies[self.niter_max] = pseudo_energies.copy()
+        self.atomic_energies[self.niter_max] = atomic_energies.copy()
+        self.total_energies[self.niter_max] = self.get_total_energy()
         
     def save_all(self):
         # save distance along z-axis
