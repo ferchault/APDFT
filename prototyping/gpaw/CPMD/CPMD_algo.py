@@ -274,7 +274,7 @@ class CPMD():
             for idx in range( 0, len(self.coords) ):
                 # get force on and mass of nucleus
                 atomic_force_nucleus = self.atomic_forces[idx]
-                mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
+                mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]*1836.1526737600675
                 # calculate shift for nucleus
                 prefactor = 0.5*self.dt**2/mass_nucleus           
                 shift_nucleus = prefactor*atomic_force_nucleus
@@ -294,7 +294,7 @@ class CPMD():
     def verlet_algorithm_nucleus(self, idx):
         # get force on and mass of nucleus
         atomic_force_nucleus = self.atomic_forces[idx]
-        mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]
+        mass_nucleus = self.Calc_obj.atoms.get_masses()[idx]*1836.1526737600675
         coord_nucleus = self.coords[idx]
         coord_nucleus_previous = self.coords_previous[idx]
         
