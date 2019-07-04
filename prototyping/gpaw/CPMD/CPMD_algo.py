@@ -61,6 +61,7 @@ class CPMD():
         self.pseudo_wf_previous = None
         self.coords = coords_nuclei
         self.coords_previous = None
+        self.coords_new = None
         
         # storage path
         self.main_path = main_path
@@ -204,11 +205,22 @@ class CPMD():
         
         
     # returns total energy; energy from SCF + eigenvalues
-    def get_total_energy(self):
+    def get_total_energy_static(self):
         # necessary to get eigenvalues of bands
         self.update_occupations()
         total_free_energy = self.Calc_obj.hamiltonian.get_energy(self.Calc_obj.occupations)
         return(total_free_energy)
+        
+    def kinetic_energy_dynamics(self):
+        # kinetic energy of nuclei
+        v_nuclei = np.linalg.norm(self.coords_new - self.coords_previous)/(2.0*self.dt) # velocities of nuclei
+        en_nuc = 0.5*np.sum(self.Calc_obj.atoms.get_masses()*np.power(np.sum(v_nuclei), 2))
+        
+        # kinetic energy of electron density
+        v_dens = np.sqrt(self.occupation_numbers[0])*(self.pseudo_wf_new - self.pseudo_wf_previous)/(2.0*self.dt) # velocity of electron density
+        en_dens = self.Calc_obj.density.gd.dv*(self.mu/np.linalg.det(self.Calc_obj.atoms.cell) )*np.sum(np.power(v_dens, 2)) # sum of kinetic energy at every gpt
+        kin_dynamics = en_nuc + en_dens
+        return(kin_dynamics, en_nuc, en_dens)
         
 ###############################################################################
 ###                             get dE/dR                                   ###
@@ -254,10 +266,10 @@ class CPMD():
         
     # calulation of new nuclei positions
     def update_nuclei(self, niter):
-        coords_new = np.zeros(self.coords.shape)
+        self.coords_new = np.zeros(self.coords.shape)
         if niter > 0:
             for idx in range( 0, len(self.coords) ):
-                coords_new[idx] = self.verlet_algorithm_nucleus(idx)    
+                self.coords_new[idx] = self.verlet_algorithm_nucleus(idx)    
         else:
             for idx in range( 0, len(self.coords) ):
                 # get force on and mass of nucleus
@@ -267,10 +279,10 @@ class CPMD():
                 prefactor = 0.5*self.dt**2/mass_nucleus           
                 shift_nucleus = prefactor*atomic_force_nucleus
                 # update coordinate
-                coords_new[idx] = self.coords[idx] + shift_nucleus
+                self.coords_new[idx] = self.coords[idx] + shift_nucleus
         
         self.coords_previous = self.coords.copy()
-        self.coords = coords_new.copy()
+        self.coords = self.coords_new.copy()
                         
     def verlet_algorithm_density(self, sqrt_ps_dens0, sqrt_ps_dens1_unconstrained):
         sqrt_ps_dens_previous = np.sqrt(self.occupation_numbers[0])*self.pseudo_wf_previous
@@ -311,8 +323,7 @@ class CPMD():
             tau = tau_pos
         else:
             tau = tau_neg
-        
-        return(tau_neg)
+        return(tau_pos)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
@@ -326,7 +337,7 @@ class CPMD():
         # intialize storage for energies
         self.pseudo_energies = np.zeros((self.niter_max+1, 5)) # e_coloumb, e_zero, e_external, e_xc
         self.atomic_energies = np.zeros((self.niter_max+1, 5))
-        self.total_energies = np.zeros(self.niter_max+1)
+        self.total_energies_static = np.zeros(self.niter_max+1)
 
         #storage for tau, corrections
         self.tau = np.zeros(self.niter_max+1)
@@ -338,7 +349,7 @@ class CPMD():
             pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
             self.pseudo_energies[niter] = pseudo_energies.copy()
             self.atomic_energies[niter] = atomic_energies.copy()
-            self.total_energies[niter] = self.get_total_energy()
+            self.total_energies_static[niter] = self.get_total_energy_static()
             
             # position of density and nuclei
             self.update_density(niter)
@@ -350,7 +361,7 @@ class CPMD():
         pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
         self.pseudo_energies[self.niter_max] = pseudo_energies.copy()
         self.atomic_energies[self.niter_max] = atomic_energies.copy()
-        self.total_energies[self.niter_max] = self.get_total_energy()
+        self.total_energies_static[self.niter_max] = self.get_total_energy_static()
         
     def save_all(self):
         # save distance along z-axis
@@ -371,12 +382,12 @@ class CPMD():
         path_density = os.path.join(self.main_path, 'density.npy')
         np.save(path_density, self.store_dens[0:len(dist_plot)])
         # save pseudo energy
-        path_total_en = os.path.join(self.main_path, 'total_energy.npy')
-        path_kinetic_en = os.path.join(self.main_path, 'kinetic_energy.npy')
-        path_potential_en = os.path.join(self.main_path, 'potential_energy.npy')
-        np.save(path_total_en, self.total_energies[0:len(dist_plot)])
-        np.save(path_kinetic_en, self.kinetic_energies[0:len(dist_plot)])       
-        np.save(path_potential_en, self.potential_energies[0:len(dist_plot)])
+        path_total_en_static = os.path.join(self.main_path, 'total_energies_static.npy')
+        path_pseudo_en = os.path.join(self.main_path, 'pseudo_energies.npy')
+        path_atomic_en = os.path.join(self.main_path, 'atomic_energies.npy')
+        np.save(path_total_en_static, self.total_energies_static[0:len(dist_plot)])
+        np.save(path_pseudo_en, self.pseudo_energies[0:len(dist_plot)])       
+        np.save(path_atomic_en, self.atomic_energies[0:len(dist_plot)])
         # save tau and change of wf
         path_tau = os.path.join(self.main_path, 'tau.npy')
         path_change = os.path.join(self.main_path, 'change.npy')
