@@ -332,7 +332,7 @@ class CPMD():
             tau = tau_pos
         else:
             tau = tau_neg
-        return(tau_pos)
+        return(tau_neg)
             
     def run(self):
         shape_dens_store = tuple( [self.niter_max+1] ) + self.pseudo_wf.shape
@@ -383,32 +383,32 @@ class CPMD():
         movement_H2 = self.store_nuclei[:, 1, 2]
         dist=abs(movement_H1-movement_H2)
         dist_plot=dist[np.where(dist>0)]
-        np.save(path_dist, dist_plot)
+        np.save(path_dist, dist_plot[0:len(dist_plot)-1])
         # save position of nuclei
         path_nuclei = os.path.join(self.main_path, 'nuclei_pos.npy')
-        np.save(path_nuclei, self.store_nuclei[0:len(dist_plot)])
+        np.save(path_nuclei, self.store_nuclei[0:len(dist_plot)-1])
         # save time
         path_time = os.path.join(self.main_path, 'time.npy')
         time=np.linspace(0, self.dt*(len(dist_plot)-1), len(dist_plot))
-        np.save(path_time, time)
+        np.save(path_time, time[0:len(dist_plot)-1])
         # save density
         path_density = os.path.join(self.main_path, 'density.npy')
-        np.save(path_density, self.store_dens[0:len(dist_plot)])
+        np.save(path_density, self.store_dens[0:len(dist_plot)-1])
         # save energy
         path_total = os.path.join(self.main_path, 'total_energy.npy')
         path_dynamics = os.path.join(self.main_path, 'dynamics_energy.npy')
         path_total_en_static = os.path.join(self.main_path, 'total_energies_static.npy')
         path_pseudo_en = os.path.join(self.main_path, 'pseudo_energies.npy')
         path_atomic_en = os.path.join(self.main_path, 'atomic_energies.npy')
-        np.save(path_total, self.total_energy[0:len(dist_plot)])
-        np.save(path_dynamics, self.dynamics_kin[0:len(dist_plot)])        
-        np.save(path_total_en_static, self.total_energies_static[0:len(dist_plot)])
-        np.save(path_pseudo_en, self.pseudo_energies[0:len(dist_plot)])       
-        np.save(path_atomic_en, self.atomic_energies[0:len(dist_plot)])
+        np.save(path_total, self.total_energy[0:len(dist_plot)-1])
+        np.save(path_dynamics, self.dynamics_kin[0:len(dist_plot)-1])        
+        np.save(path_total_en_static, self.total_energies_static[0:len(dist_plot)-1])
+        np.save(path_pseudo_en, self.pseudo_energies[0:len(dist_plot)-1])       
+        np.save(path_atomic_en, self.atomic_energies[0:len(dist_plot)-1])
         
         
         # save tau and change of wf
         path_tau = os.path.join(self.main_path, 'tau.npy')
         path_change = os.path.join(self.main_path, 'change.npy')
-        np.save(path_tau, self.tau[0:len(dist_plot)])
-        np.save(path_change, self.change[0:len(dist_plot)])
+        np.save(path_tau, self.tau[0:len(dist_plot)-1])
+        np.save(path_change, self.change[0:len(dist_plot)-1])
