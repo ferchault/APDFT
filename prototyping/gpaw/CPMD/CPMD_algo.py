@@ -349,6 +349,7 @@ class CPMD():
         self.total_energies_static = np.zeros(self.niter_max+1)
         self.dynamics_kin = np.zeros((self.niter_max+1, 3))
         self.total_energy = np.zeros(self.niter_max+1)
+        self.eigenvalues = np.zeros(self.niter_max+1)
 
         #storage for tau, corrections
         self.tau = np.zeros((self.niter_max+1, 2))
@@ -369,6 +370,7 @@ class CPMD():
             self.total_energies_static[niter] = self.get_total_energy_static()
             self.dynamics_kin[niter][0] = self.dynamics_kin[niter][1]+self.dynamics_kin[niter][2]
             self.total_energy[niter] = self.total_energies_static[niter] + self.dynamics_kin[niter][0]
+            self.eigenvalues[niter] = self.Calc_obj.occupations.e_band
             
         # energies for last CPMD step
         pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
@@ -400,12 +402,13 @@ class CPMD():
         path_total_en_static = os.path.join(self.main_path, 'total_energies_static.npy')
         path_pseudo_en = os.path.join(self.main_path, 'pseudo_energies.npy')
         path_atomic_en = os.path.join(self.main_path, 'atomic_energies.npy')
+        path_eigen_en = os.path.join(self.main_path, 'eigenvalues.npy')
         np.save(path_total, self.total_energy[0:len(dist_plot)-1])
         np.save(path_dynamics, self.dynamics_kin[0:len(dist_plot)-1])        
         np.save(path_total_en_static, self.total_energies_static[0:len(dist_plot)-1])
         np.save(path_pseudo_en, self.pseudo_energies[0:len(dist_plot)-1])       
         np.save(path_atomic_en, self.atomic_energies[0:len(dist_plot)-1])
-        
+        np.save(path_eigen_en, self.eigenvalues[0:len(dist_plot)-1])
         
         # save tau and change of wf
         path_tau = os.path.join(self.main_path, 'tau.npy')
