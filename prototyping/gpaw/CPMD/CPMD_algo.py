@@ -335,9 +335,10 @@ class CPMD():
         self.store_nuclei[0] = self.coords
         
         # intialize storage for energies
-        self.pseudo_energies = np.zeros((self.niter_max+1, 5)) # e_coloumb, e_zero, e_external, e_xc
+        self.pseudo_energies = np.zeros((self.niter_max+1, 5)) # kinetic, e_coloumb, e_zero, e_external, e_xc
         self.atomic_energies = np.zeros((self.niter_max+1, 5))
         self.total_energies_static = np.zeros(self.niter_max+1)
+#        self.dynamics_kin = 
 
         #storage for tau, corrections
         self.tau = np.zeros(self.niter_max+1)
@@ -391,5 +392,5 @@ class CPMD():
         # save tau and change of wf
         path_tau = os.path.join(self.main_path, 'tau.npy')
         path_change = os.path.join(self.main_path, 'change.npy')
-        np.save(path_tau, self.tau)
-        np.save(path_change, self.change)
+        np.save(path_tau, self.tau[0:len(dist_plot)])
+        np.save(path_change, self.change[0:len(dist_plot)])
