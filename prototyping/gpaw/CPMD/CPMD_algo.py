@@ -355,10 +355,18 @@ class CPMD():
         self.tau = np.zeros((self.niter_max+1, 2))
         self.change = np.zeros(self.niter_max+1)
         
+        # number of electrons (integral of all electron density)
+        self.num_elec = np.zeros(self.niter_max+1)
+        
         for niter in range(0, self.niter_max):
             print('Start iteration: '+ str(niter))
             # forces
             pseudo_energies, atomic_energies = self.calculate_forces_el_nuc(self.kwargs_calc, self.kwargs_mol, self.coords, self.pseudo_wf, self.occupation_numbers)
+            
+            # number of electrons (integral of all electron density)
+            all_dens, gd = self.Calc_obj.density.get_all_electron_density(self.Calc_obj.atoms)
+            self.num_elec[niter] = np.sum(all_dens[0])*(self.Calc_obj.density.gd.dv/8) # divide by 8 because finer grid
+            
             # position of density and nuclei
             self.update_density(niter)
             self.update_nuclei(niter)
@@ -378,6 +386,10 @@ class CPMD():
         self.atomic_energies[self.niter_max] = atomic_energies.copy()
         self.total_energies_static[self.niter_max] = self.get_total_energy_static()
         
+        # number of electrons (integral of all electron density)
+        all_dens, gd = self.Calc_obj.density.get_all_electron_density(self.Calc_obj.atoms)
+        self.num_elec[self.niter_max] = np.sum(all_dens[0])*(self.Calc_obj.density.gd.dv/8)
+        
     def save_all(self):
         # save distance along z-axis
         path_dist = os.path.join(self.main_path, 'nuclei_dist.npy')
@@ -396,6 +408,8 @@ class CPMD():
         # save density
         path_density = os.path.join(self.main_path, 'density.npy')
         np.save(path_density, self.store_dens[0:len(dist_plot)-1])
+        path_num_elec = os.path.join(self.main_path, 'num_elec.npy')
+        np.save(path_num_elec, self.num_elec[0:len(dist_plot)-1])
         # save energy
         path_total = os.path.join(self.main_path, 'total_energy.npy')
         path_dynamics = os.path.join(self.main_path, 'dynamics_energy.npy')
