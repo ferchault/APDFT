@@ -117,7 +117,7 @@ def write_atom_section(compound):
 
 ###############################################################################
     
-def generate_new_input_ini(file, key_list):
+def generate_new_input(file, key_list):
     # shift molecule to center of box
     box_center = key_list['  CELL ABSOLUTE']/2.0
     key_list['&ATOMS'].coordinates = shift2center(key_list['&ATOMS'].coordinates, box_center)
@@ -131,27 +131,34 @@ def generate_new_input_ini(file, key_list):
     return(lines)
     
     
-def modify_input_ini(file, key_list):
+def modify_input(file, key_list):
     # replace input file with correct values
-    modified_inp_file = generate_new_input_ini(file, key_list)
+    modified_inp_file = generate_new_input(file, key_list)
     # write modified input to file
     with open(file, 'w') as f:
         f.writelines(modified_inp_file)
+   
+def initialize(calc_dir, compound, box_size):
+    """
+    generates pp for every atom and input-file for initial CPMD run
+    """
+    # generate pp's
+    get_pp_files(calc_dir, compound)
+    
+    # generate input file
+    input_file = os.path.join(calc_dir, 'run.inp')
+    copyfile(PARENT_INP, input_file)
+    key_list ={ '  CELL ABSOLUTE' : box_size, '&ATOMS':compound }
+    modify_input(input_file, key_list)
     
 
 ###############################################################################
 
-#pp_dir = '/home/misa/software/PP_LIBRARY/'
+PARENT_INP = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
 compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize30/'
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize60/'
+box_size = np.array([60.0, 60.0, 60.0])
+initialize(calc_dir, compound, box_size)
 
-# generate pp's
-get_pp_files(calc_dir, compound)
 
 # change input file
-parent_inp = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
-input_file = os.path.join(calc_dir, 'run.inp')
-copyfile(parent_inp, input_file)
-box_size = np.array([30.0, 30.0, 30.0])
-key_list ={ '  CELL ABSOLUTE' : box_size, '&ATOMS':compound }
-modify_input_ini(input_file, key_list)
