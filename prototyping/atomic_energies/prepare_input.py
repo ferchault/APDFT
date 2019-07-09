@@ -47,27 +47,44 @@ def get_pp_files(calc_dir, compound):
 #                     generate input file for first run                       #
 ###############################################################################
 
-def modify_input_file(file, compound, box_center):
-    lines = read_and_store(file)
-    compound.coordinates = shift2center(compound.coordinates, box_center)
-    lines_atom_section = write_atom_section(compound)    
-    lines.extend(lines_atom_section)
-    
-    with open(file, 'w') as f:
-        f.writelines(lines)
-
 # reads everything including &ATOMS and returns lines as list
-def read_and_store(file):
+def read_and_store_old(file, keyword):
     with open(file, 'r') as f:
         line = f.readline()
         lines = [line]
-        while (line != '&ATOMS\n' and line != '&ATOMS'):
+        while (line != keyword+'\n' and line != keyword):
             line = f.readline()
             lines.append(line)
-    # ensute that new line after &ATOMS
-    if lines[len(lines)-1] == '&ATOMS':
-        lines[len(lines)-1] = '&ATOMS\n'
+    # ensure that new line after keyword
+    if lines[len(lines)-1] == keyword:
+        lines[len(lines)-1] = keyword+'\n'
     return(lines)
+    
+def read_and_store(f, keyword):
+    line = None
+    lines = []
+    while (line != keyword+'\n' and line != keyword):
+        line = f.readline()
+        lines.append(line)
+    # ensure that new line after keyword
+    if lines[len(lines)-1] == keyword:
+        lines[len(lines)-1] = keyword+'\n'
+    return(lines)
+    
+def write_keyword(filestream, keyword, val):
+    result = None
+    if keyword == '  CELL ABSOLUTE':
+        filestream.readline() # skip next line in input-file, will be replaced with value of result
+        result = write_cell_dim(val)
+    elif keyword == '&ATOMS':
+        result = write_atom_section(val)
+    else:
+        assert('Unknown keyword')
+    return(result, filestream)
+    
+def write_cell_dim(val):
+    line1 = '  \t' + str(val[0]) + ' ' + str(val[1]) + ' ' + str(val[2]) + ' 0.0 0.0 0.0\n'
+    return([line1])
     
 def write_atom(idx, atomsym, coordinates):
     line1 = '*' + generate_pp_file_name(idx, atomsym) + '\n'
@@ -83,19 +100,42 @@ def write_atom_section(compound):
         atom_section.extend(atom)
     atom_section.append('&END')
     return(atom_section)
+    
+def generate_new_input_ini(file, key_list):
+    # shift molecule to center of box
+    box_center = key_list['  CELL ABSOLUTE']/2.0
+    key_list['&ATOMS'].coordinates = shift2center(key_list['&ATOMS'].coordinates, box_center)
+
+    lines = []
+    with open(file, 'r') as f:
+        for keyword, val in key_list.items():
+            lines.extend(read_and_store(f, keyword))
+            new_lines, f = write_keyword(f, keyword, val)
+            lines.extend(new_lines)
+    return(lines)
+    
+    
+def modify_input_ini(file, key_list):
+    # replace input file with correct values
+    modified_inp_file = generate_new_input_ini(file, key_list)
+    # write modified input to file
+    with open(file, 'w') as f:
+        f.writelines(modified_inp_file)
+    
 
 ###############################################################################
 
 #pp_dir = '/home/misa/software/PP_LIBRARY/'
 compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize23/'
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize30/'
 
 # generate pp's
 get_pp_files(calc_dir, compound)
 
 # change input file
-box_center = np.array([23/2, 23/2, 23/2])
-input_file = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize23/run.inp'
-modify_input_file(input_file, compound, box_center)
-
-
+parent_inp = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
+input_file = os.path.join(calc_dir, 'run.inp')
+copyfile(parent_inp, input_file)
+box_size = np.array([30.0, 30.0, 30.0])
+key_list ={ '  CELL ABSOLUTE' : box_size, '&ATOMS':compound }
+modify_input_ini(input_file, key_list)
