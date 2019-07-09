@@ -42,6 +42,47 @@ def generate_pp_file(calc_dir, idx, atomsym):
 def get_pp_files(calc_dir, compound):
     for idx in range(0, len(compound.atomtypes)):
         generate_pp_file(calc_dir, idx, compound.atomtypes[idx])
+        
+###############################################################################
+#                     generate input file for first run                       #
+###############################################################################
+
+def modify_input_file(file, compound, box_center):
+    lines = read_and_store(file)
+    compound.coordinates = shift2center(compound.coordinates, box_center)
+    lines_atom_section = write_atom_section(compound)    
+    lines.extend(lines_atom_section)
+    
+    with open(file, 'w') as f:
+        f.writelines(lines)
+
+# reads everything including &ATOMS and returns lines as list
+def read_and_store(file):
+    with open(file, 'r') as f:
+        line = f.readline()
+        lines = [line]
+        while (line != '&ATOMS\n' and line != '&ATOMS'):
+            line = f.readline()
+            lines.append(line)
+    # ensute that new line after &ATOMS
+    if lines[len(lines)-1] == '&ATOMS':
+        lines[len(lines)-1] = '&ATOMS\n'
+    return(lines)
+    
+def write_atom(idx, atomsym, coordinates):
+    line1 = '*' + generate_pp_file_name(idx, atomsym) + '\n'
+    line2 = ' LMAX=S\n'
+    line3 = ' 1\n'
+    line4 = ' ' + str(coordinates[0]) + ' ' + str(coordinates[1]) + ' ' + str(coordinates[2]) + '\n'
+    return( [line1, line2, line3, line4] )
+    
+def write_atom_section(compound):
+    atom_section = []
+    for idx in range(0, len(compound.atomtypes)):
+        atom = write_atom(idx, compound.atomtypes[idx], compound.coordinates[idx])
+        atom_section.extend(atom)
+    atom_section.append('&END')
+    return(atom_section)
 
 ###############################################################################
 
@@ -51,5 +92,10 @@ calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/ds
 
 # generate pp's
 get_pp_files(calc_dir, compound)
+
+# change input file
+box_center = np.array([23/2, 23/2, 23/2])
+input_file = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize23/run.inp'
+modify_input_file(input_file, compound, box_center)
 
 
