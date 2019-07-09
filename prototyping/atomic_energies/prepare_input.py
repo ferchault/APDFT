@@ -43,24 +43,14 @@ def get_pp_files(calc_dir, compound):
     for idx in range(0, len(compound.atomtypes)):
         generate_pp_file(calc_dir, idx, compound.atomtypes[idx])
         
-###############################################################################
-#                     generate input file for first run                       #
-###############################################################################
+### keep input-file
 
-# reads everything including &ATOMS and returns lines as list
-def read_and_store_old(file, keyword):
-    with open(file, 'r') as f:
-        line = f.readline()
-        lines = [line]
-        while (line != keyword+'\n' and line != keyword):
-            line = f.readline()
-            lines.append(line)
-    # ensure that new line after keyword
-    if lines[len(lines)-1] == keyword:
-        lines[len(lines)-1] = keyword+'\n'
-    return(lines)
-    
 def read_and_store(f, keyword):
+    """
+    read lines in input-file that should not be changed 
+    till a keyword is reached for which input file must be changed
+    return the unchanged lines as a list
+    """
     line = None
     lines = []
     while (line != keyword+'\n' and line != keyword):
@@ -70,8 +60,14 @@ def read_and_store(f, keyword):
     if lines[len(lines)-1] == keyword:
         lines[len(lines)-1] = keyword+'\n'
     return(lines)
-    
+
+### change input-file
+
 def write_keyword(filestream, keyword, val):
+    """
+    generate correct input for given keyword
+    then skip lines in input-file that shall be replaced by generated input
+    """
     result = None
     if keyword == '  CELL ABSOLUTE':
         filestream.readline() # skip next line in input-file, will be replaced with value of result
@@ -81,12 +77,27 @@ def write_keyword(filestream, keyword, val):
     else:
         assert('Unknown keyword')
     return(result, filestream)
-    
-def write_cell_dim(val):
-    line1 = '  \t' + str(val[0]) + ' ' + str(val[1]) + ' ' + str(val[2]) + ' 0.0 0.0 0.0\n'
+
+###############################################################################
+### set correct cell size CELL ABSOLUTE
+   
+def write_cell_dim(box_dim):
+    """
+    input length of cell in x,y,z as np.array; assumes cubic geometry
+    returns the correct input line for CELL ABSOLUTE as a list with one element of type str
+    """
+    line1 = '  \t' + str(box_dim[0]) + ' ' + str(box_dim[1]) + ' ' + str(box_dim[2]) + ' 0.0 0.0 0.0\n'
     return([line1])
-    
+
+###############################################################################
+### generate &ATOMS
+
 def write_atom(idx, atomsym, coordinates):
+    """
+    prepare the input for one atom:
+    the name of the pp is 'element_name' + idx of atom in Compound object + '_SG_LDA'
+    the coordinates are read from Compund as well (must be shifted to center before)
+    """
     line1 = '*' + generate_pp_file_name(idx, atomsym) + '\n'
     line2 = ' LMAX=S\n'
     line3 = ' 1\n'
@@ -94,12 +105,17 @@ def write_atom(idx, atomsym, coordinates):
     return( [line1, line2, line3, line4] )
     
 def write_atom_section(compound):
+    """
+    concantenates inputs for individual atoms to one list where each element is one line of the input file
+    """
     atom_section = []
     for idx in range(0, len(compound.atomtypes)):
         atom = write_atom(idx, compound.atomtypes[idx], compound.coordinates[idx])
         atom_section.extend(atom)
     atom_section.append('&END')
     return(atom_section)
+
+###############################################################################
     
 def generate_new_input_ini(file, key_list):
     # shift molecule to center of box
