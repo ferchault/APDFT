@@ -51,9 +51,10 @@ def read_and_store(f, keyword):
     till a keyword is reached for which input file must be changed
     return the unchanged lines as a list
     """
-    line = None
+    line = ''
     lines = []
-    while (line != keyword+'\n' and line != keyword):
+    #while (line != keyword+'\n' and line != keyword):
+    while not(keyword in line):
         line = f.readline()
         lines.append(line)
     # ensure that new line after keyword
@@ -151,13 +152,28 @@ def initialize(calc_dir, compound, box_size):
     key_list ={ '  CELL ABSOLUTE' : box_size, '&ATOMS':compound }
     modify_input(input_file, key_list)
     
+###############################################################################
+#def generate_new_pp(file, key_list):
+#    lines = []
+#    with open(file, 'r') as f:
+#        for keyword, val in key_list.items():
+#            lines.extend(read_and_store(f, keyword))
+#            new_lines, f = write_keyword(f, keyword, val)
+#            lines.extend(new_lines)
+#    return(lines)
+    
+    
 
 ###############################################################################
 
 PARENT_INP = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
 compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/dsgdb9nsd_014656/boxsize60/'
-box_size = np.array([60.0, 60.0, 60.0])
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/dsgdb9nsd_014656/test'
+
+if not os.path.exists(calc_dir):
+    os.makedirs(calc_dir)
+
+box_size = np.array([10.0, 10.0, 10.0])
 initialize(calc_dir, compound, box_size)
 
 
