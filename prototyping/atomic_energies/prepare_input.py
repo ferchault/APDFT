@@ -74,7 +74,7 @@ def write_keyword(filestream, keyword, val):
         filestream.readline() # skip next line in input-file, will be replaced with value of result
         result = write_cell_dim(val)
     elif keyword == '&ATOMS':
-        result = write_atom_section(val)
+        result = write_atom_section(val)     
     else:
         assert('Unknown keyword')
     return(result, filestream)
@@ -123,13 +123,8 @@ def generate_new_input(file, key_list):
     box_center = key_list['  CELL ABSOLUTE']/2.0
     key_list['&ATOMS'].coordinates = shift2center(key_list['&ATOMS'].coordinates, box_center)
 
-    lines = []
-    with open(file, 'r') as f:
-        for keyword, val in key_list.items():
-            lines.extend(read_and_store(f, keyword))
-            new_lines, f = write_keyword(f, keyword, val)
-            lines.extend(new_lines)
-    return(lines)
+    new_file = generate_file(file, key_list)
+    return(new_file)
     
     
 def modify_input(file, key_list):
@@ -153,18 +148,51 @@ def initialize(calc_dir, compound, box_size):
     modify_input(input_file, key_list)
     
 ###############################################################################
-#def generate_new_pp(file, key_list):
-#    lines = []
-#    with open(file, 'r') as f:
-#        for keyword, val in key_list.items():
-#            lines.extend(read_and_store(f, keyword))
-#            new_lines, f = write_keyword(f, keyword, val)
-#            lines.extend(new_lines)
-#    return(lines)
     
-    
+def generate_file(file, key_list):
+    lines = []
+    with open(file, 'r') as f:
+        for keyword, val in key_list.items():
+            lines.extend(read_and_store(f, keyword))
+            new_lines, f = write_keyword(f, keyword, val)
+            lines.extend(new_lines)
+    return(lines)
 
-###############################################################################
+def generate_new_pps(compound, lval, calc_dir):
+    total_charge = 0
+    for idx in range(0, len(compound.atomtypes)):
+        pp_name = generate_pp_file_name(idx, compound.atomtypes[idx])        
+        charge, pp_file = get_PP_file(compound.nuclear_charges[idx], lval)     
+        pp_path = os.path.join(calc_dir, pp_name)       
+        total_charge += charge        
+        with open(pp_path, 'w') as f:
+            f.writelines(pp_file)    
+    return(total_charge)
+
+    
+def get_PP_file(Z, lval):
+    element = lookup[Z]
+    fn = '/home/misa/software/PP_LIBRARY/%s_SG_LDA' % element
+    ret = []
+    for line in open(fn).readlines():
+        if 'ZV' in line:
+            ZV = float(line.strip().split()[-1])
+            ret.append('  ZV = %f' % (ZV*lval))
+            continue
+        if '#C' in line:
+            parts = np.array([float(_) for _ in line.split('#')[0].strip().split()])
+            parts[1:] *= lval
+            if Z==6:
+                formatstring = '%4d' + (len(parts)-1)*' %15.9f' + '   #C  C1 C2'
+            elif Z==1:
+                formatstring = '%4d' + (len(parts)-1)*' %15.9f' + '   #C  C1 C2 C3 ...' 
+            else:
+                assert('Error')
+            ret.append(formatstring % (*parts,))
+            continue
+        ret.append(line[:-1])
+    return ZV*(1-lval), '\n'.join(ret)
+    
 
 PARENT_INP = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
 compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
@@ -174,7 +202,13 @@ if not os.path.exists(calc_dir):
     os.makedirs(calc_dir)
 
 box_size = np.array([10.0, 10.0, 10.0])
-initialize(calc_dir, compound, box_size)
+#initialize(calc_dir, compound, box_size)
+
+###############################################################################
 
 
-# change input file
+
+lookup = {1: 'H', 6: 'C', 7: 'N', 8: 'O'}
+rlookup = {'H': 1, 'C': 6, 'O': 8, 'N': 7}
+
+total = generate_new_pps(compound, 1, calc_dir)
