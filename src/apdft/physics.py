@@ -220,7 +220,7 @@ class APDFT(object):
 		ds = []
 		for site in self._coordinates:
 			ds.append(np.linalg.norm((self._gridcoords - site)*apdft.physics.angstrom, axis=1))
-		refenergy = self.get_energy_from_reference(self._nuclear_numbers)
+		refenergy = self.get_energy_from_reference(self._nuclear_numbers, is_reference_molecule=True)
 
 		# get target predictions
 		for targetidx, target in enumerate(targets):

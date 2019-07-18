@@ -174,8 +174,11 @@ class DerivativeFolders(apdft.physics.APDFT):
 	def get_density_from_reference(self, nuclear_charges):
 		return self._cached_reader('QM/comparison-%s' % '-'.join(map(str, nuclear_charges)))
 
-	def get_energy_from_reference(self, nuclear_charges):
-		return self._calculator.get_total_energy('QM/comparison-%s' % ('-'.join(map(str, nuclear_charges))))
+	def get_energy_from_reference(self, nuclear_charges, is_reference_molecule=False):
+		if is_reference_molecule:
+			return self._calculator.get_total_energy('QM/order-0/site-all-cc')
+		else:
+			return self._calculator.get_total_energy('QM/comparison-%s' % ('-'.join(map(str, nuclear_charges))))
 
 	def analyse(self, explicit_reference=False, do_energies=True, do_dipoles=True):
 		""" Performs actual analysis and integration. Prints results"""
