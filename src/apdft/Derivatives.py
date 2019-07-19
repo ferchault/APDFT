@@ -13,7 +13,6 @@ import pyscf
 from pyscf import dft
 
 import apdft
-import apdft.Calculator as apc
 import apdft.math
 import apdft.physics
 
@@ -126,13 +125,6 @@ class DerivativeFolders(apdft.physics.APDFT):
 		# write commands
 		with open('commands.sh', 'w') as fh:
 			fh.write('\n'.join(commands))
-
-	@staticmethod
-	def _wrapper(_, remote_host, remote_preload):
-		try:
-			apc.Calculator.execute(_, remote_host, remote_preload)
-		except Exception as e:
-			return _, traceback.format_exc()
 
 	def _cached_reader(self, folder):
 		if folder not in self._reader_cache:

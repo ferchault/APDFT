@@ -4,14 +4,16 @@ import enum
 
 import apdft
 import apdft.settings as aconf
-import apdft.Calculator as acalc
+import apdft.calculator as acalc
 
 def mode_energies(conf, modeshort=None):
     # select QM code
     if conf.energy_code == aconf.CodeEnum.MRCC:
-        calculator = acalc.MrccCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
+        from apdft.calculator.mrcc import MrccCalculator
+        calculator = MrccCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
     else:
-        calculator = acalc.GaussianCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
+        from apdft.calculator.gaussian import GaussianCalculator
+        calculator = GaussianCalculator(conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose)
 
     # parse input
     try:

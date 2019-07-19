@@ -2,7 +2,7 @@
 import numpy as np
 import sys
 from basis_set_exchange import lut
-from . import Calculator
+from . import calculator
 from . import Derivatives
 from . import commandline
 from . import settings

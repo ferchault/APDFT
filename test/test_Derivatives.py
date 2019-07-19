@@ -8,7 +8,8 @@ import numpy as np
 
 import apdft
 import apdft.Derivatives as apd
-import apdft.Calculator as apc
+import apdft.calculator as apc
+from apdft.calculator.gaussian import GaussianCalculator
 
 @pytest.fixture
 def mock_derivatives():
@@ -33,7 +34,7 @@ def test_readfile(sample_rundir):
 	pwd = os.path.abspath(os.getcwd())
 	os.chdir(sample_rundir)
 
-	calculator = apc.GaussianCalculator('HF', 'STO-3G')
+	calculator = GaussianCalculator('HF', 'STO-3G')
 	nuclear_numbers, coordinates = apdft.read_xyz('QM/n2.xyz')
 
 	# with reference
@@ -81,7 +82,7 @@ def test_filecontents():
 	os.mkdir(tmpdir)
 	os.chdir(tmpdir)
 
-	c = apc.GaussianCalculator('HF', 'STO-3G')
+	c = GaussianCalculator('HF', 'STO-3G')
 	d = apd.DerivativeFolders(2, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), 0, 6)
 	d.assign_calculator(c)
 	assert d._orders == [0, 1, 2]

@@ -3,14 +3,15 @@ import pytest
 import numpy as np
 import os
 import tempfile
-import apdft.Calculator as apc
+from apdft.calculator import MockCalculator
+from apdft.calculator.gaussian import GaussianCalculator
 import getpass
 
 def test_local_execution():
 	method = 'CCSD'
 	basisset = 'STO-3G'
-	c = apc.MockCalculator(method, basisset)
-	c2 = apc.GaussianCalculator(method, basisset)
+	c = MockCalculator(method, basisset)
+	c2 = GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
@@ -34,7 +35,7 @@ def test_local_execution():
 def test_gaussian_input():
 	method = 'CCSD'
 	basisset = 'STO-3G'
-	c = apc.GaussianCalculator(method, basisset)
+	c = GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
