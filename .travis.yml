@@ -3,18 +3,7 @@ cache: pip
 python:
   - "3.6"
 install:
-  - pip install pytest-cov
-  - pip install codecov
-  - pip install jinja2
-  - pip install basis_set_exchange
-  - pip install Cython
-  - pip install scipy
-  - pip install h5py
-  - pip install numpy pandas
-  - pip install pyscf
-  - pip install cclib
-  - pip install structlog colorama
-  - pip install sphinx_rtd_theme
+  - pip install -r requirements.txt
   - cd dep; . install.sh; cd ..
   - cd $TRAVIS_BUILD_DIR
 script:

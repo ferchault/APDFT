@@ -1,0 +1,13 @@
+pytest-cov
+codecov
+jinja2
+basis_set_exchange
+Cython
+scipy
+h5py
+numpy
+pandas
+pyscf
+cclib
+structlog
+sphinx_rtd_theme
