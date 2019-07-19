@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import horton
 
-method = '{{ method }}'
+method = "{{ method }}"
 mol = horton.IOData()
-mol.coordinates = np.array({{ coordinates }})
-mol.numbers = np.array({{ nuclear_numbers }})
-mol.pseudo_numbers = np.array({{ nuclear_charges }})
+mol.coordinates = np.array({{coordinates}})
+mol.numbers = np.array({{nuclear_numbers}})
+mol.pseudo_numbers = np.array({{nuclear_charges}})
 
-obasis = horton.get_gobasis(mol.coordinates, nuclear_numbers, '{{ basisset }}')
+obasis = horton.get_gobasis(mol.coordinates, nuclear_numbers, "{{ basisset }}")
 
 olp = obasis.compute_overlap()
 kin = obasis.compute_kinetic()
@@ -20,19 +20,56 @@ orb_beta = horton.Orbitals(obasis.nbasis)
 one = kin + na
 horton.guess_core_hamiltonian(olp, one, orb_alpha, orb_beta)
 
-external = {'nn': horton.compute_nucnuc(mol.coordinates, mol.pseudo_numbers)}
+external = {"nn": horton.compute_nucnuc(mol.coordinates, mol.pseudo_numbers)}
 
-grid = horton.BeckeMolGrid(mol.coordinates, mol.numbers, mol.pseudo_numbers, 'fine', mode='keep', random_rotate=False)
+grid = horton.BeckeMolGrid(
+    mol.coordinates,
+    mol.numbers,
+    mol.pseudo_numbers,
+    "fine",
+    mode="keep",
+    random_rotate=False,
+)
 
-if method == 'HF':
-	terms = [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UExchangeTerm(er, 'x_hf'), horton.UTwoIndexTerm(na, 'ne')]
-if method == 'LDA':
-	terms = [horton.UTwoIndexTerm(kin, 'kin'), horton.UGridGroup(obasis, grid, [horton.UBeckeHartree(lmax=8), horton.ULibXCLDA('x'), horton.ULibXCLDA('c_vwn')]), horton.UTwoIndexTerm(na, 'ne')]
-if method == 'PBE':
-	terms = [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [horton.ULibXCGGA('x_pbe'), horton.ULibXCGGA('c_pbe')]), horton.UTwoIndexTerm(na, 'ne')]
-if method == 'PBE0':
-	libxc_term = horton.ULibXCHybridGGA('xc_pbe0_13')
-	terms = [horton.UTwoIndexTerm(kin, 'kin'), horton.UDirectTerm(er, 'hartree'), horton.UGridGroup(obasis, grid, [libxc_term]), horton.UExchangeTerm(er, 'x_hf', libxc_term.get_exx_fraction()), horton.UTwoIndexTerm(na, 'ne')]	
+if method == "HF":
+    terms = [
+        horton.UTwoIndexTerm(kin, "kin"),
+        horton.UDirectTerm(er, "hartree"),
+        horton.UExchangeTerm(er, "x_hf"),
+        horton.UTwoIndexTerm(na, "ne"),
+    ]
+if method == "LDA":
+    terms = [
+        horton.UTwoIndexTerm(kin, "kin"),
+        horton.UGridGroup(
+            obasis,
+            grid,
+            [
+                horton.UBeckeHartree(lmax=8),
+                horton.ULibXCLDA("x"),
+                horton.ULibXCLDA("c_vwn"),
+            ],
+        ),
+        horton.UTwoIndexTerm(na, "ne"),
+    ]
+if method == "PBE":
+    terms = [
+        horton.UTwoIndexTerm(kin, "kin"),
+        horton.UDirectTerm(er, "hartree"),
+        horton.UGridGroup(
+            obasis, grid, [horton.ULibXCGGA("x_pbe"), horton.ULibXCGGA("c_pbe")]
+        ),
+        horton.UTwoIndexTerm(na, "ne"),
+    ]
+if method == "PBE0":
+    libxc_term = horton.ULibXCHybridGGA("xc_pbe0_13")
+    terms = [
+        horton.UTwoIndexTerm(kin, "kin"),
+        horton.UDirectTerm(er, "hartree"),
+        horton.UGridGroup(obasis, grid, [libxc_term]),
+        horton.UExchangeTerm(er, "x_hf", libxc_term.get_exx_fraction()),
+        horton.UTwoIndexTerm(na, "ne"),
+    ]
 
 ham = horton.UEffHam(terms, external)
 occ_model = horton.AufbauOccModel(1, 1)
