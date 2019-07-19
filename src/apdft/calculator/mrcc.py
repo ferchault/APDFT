@@ -4,8 +4,10 @@ import os
 import numpy as np
 import basis_set_exchange as bse
 import jinja2 as j
+import cclib
 
 from apdft import calculator
+from apdft import log
 from apdft.calculator.gaussian import GaussianCalculator
 
 class MrccCalculator(calculator.Calculator):
@@ -72,27 +74,18 @@ class MrccCalculator(calculator.Calculator):
 	def get_total_energy(folder):
 		""" Returns the total energy in Hartree."""
 		logfile = '%s/run.log' % folder
-		try:
-			energy_cc = cclib.io.ccread(logfile)
-		except:
-			apdft.log.log('Unable to read energy from log file.', filename=logfile, level='error')
+		energy = None
+		with open(logfile) as fh:
+			lines = fh.readlines()[::-1]
+			for line in lines:
+				if "Total CCSD energy [au]:" in line:
+					energy = float(line.strip().split()[-1])
+					break
+		if energy is None:
+			log.log('Unable to read energy from log file.', filename=logfile, level='error')
 			return 0
-		return energy_cc # / 27.211386245988
-	@staticmethod
-	def parse_energy_cc_Mrcc(log_file):
-		"""Parse the couple cluster energy from an MRCC output file"""
-		with open(log_file,'r') as logf:
-			while True:
-				line=logf.readline()
-				if "Final results:" in line:
-					good_line=logf.readline()
-					if "Total CCSD energy" in good_line:
-						for x in good_line.split(' '):
-							try:
-								float(x)
-								return (float(x))
-							except:
-								pass  
+		return energy
+
 	@staticmethod
 	def get_electronic_dipole(folder, gridcoords, gridweights):
 		raise NotImplementedError()
