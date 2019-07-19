@@ -8,6 +8,7 @@ import cclib
 
 from apdft import calculator
 from apdft import log
+import apdft.physics as physics
 from apdft.calculator.gaussian import GaussianCalculator
 
 
@@ -30,7 +31,7 @@ class MrccCalculator(calculator.Calculator):
     @staticmethod
     def density_on_grid(densityfile, grid):
         ccdensity = MrccCalculator._parse_densityfile(densityfile)
-        if not np.allclose(grid, ccdensity[:, :3]):
+        if not np.allclose(grid, ccdensity[:, :3]/physics.angstrom):
             raise ValueError("Unable to combine different grids.")
         return ccdensity[:, 4]
 
@@ -38,7 +39,7 @@ class MrccCalculator(calculator.Calculator):
     def get_grid(nuclear_numbers, coordinates, outputfolder):
         """ Obtains the integration grid from one of the MRCC output files. """
         ccdensity = MrccCalculator._parse_densityfile("%s/DENSITY" % outputfolder)
-        return ccdensity[:, :3], ccdensity[:, 3]
+        return ccdensity[:, :3]/physics.angstrom, ccdensity[:, 3]
 
     @staticmethod
     def _format_charges(coordinates, nuclear_numbers, nuclear_charges):
