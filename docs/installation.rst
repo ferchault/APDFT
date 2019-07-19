@@ -10,7 +10,7 @@ First, clone APDFT from github:
 
 .. code ::
 
-    git clone git@github.com:ferchault/APDFT.git
+    git clone https://github.com/ferchault/APDFT.git
     cd APDFT
 
 APDFT requires python 3.6 or newer. If that is met, all dependencies can be installed as follows:
@@ -23,7 +23,7 @@ Since one of the dependencies, orbkit, is not pre-packaged, it needs to be insta
 
 .. code ::
 
-    cd dep; . install.sh; cd ..
+    cd dep; . install.sh; cd ../../../
 
 which will download and install the latest version of orbkit.
 
@@ -35,3 +35,4 @@ Finally, the paths need to be set correctly:
     echo 'export PYTHONPATH="'$(realpath src)':$PYTHONPATH"' >> ~/.bashrc
     source ~/.bashrc
 
+Now you are ready to run *apdft.py* on the command line. Have a look at :ref:`Getting Started` to see an example.
