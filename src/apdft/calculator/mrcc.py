@@ -1,5 +1,14 @@
+#!/usr/bin/env python
 
-class MrccCalculator(Calculator):
+import os
+import numpy as np
+import basis_set_exchange as bse
+import jinja2 as j
+
+from apdft import calculator
+from apdft.calculator.gaussian import GaussianCalculator
+
+class MrccCalculator(calculator.Calculator):
 	_methods = {
 		'CCSD': 'ccsd',
 	}
