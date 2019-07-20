@@ -5,6 +5,7 @@ import os
 import tempfile
 from apdft.calculator import MockCalculator
 from apdft.calculator.gaussian import GaussianCalculator
+from apdft.calculator.mrcc import MrccCalculator
 import getpass
 
 def test_local_execution():
@@ -65,4 +66,35 @@ S   3   1.00
 
 1 Nuc 0.950000
 2 Nuc 1.050000'''
+	assert expected == inputfile
+
+def test_mrcc_input():
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = MrccCalculator(method, basisset)
+	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
+	nuclear_numbers = np.array([1, 1])
+	nuclear_charges = np.array([0.95, 1.05])
+	grid = None
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
+	expected = '''calc=ccsd
+mem=5GB
+core=frozen
+ccprog=mrcc
+basis=STO-3G
+grdens=on
+rgrid=Log3
+grtol=10
+agrid=LD0770
+unit=angs
+geom=xyz
+2
+
+1 0.000000 0.000000 0.000000
+1 0.000000 0.000000 1.000000
+qmmm=Amber
+pointcharges
+2
+0.000000 0.000000 0.000000 -0.050000
+0.000000 0.000000 1.000000 0.050000'''
 	assert expected == inputfile
