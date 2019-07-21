@@ -22,7 +22,7 @@ def post_results(g, repo, results, logfiles):
 	for fn, contents in logfiles.items():
 		payload[fn] = InputFileContent(contents)
 
-	gist = user.create_gist(True, payload)
+	gist = user.create_gist(False, payload)
 
 	return gist.html_url
 
