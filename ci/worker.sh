@@ -8,4 +8,4 @@ cd $CIDIR
 rm -rf *
 conda activate ci-env
 
-PATH="$BASEDIR/src:$PATH" python $BASEDIR/ci/ci.py $HEAD
+PATH="$BASEDIR/src:$PATH" python $BASEDIR/ci/ci.py $HEAD $BASEDIR/src
