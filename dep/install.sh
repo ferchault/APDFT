@@ -1,4 +1,5 @@
 #!/bin/bash
+test -d orbkit && exit 0
 mkdir orbkit
 cd orbkit
 wget https://github.com/orbkit/orbkit/archive/cython.zip

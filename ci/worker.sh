@@ -6,6 +6,8 @@ HEAD=$(git rev-parse HEAD)
 source ~/.bashrc
 conda activate ci-env
 pip install -r requirements.txt
+cd dep
+./install.sh
 
 cd $CIDIR
 rm -rf *
