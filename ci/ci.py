@@ -40,7 +40,7 @@ def do_run(srcbasedir, method, code):
 		fh.write('2\n\nN 0. 0. 0.\nN 1. 0. 0.')
 	cmds = []
 	cmds.append('python %s/apdft.py energies --energy_code=%s --apdft_method=%s --energy_geometry=n2.xyz' % (srcbasedir, code, method))
-	cmds.append('commands.sh')
+	cmds.append('bash commands.sh')
 	cmds.append('python %s/apdft.py energies --energy_code=%s --apdft_method=%s --energy_geometry=n2.xyz' % (srcbasedir, code, method))
 	stdout, stderr = '', ''
 	for cmd in cmds:
