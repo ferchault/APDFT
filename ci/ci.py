@@ -19,7 +19,8 @@ def post_results(g, repo, results, logfiles):
 	# Contact github
 	user = g.get_user()
 	payload = {'_RESULTS_': InputFileContent(results)}
-	payload.update(logfiles)
+	for fn, contents in logfiles.items():
+		payload[fn] = InputFileContent(contents)
 
 	gist = user.create_gist(True, payload)
 
@@ -44,8 +45,8 @@ def do_run(method, code):
 	stdout, stderr = '', ''
 	for cmd in cmds:
 		cp = subprocess.run(cmd.split(), capture_output=True, cwd=basedir)
-		stdout += '\n' + cp.stdout
-		stderr += '\n' + cp.stderr
+		stdout += '\n' + cp.stdout.decode('utf-8')
+		stderr += '\n' + cp.stderr.decode('utf-8')
 		if cp.returncode != 0:
 			return cp.returncode == 0, '\n'.join((stderr, stdout))
 	return cp.returncode == 0, '\n'.join((stderr, stdout))
