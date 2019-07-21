@@ -33,15 +33,15 @@ def create_issue(repo, url):
 def post_status(repo, sha, state, url):
 	repo.get_commit(sha=sha).create_status(state=state, target_url=url, description='Integration tests.', context='continuous-integration/alchemy')
 
-def do_run(method, code):
+def do_run(srcbasedir, method, code):
 	basedir = 'run-%s-%s' % (method, code)
 	os.mkdir(basedir)
 	with open('%s/n2.xyz' % basedir, 'w') as fh:
 		fh.write('2\n\nN 0. 0. 0.\nN 1. 0. 0.')
 	cmds = []
-	cmds.append('python apdft.py --energy_code=%s --energy_method=%s --energy_geometry=n2.xyz')
+	cmds.append('python %s/apdft.py energies --energy_code=%s --apdft_method=%s --energy_geometry=n2.xyz' % (srcbasedir, code, method))
 	cmds.append('commands.sh')
-	cmds.append('python apdft.py --energy_code=%s --energy_method=%s --energy_geometry=n2.xyz')
+	cmds.append('python %s/apdft.py energies --energy_code=%s --apdft_method=%s --energy_geometry=n2.xyz' % (srcbasedir, code, method))
 	stdout, stderr = '', ''
 	for cmd in cmds:
 		cp = subprocess.run(cmd.split(), capture_output=True, cwd=basedir)
@@ -53,6 +53,7 @@ def do_run(method, code):
 
 if __name__ == '__main__':
 	g, repo, sha = connect()
+	basedir = sys.argv[2]
 
 	# build matrix
 	results = []
@@ -60,8 +61,8 @@ if __name__ == '__main__':
 	for method in 'HF CCSD'.split():
 		for code in 'G09 MRCC'.split():
 			spec = (method, code)
-			ok, logfilecontents = do_run(*spec)
-			status = ['OK ', 'ERR'][ok] 
+			ok, logfilecontents = do_run(basedir, *spec)
+			status = ['OK ', 'ERR'][not ok] 
 			results.append('%02d: %s %s' % (len(results)+1, status, '/'.join(spec)))
 			if not ok:
 				logfiles['%02d-%s.txt' % (len(results)+1, '-'.join(spec))] = logfilecontents
