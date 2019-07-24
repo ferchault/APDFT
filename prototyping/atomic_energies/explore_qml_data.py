@@ -11,11 +11,14 @@ Set of functions to explore datasets where data entries are qml.compounds
 import numpy as np
 import qml
 from matplotlib import pyplot as plt
+import os
 
+###############################################################################
+###                                I/O-functions
+###############################################################################
 def load_compounds(path_list):
     """
     loads qm9 entries given in path_list in Compound objects, returns list with compounds
-    
     """
     compounds = []
     for file in path_list:
@@ -23,6 +26,43 @@ def load_compounds(path_list):
         compounds.append(mol)
     return(compounds)
 
+def paths_slice_ve(num_ve):
+    """
+    input: number of valence electrons
+    return: paths to compounds of qm9 with the number of valence electrons specified in the input
+    """
+    # build path to data
+    d = '/home/misa/datasets/qm9/'
+    path_list = [os.path.join(d, f) for f in os.listdir(d)]
+    path_list.sort()
+    
+    #calculate number of valence electrons for every compound
+    compounds = []
+    num_val = np.empty(len(path_list), dtype=int)
+    for idx, file in enumerate(path_list):
+        mol = qml.Compound(xyz=file)
+        num_val[idx] = get_num_val_elec(mol.nuclear_charges)
+        
+        if num_val[idx] == 38:
+            compounds.append(file)
+    return(compounds)
+
+def write_paths_slice_ve(num_ve, path):
+    """
+    Description:
+        writes the paths to qm9 entries with specified number of electrons in a txt-file
+    input: 
+        num_ve: number of valence electrons
+        path:   path to file
+    """
+    compounds = paths_slice_ve(num_ve)
+    with open(path, 'w') as f:
+        for item in compounds:
+            f.write("%s\n" % item)
+
+###############################################################################
+###                                size of molecule
+###############################################################################
 
 def find_largest_mol(compounds):
     """
@@ -61,6 +101,10 @@ def max_dist_distribution(compounds):
     for idx, com in enumerate(compounds):
         distances[idx] = max_dist_center_nuc(com)
     return(distances)
+
+###############################################################################
+###                                other
+###############################################################################
 
 def get_num_val_elec(nuclear_charges):
     """
