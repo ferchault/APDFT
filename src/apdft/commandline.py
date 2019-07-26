@@ -20,6 +20,7 @@ def mode_energies(conf, modeshort=None):
         calculator = GaussianCalculator(*calculator_options)
     if conf.energy_code == aconf.CodeEnum.PYSCF:
         from apdft.calculator.pyscf import PyscfCalculator
+
         calculator = PyscfCalculator(*calculator_options)
 
     # parse input

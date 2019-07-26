@@ -3,6 +3,7 @@
 import apdft.calculator as apc
 import os
 
+
 class PyscfCalculator(apc.Calculator):
     _methods = {"CCSD": "ccsd"}
 
