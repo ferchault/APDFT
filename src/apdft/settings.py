@@ -7,6 +7,7 @@ import configparser
 class CodeEnum(enum.Enum):
     MRCC = "MRCC"
     G09 = "G09"
+    PYSCF = "PYSCF"
 
     def __str__(self):
         return self.value
