@@ -52,3 +52,15 @@ Since a (modern) python installation is not necessarily common on compute cluste
 
 To move the heavy QM calculations to a more powerful environment, all :ref:`order-* <folder_order>` folders and the :ref:`commands.sh <commands_sh>` file should be copied to a compute cluster. Most likely, you want to run the individual calculations as separate jobs in a queueing system. Each line in that file contains the workload of one job and is independent of all other lines in the file. Once the calculations have been completed, all newly created files and folders have to be transferred back to the initial machine for post-processing.
 
+Restricting target molecules
+----------------------------
+
+At times, the number of possible alchemical prediction targets, i.e. molecules for which you will get estimates from APDFT can be overwhealming. In that case, you may restrict the number of potential targets by either limiting the sites that are transformed, limiting the maximum change in nuclear charge at all sites (with the command line option `--apdft_maxdz`), or by lowering the maximal net charge of target molecules (with `--apdft_maxcharge`).
+
+To limit the sites to be transformed, use the command line option `--apdft_includeonly`. This option accepts either a list of indices (i.e. atom numbers starting at zero), ranges of indices, or a list of elements. All of the following examples would be a valid input.
+
+.. code-block:: bash
+
+    --apdft_includeonly 0,1,23
+    --apdft_includeonly B,C,N 
+    --apdft_includeonly 0-42,C,110

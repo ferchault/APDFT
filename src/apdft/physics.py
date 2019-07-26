@@ -114,7 +114,7 @@ class APDFT(object):
         if highest_order > 2:
             raise NotImplementedError()
         self._orders = list(range(0, highest_order + 1))
-        self._nuclear_numbers = nuclear_numbers
+        self._nuclear_numbers = np.array(nuclear_numbers)
         self._coordinates = coordinates
         self._reader_cache = dict()
         self._delta = 0.05
@@ -125,7 +125,18 @@ class APDFT(object):
         if include_atoms is None:
             self._include_atoms = list(range(len(self._nuclear_numbers)))
         else:
-            self._include_atoms = include_atoms
+            included = []
+            for part in include_atoms:
+                if type(part) == int:
+                    included.append(part)
+                else:
+                    print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
+                    included += list(
+                        np.where(
+                            self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
+                        )[0]
+                    )
+            self._include_atoms = sorted(list(set(included)))
 
     def update_grid(self):
         """ Ensures that the current integration grid is initialised."""
