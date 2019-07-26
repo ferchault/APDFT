@@ -16,6 +16,8 @@ class CodeEnum(enum.Enum):
 def intrange(val):
     if val is None:
         return val
+    if type(val) == list:
+        return val
     return [int(_) for _ in val.split(",")]
 
 
