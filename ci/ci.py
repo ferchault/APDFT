@@ -83,7 +83,7 @@ if __name__ == '__main__':
 	
 	# submit
 	url = post_results(g, repo, '\n'.join(results), logfiles)
-	status = 'success error'.split()[len(logfiles) == 0]
+	status = 'error success'.split()[len(logfiles) == 0]
 	post_status(repo, sha, status, url)
 	if status != 'success':
 		create_issue(repo, url)
