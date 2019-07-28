@@ -12,7 +12,7 @@ from apdft.calculator.gaussian import GaussianCalculator
 
 
 class MrccCalculator(calculator.Calculator):
-    _methods = {"CCSD": "ccsd"}
+    _methods = {"CCSD": "ccsd", "HF": "RHF"}
 
     @staticmethod
     def _parse_densityfile(densityfile):

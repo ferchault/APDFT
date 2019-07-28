@@ -129,7 +129,7 @@ class GaussianCalculator(calculator.Calculator):
         with open(chkfile) as fh:
             lines = fh.readlines()
         energy = None
-        scflines = [_ for _ in lines if _.startswith('Total Energy')]
+        scflines = [_ for _ in lines if _.startswith("Total Energy")]
         if len(scflines) > 0:
             energy = float(scflines[0].strip().split()[-1])
         return energy
