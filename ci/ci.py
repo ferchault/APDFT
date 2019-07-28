@@ -2,6 +2,7 @@
 """ Posts CI runs on github. Requires a single log file as argument. """
 
 import os
+import time
 import sys
 import subprocess
 
@@ -65,6 +66,7 @@ def do_run(srcbasedir, method, code):
 	return cp.returncode == 0, '\n'.join((stderr, stdout))
 
 if __name__ == '__main__':
+	t1 = time.time()
 	online = (sys.argv[3] == 'ONLINE')
 	g, repo, sha = connect(online)
 	basedir = sys.argv[2]
@@ -80,7 +82,10 @@ if __name__ == '__main__':
 			results.append('%02d: %s %s' % (len(results)+1, status, '/'.join(spec)))
 			if not ok:
 				logfiles['%02d-%s.txt' % (len(results), '-'.join(spec))] = logfilecontents
-	
+	# timing
+	duration = (time.time() - t1)
+	results.append('Total runtime: %2.1f min' % duration)
+
 	# submit
 	url = post_results(g, repo, '\n'.join(results), logfiles)
 	status = 'error success'.split()[len(logfiles) == 0]
