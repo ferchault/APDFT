@@ -79,3 +79,20 @@ def test_configuration_boolean():
     conf.to_file()
     conf.from_file()
     assert conf.energy_dryrun == False
+
+def test_parse_int_range():
+    conf = s.Configuration()
+    parser = acmd.build_main_commandline()
+    args = ['energies', '--apdft_includeonly', '0,1']
+    acmd.parse_into(parser, configuration=conf, cliargs=args)
+    assert conf.apdft_includeonly == [0,1]
+    args = ['energies', '--apdft_includeonly', '0-3,5']
+    acmd.parse_into(parser, configuration=conf, cliargs=args)
+    assert conf.apdft_includeonly == [0,1,2,3,5]
+
+def test_parse_element_range():
+    conf = s.Configuration()
+    parser = acmd.build_main_commandline()
+    args = ['energies', '--apdft_includeonly', '0,1,C']
+    acmd.parse_into(parser, configuration=conf, cliargs=args)
+    assert conf.apdft_includeonly == [0,1, 'C']

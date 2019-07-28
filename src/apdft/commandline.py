@@ -9,18 +9,19 @@ import apdft.calculator as acalc
 
 def mode_energies(conf, modeshort=None):
     # select QM code
+    calculator_options = conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
     if conf.energy_code == aconf.CodeEnum.MRCC:
         from apdft.calculator.mrcc import MrccCalculator
 
-        calculator = MrccCalculator(
-            conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
-        )
-    else:
+        calculator = MrccCalculator(*calculator_options)
+    if conf.energy_code == aconf.CodeEnum.G09:
         from apdft.calculator.gaussian import GaussianCalculator
 
-        calculator = GaussianCalculator(
-            conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
-        )
+        calculator = GaussianCalculator(*calculator_options)
+    if conf.energy_code == aconf.CodeEnum.PYSCF:
+        from apdft.calculator.pyscf import PyscfCalculator
+
+        calculator = PyscfCalculator(*calculator_options)
 
     # parse input
     try:

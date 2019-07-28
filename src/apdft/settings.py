@@ -2,20 +2,35 @@
 """ Manages settings and config file parsing."""
 import enum
 import configparser
+import basis_set_exchange as bse
 
 
 class CodeEnum(enum.Enum):
     MRCC = "MRCC"
     G09 = "G09"
+    PYSCF = "PYSCF"
 
     def __str__(self):
         return self.value
 
 
-def intrange(val):
+def intelementrange(val):
     if val is None:
         return val
-    return [int(_) for _ in val.split(",")]
+    if type(val) == list:
+        return val
+    ret = []
+    for part in val.split(","):
+        if "-" in part:
+            subparts = part.split("-")
+            ret += list(range(int(subparts[0]), int(subparts[1]) + 1))
+            continue
+        try:
+            ret.append(int(part))
+        except ValueError:
+            bse.lut.element_Z_from_sym(part)
+            ret.append(part)
+    return ret
 
 
 def boolean(val):
@@ -79,9 +94,9 @@ class Configuration:
             Option(
                 "apdft",
                 "includeonly",
-                intrange,
+                intelementrange,
                 None,
-                "Include only these atom indices, e.g. 0,1,5,7",
+                "Include only these atom indices, e.g. 0,1,5,7 or these atom types, e.g. B,C,N. You can mix both.",
             ),
             Option(
                 "debug",
