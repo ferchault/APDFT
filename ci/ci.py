@@ -79,7 +79,7 @@ if __name__ == '__main__':
 			status = ['OK ', 'ERR'][not ok] 
 			results.append('%02d: %s %s' % (len(results)+1, status, '/'.join(spec)))
 			if not ok:
-				logfiles['%02d-%s.txt' % (len(results)+1, '-'.join(spec))] = logfilecontents
+				logfiles['%02d-%s.txt' % (len(results), '-'.join(spec))] = logfilecontents
 	
 	# submit
 	url = post_results(g, repo, '\n'.join(results), logfiles)
