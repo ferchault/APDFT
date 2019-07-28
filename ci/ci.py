@@ -84,7 +84,7 @@ if __name__ == '__main__':
 				logfiles['%02d-%s.txt' % (len(results), '-'.join(spec))] = logfilecontents
 	# timing
 	duration = (time.time() - t1)
-	results.append('Total runtime: %2.1f min' % duration)
+	results.append('Total runtime: %2.1f min' % (duration/60))
 
 	# submit
 	url = post_results(g, repo, '\n'.join(results), logfiles)
