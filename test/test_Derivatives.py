@@ -45,8 +45,8 @@ def test_readfile(sample_rundir):
 	# check one energy value
 	lookup  = [1, 13]
 	pos = targets.index(lookup)
-	assert abs(energies[pos] - -160.15390113953077) < 1e-7
-	assert abs(comparison_energies[pos] - -177.78263968061) < 1e-7
+	assert abs(energies[pos] - -160.15390496821396) < 1e-7
+	assert abs(comparison_energies[pos] - -177.78264601773) < 1e-7
 
 	# without reference
 	derivatives = apdft.Derivatives.DerivativeFolders(2, nuclear_numbers, coordinates, 0, 50)
@@ -56,7 +56,7 @@ def test_readfile(sample_rundir):
 	# check one energy value
 	lookup  = [1, 13]
 	pos = targets.index(lookup)
-	assert abs(energies[pos] - -160.15390113953077) < 1e-7
+	assert abs(energies[pos] - -160.15390496821396) < 1e-7
 	assert comparison_energies is None
 
 	os.chdir(pwd)

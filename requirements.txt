@@ -8,6 +8,5 @@ h5py
 numpy
 pandas
 pyscf
-cclib
 structlog
 sphinx_rtd_theme

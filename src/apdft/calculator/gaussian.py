@@ -7,7 +7,6 @@ import sys
 import numpy as np
 import basis_set_exchange as bse
 import jinja2 as j
-import cclib
 
 # load local orbkit
 basedir = os.path.dirname(os.path.abspath(__file__))
@@ -126,27 +125,18 @@ class GaussianCalculator(calculator.Calculator):
     @staticmethod
     def get_total_energy(folder):
         """ Returns the total energy in Hartree."""
-        logfile = "%s/run.log" % folder
-        try:
-            data = cclib.io.ccread(logfile)
-        except:
-            apdft.log.log(
-                "Unable to read energy from log file.", filename=logfile, level="error"
-            )
-            return 0
+        chkfile = "%s/run.fchk" % folder
+        with open(chkfile) as fh:
+            lines = fh.readlines()
         energy = None
-        energy = data.scfenergies
-        try:
-            energy = data.ccenergies
-        except AttributeError:
-            pass
-        return energy / 27.21138602
+        scflines = [_ for _ in lines if _.startswith('Total Energy')]
+        if len(scflines) > 0:
+            energy = float(scflines[0].strip().split()[-1])
+        return energy
 
     @staticmethod
     def get_electronic_dipole(folder, gridcoords, gridweights):
         """ Returns the electronic dipole moment."""
-        # data = cclib.io.ccread('%s/run.log' % folder)
-        # return data.moments[1]
 
         rho = GaussianCalculator.density_on_grid("%s/run.fchk" % folder, gridcoords)
         return -np.sum(gridcoords.T * rho * gridweights, axis=1)
