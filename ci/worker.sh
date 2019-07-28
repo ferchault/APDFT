@@ -11,4 +11,11 @@ cd dep
 
 cd $CIDIR
 rm -rf *
-PATH="$BASEDIR/src:$PATH" python $BASEDIR/ci/ci.py $HEAD $BASEDIR/src
+
+if [ "$1" == "ONLINE" ]
+then
+	MODE="ONLINE"
+else
+	MODE="OFFLINE"
+fi
+PATH="$BASEDIR/src:$PATH" python $BASEDIR/ci/ci.py $HEAD $BASEDIR/src $MODE

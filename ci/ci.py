@@ -7,31 +7,44 @@ import subprocess
 
 from github import Github, InputFileContent
 
-def connect():
-	token = os.getenv('GH_TOKEN')
-	g = Github(token)
-	reponame = 'ferchault/apdft'
-	repo = g.get_repo(reponame)
+def connect(online):
+	if online:
+		token = os.getenv('GH_TOKEN')
+		g = Github(token)
+		reponame = 'ferchault/apdft'
+		repo = g.get_repo(reponame)
+	else:
+		g = None
+		repo = None
 	sha = sys.argv[1]
 	return g, repo, sha
 
 def post_results(g, repo, results, logfiles):
-	# Contact github
-	user = g.get_user()
-	payload = {'_RESULTS_': InputFileContent(results)}
-	for fn, contents in logfiles.items():
-		payload[fn] = InputFileContent(contents)
+	if g is not None:
+		# Contact github
+		user = g.get_user()
+		payload = {'_RESULTS_': InputFileContent(results)}
+		for fn, contents in logfiles.items():
+			payload[fn] = InputFileContent(contents)
 
-	gist = user.create_gist(False, payload)
+		gist = user.create_gist(False, payload)
 
-	return gist.html_url
+		return gist.html_url
+	else:
+		print (results)
+		for fn, contents in logfiles.items():
+			print ('#######################', fn)
+			print (contents)
+		return ''
 
 def create_issue(repo, url):
-	body = "Log to be found here: %s." % url
-	repo.create_issue(title="Local CI build failed", body=body)
+	if repo is not None:
+		body = "Log to be found here: %s." % url
+		repo.create_issue(title="Local CI build failed", body=body)
 
 def post_status(repo, sha, state, url):
-	repo.get_commit(sha=sha).create_status(state=state, target_url=url, description='Integration tests.', context='continuous-integration/alchemy')
+	if repo is not None:
+		repo.get_commit(sha=sha).create_status(state=state, target_url=url, description='Integration tests.', context='continuous-integration/alchemy')
 
 def do_run(srcbasedir, method, code):
 	basedir = 'run-%s-%s' % (method, code)
@@ -52,7 +65,8 @@ def do_run(srcbasedir, method, code):
 	return cp.returncode == 0, '\n'.join((stderr, stdout))
 
 if __name__ == '__main__':
-	g, repo, sha = connect()
+	online = (sys.argv[3] == 'ONLINE')
+	g, repo, sha = connect(online)
 	basedir = sys.argv[2]
 
 	# build matrix
