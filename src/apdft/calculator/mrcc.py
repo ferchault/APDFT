@@ -3,7 +3,7 @@
 import os
 import numpy as np
 import basis_set_exchange as bse
-import jinja2 as jcclib
+import jinja2 as j
 
 from apdft import calculator
 from apdft import log
