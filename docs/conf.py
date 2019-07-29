@@ -182,3 +182,37 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+import apdft.settings as aconf
+def build_features_output(title, methods, numcodes, name_length, method_length):
+	lines = []
+	topline = '+' + '-' * method_length + ('+' + '-' * name_length)*numcodes + '+'
+	lines.append(topline)
+	lines.append('| ' + title + ' ' * (len(topline) - len(title) - 3) + '|')
+	lines.append(topline)
+	
+	codenames = [_ for _ in aconf.CodeEnum]
+	codeclasses = [_.get_calculator_class() for _ in codenames]
+	supported = ' yes' + ' ' * (name_length - 4) + '|'
+	notsupported = ' ' * name_length + '|'
+	for method in methods:
+		support = ''
+		for codeclass in codeclasses:
+			if method in codeclass._methods:
+				support += supported
+			else:
+				support += notsupported
+		lines.append('| ' + method + ' '*(method_length - len(method) - 1) + '|' + support)
+		lines.append(topline)
+	return lines
+
+name_length = 10
+method_length = 20
+header = '+ **Method** ' + ' ' * (method_length - 12) + '|'
+for code in aconf.CodeEnum:
+	header += '**' + code.value + '**' + ' ' * (name_length - len(code.value) - 4) + '|'
+lines = [header]
+lines += build_features_output('*Wavefunction methods*', ['CCSDT', 'CCSD'], len(aconf.CodeEnum), name_length, method_length)
+lines = lines[1:2] + lines
+with open('generated-featurematrix.rst', 'w') as fh:
+	fh.write('\n'.join(lines))

@@ -1,4 +1,5 @@
 dep/orbkit
+docs/generated-featurematrix.rst
 manualtest
 *.gz
 .vscode

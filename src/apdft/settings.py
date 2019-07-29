@@ -13,6 +13,20 @@ class CodeEnum(enum.Enum):
     def __str__(self):
         return self.value
 
+    def get_calculator_class(self):
+        if self.value == CodeEnum.MRCC.value:
+            from apdft.calculator.mrcc import MrccCalculator
+
+            return MrccCalculator
+        if self.value == CodeEnum.G09.value:
+            from apdft.calculator.gaussian import GaussianCalculator
+
+            return GaussianCalculator
+        if self.value == CodeEnum.PYSCF.value:
+            from apdft.calculator.pyscf import PyscfCalculator
+
+            return PyscfCalculator
+
 
 def intelementrange(val):
     if val is None:
