@@ -109,7 +109,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'multiQMdoc'
+htmlhelp_basename = 'APDFTdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -136,7 +136,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'multiQM.tex', 'multiQM Documentation',
+    (master_doc, 'APDFT.tex', 'APDFT Documentation',
      'Guido Falk von Rudorff', 'manual'),
 ]
 
@@ -146,7 +146,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'multiqm', 'multiQM Documentation',
+    (master_doc, 'APDFT', 'APDFT Documentation',
      [author], 1)
 ]
 
@@ -157,8 +157,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'multiQM', 'multiQM Documentation',
-     author, 'multiQM', 'One line description of project.',
+    (master_doc, 'APDFT', 'APDFT Documentation',
+     author, 'APDFT', 'One line description of project.',
      'Miscellaneous'),
 ]
 
