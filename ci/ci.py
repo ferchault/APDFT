@@ -11,6 +11,7 @@ from github import Github, InputFileContent
 def connect(online):
 	if online:
 		token = os.getenv('GH_TOKEN')
+		os.environ['GH_TOKEN'] = 'blank'
 		g = Github(token)
 		reponame = 'ferchault/apdft'
 		repo = g.get_repo(reponame)
