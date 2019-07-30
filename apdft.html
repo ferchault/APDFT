@@ -167,6 +167,24 @@
             
   <div class="section" id="implementation">
 <h1>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h1>
+<p>In the context of APDFT, we evaluate energy differences by</p>
+<div class="math notranslate nohighlight">
+\[\Delta E = \int_\Omega d\mathbf{r} \Delta V(\mathbf{r})\tilde\rho(\mathbf{r})\]</div>
+<p>where <span class="math notranslate nohighlight">\(\tilde\rho\)</span> is obtained by means of finite difference evaluations and the change in external potential <span class="math notranslate nohighlight">\(\Delta V\)</span> is given by the Coulomb term</p>
+<div class="math notranslate nohighlight">
+\[\Delta V(\mathbf{r}) = \sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|} = \sum_I  \Delta V_I(\mathbf{r})\]</div>
+<p>running over all nuclei <span class="math notranslate nohighlight">\(I\)</span>. <span class="math notranslate nohighlight">\(\tilde\rho\)</span> in fact is a linear combination of individual electron densities for fractional nuclear charges, so we can write is as follows</p>
+<div class="math notranslate nohighlight">
+\[\tilde\rho(\mathbf{r}) = \sum_i \alpha_i\rho_i(\mathbf{r})\]</div>
+<p>where the coefficients <span class="math notranslate nohighlight">\(\alpha_i\)</span> are determined by the finite difference scheme employed. Together with the above equations for <span class="math notranslate nohighlight">\(\Delta V_I\)</span>, the expression for the change in energy can be re-cast</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Delta E &amp;= \int_\Omega d\mathbf{r} \left(\sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|}\right) \left(\sum_i \alpha_i\rho_i(\mathbf{r})\right) \\
+         &amp;= \sum_I\sum_i \Delta Z_I\alpha_i \int_\Omega d\mathbf{r} \frac{\rho_i(\mathbf{r})}{|\mathbf{r} - \mathbf{R_I}|}\end{split}\]</div>
+<p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term corresponds to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).</p>
+<p>This can be further simplified by realising that the <span class="math notranslate nohighlight">\(\alpha_i\)</span> implicitly depend on the target molecule, i.e. <span class="math notranslate nohighlight">\(\mathbf{\Delta Z}=\{\Delta Z_I\}\)</span>, while the EPN does not. This yields</p>
+<div class="math notranslate nohighlight">
+\[\Delta E = \sum_{jk} \left(\left[\mathbf{\Delta Z}\otimes \mathbf{\alpha}\right]\circ \mathbf{Q}\right)_{jk}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{Q}_{Ii}\)</span> is just the electrostatic potential of density <span class="math notranslate nohighlight">\(i\)</span> at nucleus <span class="math notranslate nohighlight">\(I\)</span>. This outer product formulation is numerically efficient to implement.</p>
 <div class="section" id="module-apdft.calculator">
 <span id="calculators"></span><h2>Calculators<a class="headerlink" href="#module-apdft.calculator" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
