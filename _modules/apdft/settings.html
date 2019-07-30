@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>apdft.settings &mdash; APDFT  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> APDFT
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">APDFT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Features and supported software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html#adding-support-for-additional-software-packages">Adding support for additional software packages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apdft.html">Implementation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">APDFT</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../apdft.html">apdft</a> &raquo;</li>
+        
+      <li>apdft.settings</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for apdft.settings</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">&quot;&quot;&quot; Manages settings and config file parsing.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">configparser</span>
+<span class="kn">import</span> <span class="nn">basis_set_exchange</span> <span class="k">as</span> <span class="nn">bse</span>
+
+
+<div class="viewcode-block" id="CodeEnum"><a class="viewcode-back" href="../../apdft.html#apdft.settings.CodeEnum">[docs]</a><span class="k">class</span> <span class="nc">CodeEnum</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">MRCC</span> <span class="o">=</span> <span class="s2">&quot;MRCC&quot;</span>
+    <span class="n">G09</span> <span class="o">=</span> <span class="s2">&quot;G09&quot;</span>
+    <span class="n">PYSCF</span> <span class="o">=</span> <span class="s2">&quot;PYSCF&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+
+<div class="viewcode-block" id="CodeEnum.get_calculator_class"><a class="viewcode-back" href="../../apdft.html#apdft.settings.CodeEnum.get_calculator_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_calculator_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">MRCC</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.mrcc</span> <span class="k">import</span> <span class="n">MrccCalculator</span>
+
+            <span class="k">return</span> <span class="n">MrccCalculator</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">G09</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.gaussian</span> <span class="k">import</span> <span class="n">GaussianCalculator</span>
+
+            <span class="k">return</span> <span class="n">GaussianCalculator</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">PYSCF</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.pyscf</span> <span class="k">import</span> <span class="n">PyscfCalculator</span>
+
+            <span class="k">return</span> <span class="n">PyscfCalculator</span></div></div>
+
+
+<div class="viewcode-block" id="intelementrange"><a class="viewcode-back" href="../../apdft.html#apdft.settings.intelementrange">[docs]</a><span class="k">def</span> <span class="nf">intelementrange</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">val</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">val</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;-&quot;</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
+            <span class="n">subparts</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">subparts</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">subparts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">part</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">bse</span><span class="o">.</span><span class="n">lut</span><span class="o">.</span><span class="n">element_Z_from_sym</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="boolean"><a class="viewcode-back" href="../../apdft.html#apdft.settings.boolean">[docs]</a><span class="k">def</span> <span class="nf">boolean</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s2">&quot;True&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s2">&quot;False&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Option"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option">[docs]</a><span class="k">class</span> <span class="nc">Option</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Represents a single configuration option. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">validator</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_category</span> <span class="o">=</span> <span class="n">category</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_description</span> <span class="o">=</span> <span class="n">description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span> <span class="o">=</span> <span class="n">validator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Option.get_attribute_name"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option.get_attribute_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_attribute_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_category</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Option.get_value"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div>
+
+<div class="viewcode-block" id="Option.get_validator"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option.get_validator">[docs]</a>    <span class="k">def</span> <span class="nf">get_validator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span></div>
+
+<div class="viewcode-block" id="Option.get_description"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option.get_description">[docs]</a>    <span class="k">def</span> <span class="nf">get_description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_description</span></div>
+
+<div class="viewcode-block" id="Option.set_value"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option.set_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Configuration"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration">[docs]</a><span class="k">class</span> <span class="nc">Configuration</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; A complete set of configuration values. Merges settings and default values. </span>
+<span class="sd">    </span>
+<span class="sd">    Settings are referred to as category.variablename. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="c1"># Section apdft: relevant for all invocations</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;apdft&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;maxdz&quot;</span><span class="p">,</span>
+                <span class="nb">int</span><span class="p">,</span>
+                <span class="mi">3</span><span class="p">,</span>
+                <span class="s2">&quot;Restricts target molecules to have at most this change in nuclear charge per atom&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;apdft&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;maxcharge&quot;</span><span class="p">,</span>
+                <span class="nb">int</span><span class="p">,</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;Restricts target molecules to have at most this total molecular charge&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span><span class="s2">&quot;apdft&quot;</span><span class="p">,</span> <span class="s2">&quot;basisset&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;def2-TZVP&quot;</span><span class="p">,</span> <span class="s2">&quot;The basis set to be used&quot;</span><span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span><span class="s2">&quot;apdft&quot;</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;CCSD&quot;</span><span class="p">,</span> <span class="s2">&quot;Method to be used&quot;</span><span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;apdft&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;includeonly&quot;</span><span class="p">,</span>
+                <span class="n">intelementrange</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;Include only these atom indices, e.g. 0,1,5,7 or these atom types, e.g. B,C,N. You can mix both.&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;debug&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation&quot;</span><span class="p">,</span>
+                <span class="n">boolean</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;Whether to perform validation calculations for all target molecules&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;debug&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;superimpose&quot;</span><span class="p">,</span>
+                <span class="n">boolean</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;Whether to superimpose atomic basis set functions from neighboring elements for fractional nuclear charges&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span> <span class="s2">&quot;code&quot;</span><span class="p">,</span> <span class="n">CodeEnum</span><span class="p">,</span> <span class="s2">&quot;MRCC&quot;</span><span class="p">,</span> <span class="s2">&quot;QM code to be used&quot;</span><span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dryrun&quot;</span><span class="p">,</span>
+                <span class="n">boolean</span><span class="p">,</span>
+                <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;Whether to just estimate the number of targets&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">Option</span><span class="p">(</span>
+                <span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;geometry&quot;</span><span class="p">,</span>
+                <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;inp.xyz&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;XYZ file of the reference molecule&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">option</span><span class="o">.</span><span class="n">get_attribute_name</span><span class="p">()]</span> <span class="o">=</span> <span class="n">option</span>
+
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read access to configuration options.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Write access to configuration options.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Configuration.list_options"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration.list_options">[docs]</a>    <span class="k">def</span> <span class="nf">list_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Gives all configurable options for a given section.&quot;&quot;&quot;</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">section</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">_</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_&quot;</span> <span class="o">%</span> <span class="n">section</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">options</span></div>
+
+<div class="viewcode-block" id="Configuration.list_sections"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration.list_sections">[docs]</a>    <span class="k">def</span> <span class="nf">list_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns a list of all sections.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">_</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()]))</span></div>
+
+<div class="viewcode-block" id="Configuration.from_file"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration.from_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;apdft.conf&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="n">section</span><span class="p">]:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="n">section</span><span class="p">][</span><span class="n">option</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s2">&quot;None&quot;</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="p">[</span><span class="n">option</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Configuration.to_file"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration.to_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_sections</span><span class="p">()):</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_options</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">vals</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">option</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">option</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                        <span class="n">vals</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">option</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">()]</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">vals</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">option</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
+            <span class="n">config</span><span class="p">[</span><span class="n">section</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;apdft.conf&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">configfile</span><span class="p">:</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Guido Falk von Rudorff
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

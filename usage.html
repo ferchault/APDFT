@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Usage &mdash; APDFT  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Features and supported software" href="features.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> APDFT
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about.html">APDFT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-files-and-output-files">Input Files and Output Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-on-a-compute-cluster">Running on a Compute Cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#restricting-target-molecules">Restricting target molecules</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">Features and supported software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html#adding-support-for-additional-software-packages">Adding support for additional software packages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apdft.html">Implementation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">APDFT</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Usage</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>In the following, the simplest possible workflow is described. More complex topics are discussed afterwards.</p>
+<p>First, we need the reference molecule. In the current directory, which is treated as working directory by apdft, create a XYZ file of any name. In this example, we will call it <em>molecule.xyz</em>. Once this file is available, call</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apdft energies molecule.xyz
+</pre></div>
+</div>
+<p>which will build a set of input folders and a configuration file, <a class="reference internal" href="#apdft-conf"><span class="std std-ref">apdft.conf</span></a>. The latter contains a complete list of all configuration options the current version of apdft understands. apdft itself does not perform any QM calculations, but rather relies on well-tested software packages like Gaussian or MRCC to do so. The file <a class="reference internal" href="#commands-sh"><span class="std std-ref">commands.sh</span></a> contains the required program calls for each QM calculation. Running it will perform all required calculations and ensure availability of the appropriate output files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>. commands.sh
+</pre></div>
+</div>
+<p>With the QM calculations completed, apdft can use the results to predict energies of related molecules:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apdft energies
+</pre></div>
+</div>
+<p>which will use the QM results to predict energies of target molecules. The results are then stored in <span class="xref std std-ref">energies.csv</span>.</p>
+</div>
+<div class="section" id="input-files-and-output-files">
+<h2>Input Files and Output Files<a class="headerlink" href="#input-files-and-output-files" title="Permalink to this headline">¶</a></h2>
+<dl class="simple" id="apdft-conf">
+<dt>apdft.conf</dt><dd><p>The configuration file. Is automatically generated upon the first invocation of apdft.</p>
+</dd>
+</dl>
+<dl class="simple" id="commands-sh">
+<dt>commands.sh</dt><dd><p>All required calls to QM software like Gaussian and MRCC to obtain the energies and electron densities apdft needs. This file assumes standard paths for each of the software package. If you system differs from that for any reason, you might need to adjust environment variables accordingly. Each line contains all required commands for a single calculation, therefore they can be executed independently from each other. The commands are written to be called from the directory the script is in.</p>
+</dd>
+</dl>
+<dl class="simple" id="folder-order">
+<dt>order-*</dt><dd><p>Folders containing the generated input files for the QM software packages. The folder structure needs to be kept the same.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="running-on-a-compute-cluster">
+<h2>Running on a Compute Cluster<a class="headerlink" href="#running-on-a-compute-cluster" title="Permalink to this headline">¶</a></h2>
+<p>Since a (modern) python installation is not necessarily common on compute clusters, we assume that apdft is run on a local workstation while the expensive QM calculations are run on a compute cluster. In practice, most of the calculations will be too heavy for a single machine, in particular as APDFT benefits from performing the reference calculation at a higher level of theory. The input files can easily be generated on a regular machine, as this is not computationally expensive.</p>
+<p>To move the heavy QM calculations to a more powerful environment, all <a class="reference internal" href="#folder-order"><span class="std std-ref">order-*</span></a> folders and the <a class="reference internal" href="#commands-sh"><span class="std std-ref">commands.sh</span></a> file should be copied to a compute cluster. Most likely, you want to run the individual calculations as separate jobs in a queueing system. Each line in that file contains the workload of one job and is independent of all other lines in the file. Once the calculations have been completed, all newly created files and folders have to be transferred back to the initial machine for post-processing.</p>
+</div>
+<div class="section" id="restricting-target-molecules">
+<h2>Restricting target molecules<a class="headerlink" href="#restricting-target-molecules" title="Permalink to this headline">¶</a></h2>
+<p>At times, the number of possible alchemical prediction targets, i.e. molecules for which you will get estimates from APDFT can be overwhealming. In that case, you may restrict the number of potential targets by either limiting the sites that are transformed, limiting the maximum change in nuclear charge at all sites (with the command line option <cite>–apdft_maxdz</cite>), or by lowering the maximal net charge of target molecules (with <cite>–apdft_maxcharge</cite>).</p>
+<p>To limit the sites to be transformed, use the command line option <cite>–apdft_includeonly</cite>. This option accepts either a list of indices (i.e. atom numbers starting at zero), ranges of indices, or a list of elements. All of the following examples would be a valid input.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--apdft_includeonly <span class="m">0</span>,1,23
+--apdft_includeonly B,C,N
+--apdft_includeonly <span class="m">0</span>-42,C,110
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="features.html" class="btn btn-neutral float-right" title="Features and supported software" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Guido Falk von Rudorff
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

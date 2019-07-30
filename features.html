@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Features and supported software &mdash; APDFT  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Implementation" href="apdft.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> APDFT
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="about.html">APDFT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Features and supported software</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gaussian-g09">Gaussian (G09)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mrcc">MRCC</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#adding-support-for-additional-software-packages">Adding support for additional software packages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#required-interface">Required interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apdft.html">Implementation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">APDFT</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Features and supported software</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/features.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="features-and-supported-software">
+<span id="features"></span><h1>Features and supported software<a class="headerlink" href="#features-and-supported-software" title="Permalink to this headline">¶</a></h1>
+<p>APDFT does not perform any QM calculations itself, but rather uses well-tested existing codes. However, the generation of the (non-standard) input files and the calculation of all possible target molecule properties is done by APDFT.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td rowspan="2"><p><strong>Method</strong></p></td>
+<td rowspan="2"><p><strong>MRCC</strong></p></td>
+<td rowspan="2"><p><strong>G09</strong></p></td>
+<td rowspan="2"><p><strong>PYSCF</strong></p></td>
+</tr>
+<tr class="row-even"></tr>
+<tr class="row-odd"><td colspan="4"><p><em>Wavefunction methods</em></p></td>
+</tr>
+<tr class="row-even"><td><p>CCSDT</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>CCSD</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="gaussian-g09">
+<h2>Gaussian (G09)<a class="headerlink" href="#gaussian-g09" title="Permalink to this headline">¶</a></h2>
+<p>If you have a license for <a class="reference external" href="http://gaussian.com/">Gaussian</a>, APDFT can calculate the following levels of theory, all of which can be combined with all Gaussian basis sets from the <a class="reference external" href="https://www.basissetexchange.org/">EMSL Basis Set Exchange</a>.</p>
+</div>
+<div class="section" id="mrcc">
+<h2>MRCC<a class="headerlink" href="#mrcc" title="Permalink to this headline">¶</a></h2>
+<p>This code is free to use for academic purposes (after registration). <a class="reference external" href="https://www.mrcc.hu/">MRCC</a> allows many high-level CC evaluations at very decent speed.</p>
+</div>
+</div>
+<div class="section" id="adding-support-for-additional-software-packages">
+<h1>Adding support for additional software packages<a class="headerlink" href="#adding-support-for-additional-software-packages" title="Permalink to this headline">¶</a></h1>
+<p>To check whether it is possible to do APDFT with your favourite QM code, two requirements need to be checked.</p>
+<p>APDFT requires a QM package to perform calculations with fractional nuclear charges but with a fixed basis set. This means that changing the nuclear charge of a site must not alter the basis set used. While some codes support this directly, some others require a workaround where you initialise the QM calculation with your reference molecule just to add point charges at the sites of the nuclei to counteract the Coulombic interaction between nuclei and electron density. Either of the methods is equivalent. Typically, it is advisable to compare energies of e.g. the Nitrogen dimer at the CO basis set and CO with CO basis set evaluated by defining an Nitrogen dimer input together with two point charges of +1 and -1, respectively.</p>
+<p>The other requirement is that the QM code is able to write out the resulting electron density on a integration grid which only depends on nuclear coordinates but not nuclear charge. The dependence on nuclear coordinates is almost universal since integration grids need to model the core region of the electron density particularly well. It is important however, that a rectangular grid like in cube-files is not sufficient. APDFT requires to evaluate integrals over the change in electron density in space. Rectangular grids are not suitable, since they either are unnecessarily large or feature a resolution which is by far too low. The integration grid must not depend on the actual nuclear charges, since APDFT combines the self-consistent electron density of multiple runs and requires a identical integration grid for that purpose. In an ideal world, the grid coordinates can be specified to the QM code, but any fixed integration grid will do. If it is not possible to specify the required grid points to the QM code, an acceptable alternative is having the QM code list the grid points together with their weights and the corresponding electron density in the output. Another possibilty to fulfill this requirement is a MOLDEN file which contains the basis functions and the coefficients such that APDFT can calculate the spatial electron density.</p>
+<div class="section" id="required-interface">
+<h2>Required interface<a class="headerlink" href="#required-interface" title="Permalink to this headline">¶</a></h2>
+<p>To add support for your favourite QM program, you need a new calculator class. This is done by adding a corresponding file in <a class="reference internal" href="apdft.html#module-apdft.calculator" title="apdft.calculator"><code class="xref py py-mod docutils literal notranslate"><span class="pre">apdft.calculator</span></code></a>, where a new class inherits from <a class="reference internal" href="apdft.html#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a>. This class needs to implement the following functions:</p>
+<ul class="simple">
+<li><p><cite>get_input</cite> for the generation of the corresponding input file. If necessary, there is a folder for input file templates that can help keep the code clean.</p></li>
+</ul>
+<p>Furthermore, the attribute <cite>_methods</cite> of the class needs to hold a dictionary of all supported levels of theory. Afterwards, the supported code needs to be registered in <a class="reference internal" href="apdft.html#apdft.settings.CodeEnum" title="apdft.settings.CodeEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.settings.CodeEnum</span></code></a> such that the user can select it via the command line interface. Finally, the command line handler in <code class="xref py py-func docutils literal notranslate"><span class="pre">commandline.mode_energies()</span></code> needs a selection branch for the new calculator.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="apdft.html" class="btn btn-neutral float-right" title="Implementation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Guido Falk von Rudorff
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

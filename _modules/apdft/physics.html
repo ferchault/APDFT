@@ -1,0 +1,493 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>apdft.physics &mdash; APDFT  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> APDFT
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">APDFT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">Features and supported software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html#adding-support-for-additional-software-packages">Adding support for additional software packages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apdft.html">Implementation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">APDFT</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../apdft.html">apdft</a> &raquo;</li>
+        
+      <li>apdft.physics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for apdft.physics</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">basis_set_exchange</span> <span class="k">as</span> <span class="nn">bse</span>
+<span class="kn">import</span> <span class="nn">pyscf</span>
+<span class="kn">from</span> <span class="nn">pyscf</span> <span class="k">import</span> <span class="n">dft</span>
+<span class="kn">import</span> <span class="nn">apdft</span>
+
+<span class="c1">#: Conversion factor from Bohr in Angstrom.</span>
+<span class="n">angstrom</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.52917721067</span>
+<span class="c1">#: Conversion factor from electron charges and Angstrom to Debye</span>
+<span class="n">debye</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.20819433</span>
+
+
+<div class="viewcode-block" id="Coulomb"><a class="viewcode-back" href="../../apdft.html#apdft.physics.Coulomb">[docs]</a><span class="k">class</span> <span class="nc">Coulomb</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Collects functions for Coulomb interaction.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Coulomb.nuclei_nuclei"><a class="viewcode-back" href="../../apdft.html#apdft.physics.Coulomb.nuclei_nuclei">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">nuclei_nuclei</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculates the nuclear-nuclear interaction energy from Coulomb interaction.</span>
+
+<span class="sd">		Sign convention assumes positive charges for nuclei.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			coordinates:		A (3,N) array of nuclear coordinates :math:`\\mathbf{r_i}`. [Angstrom]</span>
+<span class="sd">			charges:			A N array of point charges :math:`q_i`. [e]</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			Coulombic interaction energy. [Hartree]</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+        <span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">natoms</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">((</span><span class="n">coordinates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">coordinates</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">*</span> <span class="n">angstrom</span><span class="p">)</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">charges</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">d</span>
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="Dipoles"><a class="viewcode-back" href="../../apdft.html#apdft.physics.Dipoles">[docs]</a><span class="k">class</span> <span class="nc">Dipoles</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Collects functions regarding the calculation of dipole moments. This code follows the physics convention of the sign: the dipole moment vector points from the negative charge center to the positive charge center.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Dipoles.point_charges"><a class="viewcode-back" href="../../apdft.html#apdft.physics.Dipoles.point_charges">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">point_charges</span><span class="p">(</span><span class="n">reference_point</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculates the dipole moment of point charges.</span>
+
+<span class="sd">		Note that for sets of point charges of a net charge, the resulting dipole moment depends on the chosen reference point. A common choice in the molecular context is the center of mass.</span>
+<span class="sd">		Sign convention is such that nuclei should be given as positive charges.</span>
+
+<span class="sd">		.. math::</span>
+
+<span class="sd">			\\mathbf{p}(\\mathbf{r}) = \\sum_I q_i(\\mathbf{r_i}-\\mathbf{r})</span>
+<span class="sd">		</span>
+<span class="sd">		Args:</span>
+<span class="sd">			reference_point:	A 3 array of the reference point :math:`\\mathbf{r}`. [Angstrom]</span>
+<span class="sd">			coordinates: 		A (3,N) array of point charge coordinates :math:`\\mathbf{r_i}`. [Angstrom]</span>
+<span class="sd">			charges:			A N array of point charges :math:`q_i`. [e]</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			Dipole moment :math:`\\mathbf{p}`. [Debye]</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="n">coordinates</span> <span class="o">-</span> <span class="n">reference_point</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">shift</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">charges</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">debye</span></div>
+
+<div class="viewcode-block" id="Dipoles.electron_density"><a class="viewcode-back" href="../../apdft.html#apdft.physics.Dipoles.electron_density">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">electron_density</span><span class="p">(</span><span class="n">reference_point</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">electron_density</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculates the dipole moment of a charge distribution.</span>
+
+<span class="sd">		Note that for a charge density, the resulting dipole momennt depends on the chosen reference point. A common choice in the molecular context is the center of mass.</span>
+<span class="sd">		Electron density is a positive quantity.</span>
+
+<span class="sd">		.. math::</span>
+
+<span class="sd">			\\mathbf{p}(\\mathbf{r}) = \\int_\\Omega \\rho(\\mathbf{r_i})(\\mathbf{r_i}-\\mathbf{r})</span>
+<span class="sd">		</span>
+<span class="sd">		Args:</span>
+<span class="sd">			reference_point:	A 3 array of the reference point :math:`\\mathbf{r}`. [Angstrom]</span>
+<span class="sd">			coordinates: 		A (3,N) array of grid coordinates :math:`\\mathbf{r_i}`. [Angstrom]</span>
+<span class="sd">			electron_density:	A N array of electron density values :math:`\\rho` at `coordinates`. [e/Angstrom^3]</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			Dipole moment :math:`\\mathbf{p}`. [Debye]</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="n">coordinates</span> <span class="o">-</span> <span class="n">reference_point</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">shift</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">electron_density</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">debye</span></div></div>
+
+
+<div class="viewcode-block" id="charge_to_label"><a class="viewcode-back" href="../../apdft.html#apdft.physics.charge_to_label">[docs]</a><span class="k">def</span> <span class="nf">charge_to_label</span><span class="p">(</span><span class="n">Z</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Converts a nuclear charge to an element label.</span>
+
+<span class="sd">	Uncharged (ghost) sites are assigned a dash.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		Z 					Nuclear charge. [e]</span>
+<span class="sd">	Returns:</span>
+<span class="sd">		Element label. [String]</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;-&quot;</span>
+    <span class="k">return</span> <span class="n">bse</span><span class="o">.</span><span class="n">lut</span><span class="o">.</span><span class="n">element_sym_from_Z</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="APDFT"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT">[docs]</a><span class="k">class</span> <span class="nc">APDFT</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Implementation of alchemical perturbation density functional theory.</span>
+
+<span class="sd">	This is an abstract base class. This means that for any use, one needs to inherit from this class.</span>
+<span class="sd">	The subclass needs to implement all functions that raise a NotImplementedError upon invocation.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">highest_order</span><span class="p">,</span>
+        <span class="n">nuclear_numbers</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="n">max_charge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">max_deltaz</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">include_atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">highest_order</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">highest_order</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nuclear_numbers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span> <span class="o">=</span> <span class="n">coordinates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reader_cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span> <span class="o">=</span> <span class="mf">0.05</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_charge</span> <span class="o">=</span> <span class="n">max_charge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_deltaz</span> <span class="o">=</span> <span class="n">max_deltaz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gridweights</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gridcoords</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">include_atoms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">included</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">include_atoms</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">part</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="n">included</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span> <span class="o">==</span> <span class="n">bse</span><span class="o">.</span><span class="n">lut</span><span class="o">.</span><span class="n">element_Z_from_sym</span><span class="p">(</span><span class="n">part</span><span class="p">))</span>
+                    <span class="n">included</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span> <span class="o">==</span> <span class="n">bse</span><span class="o">.</span><span class="n">lut</span><span class="o">.</span><span class="n">element_Z_from_sym</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+                        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">included</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="APDFT.update_grid"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.update_grid">[docs]</a>    <span class="k">def</span> <span class="nf">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Ensures that the current integration grid is initialised.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="APDFT.enumerate_all_targets"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.enumerate_all_targets">[docs]</a>    <span class="k">def</span> <span class="nf">enumerate_all_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Builds a list of all possible targets.</span>
+
+<span class="sd">		Note that the order is not guaranteed to be stable.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			self:		Class instance from which the total charge and number of sites is determined.</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			A list of lists with the integer nuclear charges.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_deltaz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">around</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">around</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)</span>
+            <span class="n">limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_deltaz</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nsites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)</span>
+        <span class="n">nprotons</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_charge</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_charge</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">nprotons</span> <span class="o">+</span> <span class="n">shift</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="n">apdft</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">IntegerPartitions</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span>
+                <span class="n">nprotons</span> <span class="o">+</span> <span class="n">shift</span><span class="p">,</span> <span class="n">nsites</span><span class="p">,</span> <span class="n">around</span><span class="p">,</span> <span class="n">limit</span>
+            <span class="p">)</span>
+
+        <span class="c1"># filter for included atoms</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">_</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">res</span>
+                <span class="k">if</span> <span class="p">[</span><span class="n">_</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">]</span>
+                <span class="o">==</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="APDFT.estimate_cost_and_coverage"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.estimate_cost_and_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_cost_and_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Estimates number of single points (cost) and number of targets (coverage).</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			self:		Class instance from which the total charge and number of sites is determined.</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			Tuple of ints: number of single points, number of targets.&quot;&quot;&quot;</span>
+
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">)</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)}[</span><span class="n">_</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">)</span>
+
+        <span class="n">coverage</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enumerate_all_targets</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">coverage</span></div>
+
+<div class="viewcode-block" id="APDFT.get_energy_from_reference"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_energy_from_reference">[docs]</a>    <span class="k">def</span> <span class="nf">get_energy_from_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Retreives the total energy from a QM reference. Abstract function.</span>
+
+<span class="sd">		Light function, will not be called often, so no caching needed.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			nuclear_charges: 	Integer list of nuclear charges. [e]</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			The total energy. [Hartree]&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="APDFT.get_density_from_reference"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_density_from_reference">[docs]</a>    <span class="k">def</span> <span class="nf">get_density_from_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Retreives the density from a QM reference. Abstract function.</span>
+
+<span class="sd">		Light function, will not be called often, so no caching needed.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			nuclear_charges: 	Integer list of nuclear charges. [e]</span>
+<span class="sd">			gridcoords: 		Grid coordinates. [Angstrom]</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			A numpy array of electron density at the grid coordinates.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="APDFT.get_density_derivative"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_density_derivative">[docs]</a>    <span class="k">def</span> <span class="nf">get_density_derivative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sites</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Retrieves the n-th order density derivative.</span>
+
+<span class="sd">		Heavy function, will be called often, caching needed. </span>
+<span class="sd">		The order of the derivative is implicitly known since it&#39;s the length of *sites* argument via the chain rule.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			sites:				Integer list of sites that are perturbed.</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			A numpy array of electron density at the grid coordinates.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="APDFT.predict_all_targets"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.predict_all_targets">[docs]</a>    <span class="k">def</span> <span class="nf">predict_all_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">do_energies</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">do_dipoles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># assert one order of targets</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enumerate_all_targets</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">()</span>
+        <span class="n">own_nuc_nuc</span> <span class="o">=</span> <span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclei_nuclei</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)</span>
+
+        <span class="c1"># allocate output</span>
+        <span class="k">if</span> <span class="n">do_energies</span><span class="p">:</span>
+            <span class="n">energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">energies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">do_dipoles</span><span class="p">:</span>
+            <span class="n">dipoles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dipoles</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">)</span>
+
+        <span class="c1"># get base information</span>
+        <span class="n">grid_ds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gridcoords</span> <span class="o">*</span> <span class="n">apdft</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">:</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gridcoords</span> <span class="o">-</span> <span class="n">site</span><span class="p">)</span> <span class="o">*</span> <span class="n">apdft</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">refenergy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_energy_from_reference</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">,</span> <span class="n">is_reference_molecule</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="c1"># get target predictions</span>
+        <span class="k">for</span> <span class="n">targetidx</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
+            <span class="n">deltaZ</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span>
+
+            <span class="n">deltaV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gridweights</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">atomidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+                <span class="n">deltaV</span> <span class="o">+=</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">atomidx</span><span class="p">]</span> <span class="o">/</span> <span class="n">ds</span><span class="p">[</span><span class="n">atomidx</span><span class="p">]</span>
+
+            <span class="c1"># zeroth order</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_density_derivative</span><span class="p">([])</span>
+            <span class="n">rhotilde</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">rhotarget</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="c1"># first order</span>
+            <span class="k">for</span> <span class="n">atomidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+                <span class="n">deriv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_density_derivative</span><span class="p">([</span><span class="n">atomidx</span><span class="p">])</span>
+                <span class="n">rhotilde</span> <span class="o">+=</span> <span class="n">deriv</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">atomidx</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">rhotarget</span> <span class="o">+=</span> <span class="n">deriv</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">atomidx</span><span class="p">]</span>
+
+            <span class="c1"># second order</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+                    <span class="n">deriv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_density_derivative</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                    <span class="n">rhotilde</span> <span class="o">+=</span> <span class="p">(</span><span class="n">deriv</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="mi">6</span>
+                    <span class="n">rhotarget</span> <span class="o">+=</span> <span class="p">(</span><span class="n">deriv</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+
+            <span class="n">d_nuc_nuc</span> <span class="o">=</span> <span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclei_nuclei</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span> <span class="o">-</span> <span class="n">own_nuc_nuc</span>
+            <span class="n">energies</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rhotilde</span> <span class="o">*</span> <span class="n">deltaV</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gridweights</span><span class="p">)</span> <span class="o">+</span> <span class="n">d_nuc_nuc</span> <span class="o">+</span> <span class="n">refenergy</span>
+            <span class="p">)</span>
+            <span class="n">nuc_dipole</span> <span class="o">=</span> <span class="n">Dipoles</span><span class="o">.</span><span class="n">point_charges</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+            <span class="n">ed</span> <span class="o">=</span> <span class="n">Dipoles</span><span class="o">.</span><span class="n">electron_density</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gridcoords</span><span class="p">,</span> <span class="n">rhotarget</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gridweights</span>
+            <span class="p">)</span>
+            <span class="n">dipoles</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ed</span> <span class="o">+</span> <span class="n">nuc_dipole</span>
+
+        <span class="c1"># return results</span>
+        <span class="k">return</span> <span class="n">targets</span><span class="p">,</span> <span class="n">energies</span><span class="p">,</span> <span class="n">dipoles</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Guido Falk von Rudorff
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
