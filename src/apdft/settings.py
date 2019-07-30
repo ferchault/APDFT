@@ -187,7 +187,12 @@ class Configuration:
                 try:
                     vals[option] = self[option].get_value().name
                 except AttributeError:
-                    vals[option] = str(self[option].get_value())
+                    if type(self[option].get_value()) == list:
+                        vals[option] = ",".join(
+                            [str(_) for _ in self[option].get_value()]
+                        )
+                    else:
+                        vals[option] = str(self[option].get_value())
             config[section] = vals
         with open("apdft.conf", "w") as configfile:
             config.write(configfile)
