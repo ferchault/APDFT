@@ -88,6 +88,9 @@
 <li class="toctree-l1"><a class="reference internal" href="features.html">Features and supported software</a></li>
 <li class="toctree-l1"><a class="reference internal" href="features.html#adding-support-for-additional-software-packages">Adding support for additional software packages</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Implementation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#energies">Energies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#density-moments">Density Moments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ionic-forces">Ionic Forces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.calculator">Calculators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">Gaussian</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">MRCC</a></li>
@@ -176,15 +179,39 @@
 <p>running over all nuclei <span class="math notranslate nohighlight">\(I\)</span>. <span class="math notranslate nohighlight">\(\tilde\rho\)</span> in fact is a linear combination of individual electron densities for fractional nuclear charges, so we can write is as follows</p>
 <div class="math notranslate nohighlight">
 \[\tilde\rho(\mathbf{r}) = \sum_i \alpha_i\rho_i(\mathbf{r})\]</div>
-<p>where the coefficients <span class="math notranslate nohighlight">\(\alpha_i\)</span> are determined by the finite difference scheme employed. Together with the above equations for <span class="math notranslate nohighlight">\(\Delta V_I\)</span>, the expression for the change in energy can be re-cast</p>
+<p>where the coefficients <span class="math notranslate nohighlight">\(\alpha_i\)</span> are determined by the finite difference scheme employed.</p>
+<div class="section" id="energies">
+<h2>Energies<a class="headerlink" href="#energies" title="Permalink to this headline">¶</a></h2>
+<p>Together with the above equations for <span class="math notranslate nohighlight">\(\Delta V_I\)</span>, the expression for the change in energy can be re-cast</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\Delta E &amp;= \int_\Omega d\mathbf{r} \left(\sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|}\right) \left(\sum_i \alpha_i\rho_i(\mathbf{r})\right) \\
          &amp;= \sum_I\sum_i \Delta Z_I\alpha_i \int_\Omega d\mathbf{r} \frac{\rho_i(\mathbf{r})}{|\mathbf{r} - \mathbf{R_I}|}\end{split}\]</div>
 <p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term corresponds to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).</p>
-<p>This can be further simplified by realising that the <span class="math notranslate nohighlight">\(\alpha_i\)</span> implicitly depend on the target molecule, i.e. <span class="math notranslate nohighlight">\(\mathbf{\Delta Z}=\{\Delta Z_I\}\)</span>, while the EPN does not. This yields</p>
+<p>This can be further simplified as an outer product, i.e. <span class="math notranslate nohighlight">\(\mathbf{\Delta Z}=\{\Delta Z_I\}\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\Delta E = \sum_{jk} \left(\left[\mathbf{\Delta Z}\otimes \mathbf{\alpha}\right]\circ \mathbf{Q}\right)_{jk}\]</div>
-<p>where <span class="math notranslate nohighlight">\(\mathbf{Q}_{Ii}\)</span> is just the electrostatic potential of density <span class="math notranslate nohighlight">\(i\)</span> at nucleus <span class="math notranslate nohighlight">\(I\)</span>. This outer product formulation is numerically efficient to implement.</p>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{Q}_{Ii}\)</span> is just the electrostatic potential of density <span class="math notranslate nohighlight">\(i\)</span> at nucleus <span class="math notranslate nohighlight">\(I\)</span>. This formulation is numerically efficient to implement, since it only requires the QM codes to export <span class="math notranslate nohighlight">\(\mathbf{Q}\)</span> instead of an explicit density grid. Moreover, since the density matrix does not need to be exported, interfacing is more reliable because no basis function ordering is relevant to the results.</p>
+</div>
+<div class="section" id="density-moments">
+<h2>Density Moments<a class="headerlink" href="#density-moments" title="Permalink to this headline">¶</a></h2>
+<p>The electronic component of the charge distribution moments can be obtained from a linear combination of the same quantities evaluated for the individual single point calculations from the finite difference scheme. For example, for the dipole moment, we have</p>
+<div class="math notranslate nohighlight">
+\[\mu_i = \int_\Omega d\mathbf{r} \rho(\mathbf{r})\mathbf{r}_i\]</div>
+<p>Similarly to the energy, the target density <span class="math notranslate nohighlight">\(\rho_t\)</span> can be build from coefficients of the individual calculations in the context of the finite difference scheme. Note that these coefficients <span class="math notranslate nohighlight">\(\beta_i\)</span> are not the same as for the energy expression.</p>
+<div class="math notranslate nohighlight">
+\[\rho_t(\mathbf{r}) = \sum_i \beta_i\rho_i(\mathbf{r})\]</div>
+<p>For the dipole moment, this results in a linear combination of the dipole moments of the individual single point calculations</p>
+<div class="math notranslate nohighlight">
+\[\mu_i = \sum_i \beta_i \int_\Omega d\mathbf{r} \rho_i(\mathbf{r}) \mathbf{r}_i\]</div>
+<p>Note that this only applies to the electronic component of the charge distribution moments.</p>
+</div>
+<div class="section" id="ionic-forces">
+<h2>Ionic Forces<a class="headerlink" href="#ionic-forces" title="Permalink to this headline">¶</a></h2>
+<p>Similarly to dipole moments, the expression for the ionic force allows linear combinations:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{F}_I &amp;= Z_I\int_\Omega d\mathbf{r} \rho_t(\mathbf{r})\frac{\mathbf{r} - \mathbf{R}_I}{|\mathbf{r} - \mathbf{R}_I|^3}\\
+            &amp;=Z_I\sum_i \beta_i\int_\Omega d\mathbf{r} \rho_i(\mathbf{r})\frac{\mathbf{r} - \mathbf{R}_I}{|\mathbf{r} - \mathbf{R}_I|^3}\\\end{split}\]</div>
+</div>
 <div class="section" id="module-apdft.calculator">
 <span id="calculators"></span><h2>Calculators<a class="headerlink" href="#module-apdft.calculator" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
