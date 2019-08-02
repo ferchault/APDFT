@@ -172,21 +172,37 @@
 <h1>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h1>
 <p>In the context of APDFT, we evaluate energy differences by</p>
 <div class="math notranslate nohighlight">
-\[\Delta E = \int_\Omega d\mathbf{r} \Delta V(\mathbf{r})\tilde\rho(\mathbf{r})\]</div>
-<p>where <span class="math notranslate nohighlight">\(\tilde\rho\)</span> is obtained by means of finite difference evaluations and the change in external potential <span class="math notranslate nohighlight">\(\Delta V\)</span> is given by the Coulomb term</p>
+\[\begin{split}\Delta E &amp;= \int_\Omega d\mathbf{r} \Delta V(\mathbf{r})\tilde\rho(\mathbf{r})\\
+\Delta V(\mathbf{r}) &amp;= \sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|} = \sum_I  \Delta V_I(\mathbf{r})\\
+\tilde\rho(\mathbf{r}) &amp;= \sum_{n=1}^\infty \frac{1}{n!} \frac{\partial^{n-1}\rho_\lambda}{\partial\lambda^{n-1}}\end{split}\]</div>
+<p>where the partial derivatives in <span class="math notranslate nohighlight">\(\tilde\rho\)</span> are obtained by means of finite difference evaluations. More precisely, we apply the chain rule and obtain</p>
 <div class="math notranslate nohighlight">
-\[\Delta V(\mathbf{r}) = \sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|} = \sum_I  \Delta V_I(\mathbf{r})\]</div>
-<p>running over all nuclei <span class="math notranslate nohighlight">\(I\)</span>. <span class="math notranslate nohighlight">\(\tilde\rho\)</span> in fact is a linear combination of individual electron densities for fractional nuclear charges, so we can write is as follows</p>
+\[\begin{split}\frac{\partial\rho}{\partial\lambda} &amp;= \sum_I \frac{\partial\rho}{\partial Z_I}\frac{\partial Z_I}{\partial\lambda} = \sum_I \frac{\partial\rho}{\partial Z_I}\Delta Z_I\\
+\frac{\partial^2\rho}{\partial\lambda^2} &amp;= \sum_I \sum_J \frac{\partial^2\rho}{\partial Z_I\partial Z_J}\Delta Z_I\Delta Z_J\\
+\frac{\partial^q\rho}{\partial\lambda^q} &amp;= \sum_{I_1} \sum_{I_2}\dots\sum_{I_q} \frac{\partial^q\rho}{\partial Z_{I_1}\partial Z_{I_2}\dots \partial Z_{I_q}}\Delta Z_{I_1}\Delta Z_{I_2}\dots\Delta Z_{I_q}\end{split}\]</div>
+<p>running over all nuclei <span class="math notranslate nohighlight">\(I\)</span>. For higher orders, the chain rule is applied multiple times, keeping in mind that <span class="math notranslate nohighlight">\(\partial^2_\lambda Z_I=0\)</span>.</p>
+<p>For all partial derivatives, we use the finite difference scheme but with a particular stencil to reduce the number of (costly) evaluations of <span class="math notranslate nohighlight">\(\rho\)</span>. For non-mixed derivatives of arbitrary order, we use regular central finite differences with a symmetric stencil:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial \rho}{\partial Z_I} &amp;\approx \frac{\rho(Z_1, \dots, Z_I+h, \dots,Z_N) - \rho(Z_1, \dots, Z_I-h, \dots,Z_N)}{2h}\\
+\frac{\partial^q\rho}{\partial Z_I^q} &amp;\approx \frac{1}{(2h)^q}\sum _{i=0}^{q}(-1)^{i}{\binom {q}{i}}\rho\left(Z_1, \dots, Z_I+\left(q-2i\right)h, \dots, Z_N\right)\end{split}\]</div>
+<p>In the case of mixed partial derivatives, we use a symmetric stencil with only two additional points</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial^2 \rho}{\partial Z_I \partial Z_J} \approx \frac{1}{2h^2}\Big[&amp;\rho(Z_1, \dots, Z_I+h, \dots, Z_J+h,\dots,Z_N)\\
+&amp;-\rho(Z_1, \dots, Z_I+h,\dots,Z_N)-\rho(Z_1, \dots, Z_J+h,\dots,Z_N)\\
+&amp;+2\rho(Z_1, \dots, Z_N)\\
+&amp;-\rho(Z_1, \dots, Z_I-h, \dots,Z_N)-\rho(Z_1, \dots, Z_J-h,\dots,Z_N)\\
+&amp;+\rho(Z_1, \dots, Z_I-h, \dots, Z_J-h,\dots,Z_N)\Big]\end{split}\]</div>
+<p>For a practical implementation, it is much more efficient to collect the prefactors <span class="math notranslate nohighlight">\(\alpha_i\)</span> of the individual self-consistent densities <span class="math notranslate nohighlight">\(\rho_i(\{Z_I\})\)</span> first, such that</p>
 <div class="math notranslate nohighlight">
 \[\tilde\rho(\mathbf{r}) = \sum_i \alpha_i\rho_i(\mathbf{r})\]</div>
-<p>where the coefficients <span class="math notranslate nohighlight">\(\alpha_i\)</span> are determined by the finite difference scheme employed.</p>
+<p>where the coefficients <span class="math notranslate nohighlight">\(\alpha_i\)</span> depend on three components: the reference molecule, the target molecule, and the finite difference stencil.</p>
 <div class="section" id="energies">
 <h2>Energies<a class="headerlink" href="#energies" title="Permalink to this headline">¶</a></h2>
 <p>Together with the above equations for <span class="math notranslate nohighlight">\(\Delta V_I\)</span>, the expression for the change in energy can be re-cast</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\Delta E &amp;= \int_\Omega d\mathbf{r} \left(\sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|}\right) \left(\sum_i \alpha_i\rho_i(\mathbf{r})\right) \\
          &amp;= \sum_I\sum_i \Delta Z_I\alpha_i \int_\Omega d\mathbf{r} \frac{\rho_i(\mathbf{r})}{|\mathbf{r} - \mathbf{R_I}|}\end{split}\]</div>
-<p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term corresponds to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).</p>
+<p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term relates to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).</p>
 <p>This can be further simplified as an outer product, i.e. <span class="math notranslate nohighlight">\(\mathbf{\Delta Z}=\{\Delta Z_I\}\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\Delta E = \sum_{jk} \left(\left[\mathbf{\Delta Z}\otimes \mathbf{\alpha}\right]\circ \mathbf{Q}\right)_{jk}\]</div>
@@ -197,7 +213,7 @@
 <p>The electronic component of the charge distribution moments can be obtained from a linear combination of the same quantities evaluated for the individual single point calculations from the finite difference scheme. For example, for the dipole moment, we have</p>
 <div class="math notranslate nohighlight">
 \[\mu_i = \int_\Omega d\mathbf{r} \rho(\mathbf{r})\mathbf{r}_i\]</div>
-<p>Similarly to the energy, the target density <span class="math notranslate nohighlight">\(\rho_t\)</span> can be build from coefficients of the individual calculations in the context of the finite difference scheme. Note that these coefficients <span class="math notranslate nohighlight">\(\beta_i\)</span> are not the same as for the energy expression.</p>
+<p>Similarly to the energy, the target density <span class="math notranslate nohighlight">\(\rho_t\)</span> can be build from coefficients of the individual calculations in the context of the finite difference scheme. Note that these coefficients <span class="math notranslate nohighlight">\(\beta_i\)</span> are not the same as for the energy expression, but they still depend on the reference molecule, the target molecule, and the finite difference stencil.</p>
 <div class="math notranslate nohighlight">
 \[\rho_t(\mathbf{r}) = \sum_i \beta_i\rho_i(\mathbf{r})\]</div>
 <p>For the dipole moment, this results in a linear combination of the dipole moments of the individual single point calculations</p>
