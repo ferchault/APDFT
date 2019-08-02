@@ -31,7 +31,7 @@ class Coulomb(object):
         for i in range(natoms):
             for j in range(i + 1, natoms):
                 d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
-                ret = charges[i] * charges[j] / d
+                ret += charges[i] * charges[j] / d
         return ret
 
 

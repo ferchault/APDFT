@@ -25,6 +25,10 @@ def test_coulomb_nuclear_nuclear():
 	charges = np.array([1, 1])
 	assert phys.Coulomb.nuclei_nuclei(coordinates, charges) == 1
 
+	coordinates = np.array([[0., 0., 0.52917721067], [0., 0., 0.], [0., 0., -0.52917721067]])
+	charges = np.array([1, 1, 1])
+	assert phys.Coulomb.nuclei_nuclei(coordinates, charges) == 2.5
+
 def test_coulomb_nuclear_nuclear_sign():
 	coordinates = np.array([[0., 0., 0.52917721067], [0., 0., 0.]])
 	charges = np.array([1, -1])
