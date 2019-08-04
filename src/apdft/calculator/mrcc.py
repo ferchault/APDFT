@@ -18,7 +18,7 @@ class MrccCalculator(calculator.Calculator):
     def _parse_densityfile(densityfile):
         """ Returns all relevant data from a MRCC density file.
 
-		Columns 0-2: x, y, z coordinates
+		Columns 0-2: x, y, z coordinates in bohr
 		Column 3: weights
 		Column 4: density"""
         with open(densityfile, "r") as fh:
