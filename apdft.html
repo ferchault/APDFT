@@ -96,7 +96,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">MRCC</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-apdft.Derivatives">Derivatives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#derivatives">Derivatives</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.physics">Physics-related functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.math">Math-related functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft">APDFT logic</a></li>
@@ -202,7 +202,7 @@
 <div class="math notranslate nohighlight">
 \[\begin{split}\Delta E &amp;= \int_\Omega d\mathbf{r} \left(\sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|}\right) \left(\sum_i \alpha_i\rho_i(\mathbf{r})\right) \\
          &amp;= \sum_I\sum_i \Delta Z_I\alpha_i \int_\Omega d\mathbf{r} \frac{\rho_i(\mathbf{r})}{|\mathbf{r} - \mathbf{R_I}|}\end{split}\]</div>
-<p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term relates to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).</p>
+<p>which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density <span class="math notranslate nohighlight">\(\rho_i\)</span> and nucleus <span class="math notranslate nohighlight">\(I\)</span>. The latter term relates to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4). The sign convention is such that the integral shall be positive.</p>
 <p>This can be further simplified as an outer product, i.e. <span class="math notranslate nohighlight">\(\mathbf{\Delta Z}=\{\Delta Z_I\}\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\Delta E = \sum_{jk} \left(\left[\mathbf{\Delta Z}\otimes \mathbf{\alpha}\right]\circ \mathbf{Q}\right)_{jk}\]</div>
@@ -271,20 +271,17 @@
 <dt id="apdft.calculator.gaussian.GaussianCalculator">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.gaussian.</code><code class="sig-name descname">GaussianCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
+<p>Performs the QM calculations for APDFT with the help of Gaussian.</p>
+<p>General Idea:
+Gaussian supports both fractional nuclar charges (via the undocumented <cite>Massage</cite> keyword) and the evaluation of the electrostatic potential at the nucleus (via the <cite>Prop</cite> keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian.</p>
 <dl class="method">
-<dt id="apdft.calculator.gaussian.GaussianCalculator.density_on_grid">
-<em class="property">static </em><code class="sig-name descname">density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">inputfile</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.density_on_grid" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="apdft.calculator.gaussian.GaussianCalculator.get_density_on_grid">
-<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridpoints</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="apdft.calculator.gaussian.GaussianCalculator.get_electronic_dipole">
-<em class="property">static </em><code class="sig-name descname">get_electronic_dipole</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridcoords</em>, <em class="sig-param">gridweights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_electronic_dipole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_electronic_dipole" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the electronic dipole moment.</p>
+<dt id="apdft.calculator.gaussian.GaussianCalculator.get_epn">
+<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the EPN from a Gaussian log file.</p>
+<blockquote>
+<div><p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:<a href="#id1"><span class="problematic" id="id2">`</span></a>int</p>
+</div></blockquote>
+<p>ho / <a href="#id3"><span class="problematic" id="id4">|</span></a>mathbf{r}-mathbf{R}_I` is positive.</p>
 </dd></dl>
 
 <dl class="method">
@@ -312,20 +309,17 @@
 <dt>
 <em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.gaussian.</code><code class="sig-name descname">GaussianCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
+<p>Performs the QM calculations for APDFT with the help of Gaussian.</p>
+<p>General Idea:
+Gaussian supports both fractional nuclar charges (via the undocumented <cite>Massage</cite> keyword) and the evaluation of the electrostatic potential at the nucleus (via the <cite>Prop</cite> keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian.</p>
 <dl class="method">
 <dt>
-<em class="property">static </em><code class="sig-name descname">density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">inputfile</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.density_on_grid"><span class="viewcode-link">[source]</span></a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridpoints</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt>
-<em class="property">static </em><code class="sig-name descname">get_electronic_dipole</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridcoords</em>, <em class="sig-param">gridweights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_electronic_dipole"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Returns the electronic dipole moment.</p>
+<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Extracts the EPN from a Gaussian log file.</p>
+<blockquote>
+<div><p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:<a href="#id5"><span class="problematic" id="id6">`</span></a>int</p>
+</div></blockquote>
+<p>ho / <a href="#id7"><span class="problematic" id="id8">|</span></a>mathbf{r}-mathbf{R}_I` is positive.</p>
 </dd></dl>
 
 <dl class="method">
@@ -348,95 +342,22 @@
 
 </div>
 </div>
-<div class="section" id="module-apdft.Derivatives">
-<span id="derivatives"></span><h2>Derivatives<a class="headerlink" href="#module-apdft.Derivatives" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="apdft.Derivatives.DerivativeFolders">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.Derivatives.</code><code class="sig-name descname">DerivativeFolders</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#apdft.physics.APDFT" title="apdft.physics.APDFT"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.physics.APDFT</span></code></a></p>
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.analyse">
-<code class="sig-name descname">analyse</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em>, <em class="sig-param">do_energies=True</em>, <em class="sig-param">do_dipoles=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.analyse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.analyse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs actual analysis and integration. Prints results</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.assign_calculator">
-<code class="sig-name descname">assign_calculator</code><span class="sig-paren">(</span><em class="sig-param">calculator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.assign_calculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.assign_calculator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.get_density_derivative">
-<code class="sig-name descname">get_density_derivative</code><span class="sig-paren">(</span><em class="sig-param">sites</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.get_density_derivative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.get_density_derivative" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieves the n-th order density derivative.</p>
-<p>Heavy function, will be called often, caching needed.
-The order of the derivative is implicitly known since it’s the length of <em>sites</em> argument via the chain rule.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sites</strong> – Integer list of sites that are perturbed.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A numpy array of electron density at the grid coordinates.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.get_density_from_reference">
-<code class="sig-name descname">get_density_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.get_density_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.get_density_from_reference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retreives the density from a QM reference. Abstract function.</p>
-<p>Light function, will not be called often, so no caching needed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>nuclear_charges</strong> – Integer list of nuclear charges. [e]</p></li>
-<li><p><strong>gridcoords</strong> – Grid coordinates. [Angstrom]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A numpy array of electron density at the grid coordinates.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.get_energy_from_reference">
-<code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em>, <em class="sig-param">is_reference_molecule=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retreives the total energy from a QM reference. Abstract function.</p>
-<p>Light function, will not be called often, so no caching needed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>nuclear_charges</strong> – Integer list of nuclear charges. [e]</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The total energy. [Hartree]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.prepare">
-<code class="sig-name descname">prepare</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.prepare" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds a complete folder list of all relevant calculations.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.Derivatives.DerivativeFolders.update_grid">
-<code class="sig-name descname">update_grid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/Derivatives.html#DerivativeFolders.update_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.Derivatives.DerivativeFolders.update_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads the integration grid from the calculator or provides a default one.</p>
-</dd></dl>
-
-</dd></dl>
-
+<div class="section" id="derivatives">
+<h2>Derivatives<a class="headerlink" href="#derivatives" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-apdft.physics">
 <span id="physics-related-functions"></span><h2>Physics-related functions<a class="headerlink" href="#module-apdft.physics" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="apdft.physics.APDFT">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">basepath</em>, <em class="sig-param">calculator</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implementation of alchemical perturbation density functional theory.</p>
-<p>This is an abstract base class. This means that for any use, one needs to inherit from this class.
-The subclass needs to implement all functions that raise a NotImplementedError upon invocation.</p>
+<p>Requires a working directory <cite>basepath</cite> which allows for storing the intermediate calculation results.</p>
+<dl class="method">
+<dt id="apdft.physics.APDFT.analyse">
+<code class="sig-name descname">analyse</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.analyse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.analyse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs actual analysis and integration. Prints results</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="apdft.physics.APDFT.enumerate_all_targets">
 <code class="sig-name descname">enumerate_all_targets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.enumerate_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.enumerate_all_targets" title="Permalink to this definition">¶</a></dt>
@@ -470,42 +391,8 @@ The subclass needs to implement all functions that raise a NotImplementedError u
 </dd></dl>
 
 <dl class="method">
-<dt id="apdft.physics.APDFT.get_density_derivative">
-<code class="sig-name descname">get_density_derivative</code><span class="sig-paren">(</span><em class="sig-param">sites</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_density_derivative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_density_derivative" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieves the n-th order density derivative.</p>
-<p>Heavy function, will be called often, caching needed.
-The order of the derivative is implicitly known since it’s the length of <em>sites</em> argument via the chain rule.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sites</strong> – Integer list of sites that are perturbed.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A numpy array of electron density at the grid coordinates.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="apdft.physics.APDFT.get_density_from_reference">
-<code class="sig-name descname">get_density_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_density_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_density_from_reference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retreives the density from a QM reference. Abstract function.</p>
-<p>Light function, will not be called often, so no caching needed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>nuclear_charges</strong> – Integer list of nuclear charges. [e]</p></li>
-<li><p><strong>gridcoords</strong> – Grid coordinates. [Angstrom]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A numpy array of electron density at the grid coordinates.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="apdft.physics.APDFT.get_energy_from_reference">
-<code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em>, <em class="sig-param">is_reference_molecule=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retreives the total energy from a QM reference. Abstract function.</p>
 <p>Light function, will not be called often, so no caching needed.</p>
 <dl class="field-list simple">
@@ -519,14 +406,38 @@ The order of the derivative is implicitly known since it’s the length of <em>s
 </dd></dl>
 
 <dl class="method">
-<dt id="apdft.physics.APDFT.predict_all_targets">
-<code class="sig-name descname">predict_all_targets</code><span class="sig-paren">(</span><em class="sig-param">do_energies=True</em>, <em class="sig-param">do_dipoles=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.predict_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.predict_all_targets" title="Permalink to this definition">¶</a></dt>
+<dt id="apdft.physics.APDFT.get_epn_coefficients">
+<code class="sig-name descname">get_epn_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_coefficients" title="Permalink to this definition">¶</a></dt>
+<dd><p>EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.</p>
+<p>The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.
+TODO: Fix hard-coded weights from stencil.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="apdft.physics.APDFT.get_epn_matrix">
+<code class="sig-name descname">get_epn_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collects <span class="math notranslate nohighlight">\(\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|\)</span>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="apdft.physics.APDFT.get_linear_density_coefficients">
+<code class="sig-name descname">get_linear_density_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_coefficients" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="apdft.physics.APDFT.update_grid">
-<code class="sig-name descname">update_grid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.update_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.update_grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ensures that the current integration grid is initialised.</p>
+<dt id="apdft.physics.APDFT.get_linear_density_matrix">
+<code class="sig-name descname">get_linear_density_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_matrix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.physics.APDFT.predict_all_targets">
+<code class="sig-name descname">predict_all_targets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.predict_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.predict_all_targets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.physics.APDFT.prepare">
+<code class="sig-name descname">prepare</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.prepare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a complete folder list of all relevant calculations.</p>
 </dd></dl>
 
 </dd></dl>
@@ -535,6 +446,11 @@ The order of the derivative is implicitly known since it’s the length of <em>s
 <dt id="apdft.physics.Coulomb">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">Coulomb</code><a class="reference internal" href="_modules/apdft/physics.html#Coulomb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collects functions for Coulomb interaction.</p>
+<dl class="method">
+<dt id="apdft.physics.Coulomb.nuclear_potential">
+<em class="property">static </em><code class="sig-name descname">nuclear_potential</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">charges</em>, <em class="sig-param">at</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclear_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclear_potential" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="apdft.physics.Coulomb.nuclei_nuclei">
 <em class="property">static </em><code class="sig-name descname">nuclei_nuclei</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclei_nuclei"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclei_nuclei" title="Permalink to this definition">¶</a></dt>

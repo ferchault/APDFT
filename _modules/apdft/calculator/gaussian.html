@@ -157,6 +157,7 @@
 <span></span><span class="ch">#!/usr/bin/env python</span>
 <span class="kn">from</span> <span class="nn">apdft</span> <span class="k">import</span> <span class="n">log</span>
 <span class="kn">from</span> <span class="nn">apdft</span> <span class="k">import</span> <span class="n">calculator</span>
+<span class="kn">import</span> <span class="nn">apdft.physics</span> <span class="k">as</span> <span class="nn">ap</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -164,13 +165,13 @@
 <span class="kn">import</span> <span class="nn">basis_set_exchange</span> <span class="k">as</span> <span class="nn">bse</span>
 <span class="kn">import</span> <span class="nn">jinja2</span> <span class="k">as</span> <span class="nn">j</span>
 
-<span class="c1"># load local orbkit</span>
-<span class="n">basedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/../../../dep/orbkit/orbkit&quot;</span> <span class="o">%</span> <span class="n">basedir</span><span class="p">)</span>
-<span class="kn">import</span> <span class="nn">orbkit</span>
-
 
 <div class="viewcode-block" id="GaussianCalculator"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator">[docs]</a><span class="k">class</span> <span class="nc">GaussianCalculator</span><span class="p">(</span><span class="n">calculator</span><span class="o">.</span><span class="n">Calculator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Performs the QM calculations for APDFT with the help of Gaussian.</span>
+
+<span class="sd">    General Idea:</span>
+<span class="sd">    Gaussian supports both fractional nuclar charges (via the undocumented `Massage` keyword) and the evaluation of the electrostatic potential at the nucleus (via the `Prop` keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian.&quot;&quot;&quot;</span>
+
     <span class="n">_methods</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;CCSD&quot;</span><span class="p">:</span> <span class="s2">&quot;CCSD(Full,MaxCyc=100)&quot;</span><span class="p">,</span>
         <span class="s2">&quot;PBE0&quot;</span><span class="p">:</span> <span class="s2">&quot;PBE1PBE&quot;</span><span class="p">,</span>
@@ -227,26 +228,6 @@
             <span class="p">[</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> Nuc </span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">_</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nuclear_charges</span><span class="p">)]</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="GaussianCalculator.density_on_grid"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.density_on_grid">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">density_on_grid</span><span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
-        <span class="n">orbkit</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">orbkit</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.88973</span>
-        <span class="n">orbkit</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.88973</span>
-        <span class="n">orbkit</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">grid</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.88973</span>
-        <span class="n">orbkit</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">is_initialized</span> <span class="o">=</span> <span class="kc">True</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">qc</span> <span class="o">=</span> <span class="n">orbkit</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">main_read</span><span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s2">&quot;gaussian.fchk&quot;</span><span class="p">)</span>
-            <span class="n">rho</span> <span class="o">=</span> <span class="n">orbkit</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">rho_compute</span><span class="p">(</span><span class="n">qc</span><span class="p">,</span> <span class="n">numproc</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
-                <span class="s2">&quot;Unable to read fchk file with orbkit.&quot;</span><span class="p">,</span>
-                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
-                <span class="n">filename</span><span class="o">=</span><span class="n">inputfile</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">return</span> <span class="n">grid</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">0</span>
-        <span class="k">return</span> <span class="n">rho</span></div>
-
 <div class="viewcode-block" id="GaussianCalculator.get_input"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_input">[docs]</a>    <span class="k">def</span> <span class="nf">get_input</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">):</span>
@@ -275,9 +256,6 @@
             <span class="n">template</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="GaussianCalculator.get_density_on_grid"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_density_on_grid">[docs]</a>    <span class="k">def</span> <span class="nf">get_density_on_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">gridpoints</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">GaussianCalculator</span><span class="o">.</span><span class="n">density_on_grid</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/run.fchk&quot;</span><span class="p">,</span> <span class="n">gridpoints</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="GaussianCalculator.get_total_energy"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_total_energy">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_total_energy</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Returns the total energy in Hartree.&quot;&quot;&quot;</span>
@@ -290,12 +268,31 @@
             <span class="n">energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scflines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">energy</span></div>
 
-<div class="viewcode-block" id="GaussianCalculator.get_electronic_dipole"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_electronic_dipole">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_electronic_dipole</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">gridcoords</span><span class="p">,</span> <span class="n">gridweights</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the electronic dipole moment.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="GaussianCalculator.get_epn"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_epn">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_epn</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">includeatoms</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Extracts the EPN from a Gaussian log file. </span>
 
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">GaussianCalculator</span><span class="o">.</span><span class="n">density_on_grid</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/run.fchk&quot;</span> <span class="o">%</span> <span class="n">folder</span><span class="p">,</span> <span class="n">gridcoords</span><span class="p">)</span>
-        <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gridcoords</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">gridweights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div></div>
+<span class="sd">        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: includeatoms</span>
+        <span class="c1"># TODO: nucnuc</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/run.log&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+        <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                <span class="s2">&quot;    Center     Electric         -------- Electric Field --------</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="mi">3</span>
+        <span class="p">)</span>
+        <span class="n">epns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">atomidx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)]):</span>
+            <span class="k">if</span> <span class="n">atomidx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">includeatoms</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Gaussian convention:</span>
+            <span class="n">epn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">epn</span> <span class="o">-=</span> <span class="n">ap</span><span class="o">.</span><span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclear_potential</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">atomidx</span><span class="p">)</span>
+            <span class="n">epns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">epn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">epns</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

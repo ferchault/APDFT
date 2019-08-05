@@ -49,7 +49,7 @@ Together with the above equations for :math:`\Delta V_I`, the expression for the
     \Delta E &= \int_\Omega d\mathbf{r} \left(\sum_I \frac{\Delta Z_I}{|\mathbf{r} - \mathbf{R_I}|}\right) \left(\sum_i \alpha_i\rho_i(\mathbf{r})\right) \\
              &= \sum_I\sum_i \Delta Z_I\alpha_i \int_\Omega d\mathbf{r} \frac{\rho_i(\mathbf{r})}{|\mathbf{r} - \mathbf{R_I}|}
 
-which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density :math:`\rho_i` and nucleus :math:`I`. The latter term relates to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4).
+which is much more efficient to implement, since the (costly) evaluation of the integral in space only needs to be done once for every combination of density :math:`\rho_i` and nucleus :math:`I`. The latter term relates to the electrostatic potential at the nucleus (EPN) which can be calculated analytically in many codes (e.g. psi4). The sign convention is such that the integral shall be positive.
 
 This can be further simplified as an outer product, i.e. :math:`\mathbf{\Delta Z}=\{\Delta Z_I\}`:
 
