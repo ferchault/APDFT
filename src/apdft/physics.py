@@ -332,7 +332,14 @@ class APDFT(object):
         
         # order 0
         pos = 0
-        get_epn = lambda folder: self._calculator.get_epn(folder, self._coordinates, self._include_atoms, self._nuclear_numbers)
+        def get_epn(folder):
+            res = 0.
+            try:
+                res = self._calculator.get_epn(folder, self._coordinates, self._include_atoms, self._nuclear_numbers)
+            except ValueError:
+                apdft.log.log('Calculation with incomplete results.', level='error', calulation=folder)
+            return res
+
         coefficients[pos, :] = get_epn('%s/QM/order-0/site-all-cc/' % self._basepath)
         pos += 1
         
@@ -471,6 +478,7 @@ class APDFT(object):
                 "At least one of the QM calculations has not been performed yet. Please run all QM calculations first.",
                 level="warning",
             )
+            raise
             return
 
         if explicit_reference:
@@ -480,14 +488,11 @@ class APDFT(object):
                 path = "QM/comparison-%s" % "-".join(map(str, target))
                 comparison_energies[targetidx] = self._calculator.get_total_energy(path)
 
-                rho = self._cached_reader(path)
                 nd = apdft.physics.Dipoles.point_charges(
                     [0, 0, 0], self._coordinates, target
                 )
-                ed = apdft.physics.Dipoles.electron_density(
-                    [0, 0, 0], self._gridcoords, rho * self._gridweights
-                )
-                comparison_dipoles[targetidx] = ed + nd
+                # TODO: load dipole
+                #comparison_dipoles[targetidx] = ed + nd
         else:
             comparison_energies = None
             comparison_dipoles = None

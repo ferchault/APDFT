@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 
 import apdft.physics as phys
+from apdft.calculator import MockCalculator
 
 def test_dipole_magnitude():
 	coordinates = np.array([[0., 0., 1.], [0., 0., 0.]])
@@ -40,9 +41,9 @@ def test_element_conversion():
 	assert phys.charge_to_label(2) == "He"
 
 def test_include_list_element():
-	a = phys.APDFT(2, [1, 1, 1, 6, 6, 6], np.zeros((3, 6)), include_atoms=[0, 'C'])
+	a = phys.APDFT(2, [1, 1, 1, 6, 6, 6], np.zeros((3, 6)), '.', MockCalculator('method', 'basis_set'), include_atoms=[0, 'C'])
 	assert (a._include_atoms == [0, 3, 4, 5])
 
 def test_include_list_duplicate():
-	a = phys.APDFT(2, [1, 1, 1, 6, 6, 6], np.zeros((3, 6)), include_atoms=[4, 'C'])
+	a = phys.APDFT(2, [1, 1, 1, 6, 6, 6], np.zeros((3, 6)), '.', MockCalculator('method', 'basis_set'), include_atoms=[4, 'C'])
 	assert (a._include_atoms == [3, 4, 5])

@@ -1,5 +1,5 @@
 %Chk=run.chk
-#UHF Gen scf=tight Massage guess=indo integral=NoXCTest Pop=None Density=Current
+#UHF Gen scf=tight Massage integral=NoXCTest Density=Current Prop=EFG
 
 run
 

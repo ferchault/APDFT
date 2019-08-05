@@ -3,9 +3,9 @@ import numpy as np
 import sys
 from basis_set_exchange import lut
 from . import calculator
-from . import Derivatives
 from . import commandline
 from . import settings
+from . import math
 
 # setup output
 def _setup_logging():

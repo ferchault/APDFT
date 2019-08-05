@@ -2,8 +2,8 @@
  Input=run.inp
  Output=run.log
  Initial command:
- /home/grudorff/opt/gaussian/bin/l1.exe "/home/grudorff/mqmc-tmp-1Q5M3JLRZ7/Gau-30925.inp" -scrdir="/home/grudorff/mqmc-tmp-1Q5M3JLRZ7/"
- Entering Link 1 = /home/grudorff/opt/gaussian/bin/l1.exe PID=     30927.
+ /home/grudorff/opt/gaussian/bin/l1.exe "/home/grudorff/newtest/QM/comparison-8-6/Gau-28704.inp" -scrdir="/home/grudorff/newtest/QM/comparison-8-6/"
+ Entering Link 1 = /home/grudorff/opt/gaussian/bin/l1.exe PID=     28706.
   
  Copyright (c) 1988,1990,1992,1993,1995,1998,2003,2009,2013,
             Gaussian, Inc.  All Rights Reserved.
@@ -76,19 +76,18 @@
  
  ******************************************
  Gaussian 09:  ES64L-G09RevD.01 24-Apr-2013
-                23-Apr-2019 
+                 5-Aug-2019 
  ******************************************
  %Chk=run.chk
- ----------------------------------------------------------------------
- #UHF Gen scf=tight Massage guess=indo integral=NoXCTest Pop=Dipole Den
- sity=Current NoSymm
- ----------------------------------------------------------------------
+ ---------------------------------------------------------------------
+ #UHF Gen scf=tight Massage integral=NoXCTest Density=Current Prop=EFG
+ ---------------------------------------------------------------------
  1/30=1,38=1/1;
  2/12=2,15=1,17=6,18=5,40=1/2;
  3/5=7,10=10,11=2,16=1,25=1,30=1,47=8,116=2/1,2,3;
- 4/5=4,11=3/1;
+ 4//1;
  5/5=2,32=2,38=5/2;
- 6/7=2,8=2,9=2,10=2,15=16,22=-1,28=1/1,2;
+ 6/7=2,8=2,9=2,10=2,14=1,22=-1,28=1/1,2;
  99/5=1,9=1/99;
  ---
  run
@@ -123,17 +122,25 @@
  Raffenetti 2 integral format.
  Two-electron integral symmetry is turned off.
  One-electron integrals computed using PRISM.
- NBasis=    10 RedAO= T EigKep=  1.09D-01  NBF=    10
+ NBasis=    10 RedAO= T EigKep=  1.32D-01  NBF=    10
  NBsUse=    10 1.00D-06 EigRej= -1.00D+00 NBFU=    10
- Projected INDO guess.
+ ExpMin= 2.22D-01 ExpMax= 1.31D+02 ExpMxC= 1.31D+02 IAcc=1 IRadAn=         1 AccDes= 0.00D+00
+ Harris functional with IExCor=  205 and IRadAn=       1 diagonalized for initial guess.
+ HarFok:  IExCor=  205 AccDes= 0.00D+00 IRadAn=         1 IDoV= 1 UseB2=F ITyADJ=14
+ ICtDFT=  3500011 ScaDFX=  1.000000  1.000000  1.000000  1.000000
+ FoFCou: FMM=F IPFlag=           8 FMFlag=      100000 FMFlg1=           0
+         NFxFlg=           0 DoJE=T BraDBF=F KetDBF=T FulRan=T
+         wScrn=  0.000000 ICntrl=     500 IOpCl=  0 I1Cent=   200000004 NGrid=           0
+         NMat0=    1 NMatS0=      1 NMatT0=    0 NMatD0=    1 NMtDS0=    0 NMtDT0=    0
+ Symmetry not used in FoFCou.
  Initial guess <Sx>= 0.0000 <Sy>= 0.0000 <Sz>= 0.0000 <S**2>= 0.0000 S= 0.0000
  Keep R1 and R2 ints in memory in canonical form, NReq=825412.
  Requested convergence on RMS density matrix=1.00D-08 within 128 cycles.
  Requested convergence on MAX density matrix=1.00D-06.
  Requested convergence on             energy=1.00D-06.
  No special actions if energy rises.
- SCF Done:  E(UHF) =  -108.870538033     A.U. after    9 cycles
-            NFock=  9  Conv=0.20D-08     -V/T= 2.0235
+ SCF Done:  E(UHF) =  -111.143611709     A.U. after    8 cycles
+            NFock=  8  Conv=0.27D-08     -V/T= 2.0028
  <Sx>= 0.0000 <Sy>= 0.0000 <Sz>= 0.0000 <S**2>= 0.0000 S= 0.0000
  <L.S>= 0.000000000000E+00
  Annihilation of the first spin contaminant:
@@ -145,49 +152,49 @@
 
  **********************************************************************
 
- Alpha  occ. eigenvalues --  -20.82834 -10.41676  -1.59655  -0.73816  -0.71453
- Alpha  occ. eigenvalues --   -0.71453  -0.42088
- Alpha virt. eigenvalues --    0.39625   0.39625   1.46700
-  Beta  occ. eigenvalues --  -20.82834 -10.41676  -1.59655  -0.73816  -0.71453
-  Beta  occ. eigenvalues --   -0.71453  -0.42088
-  Beta virt. eigenvalues --    0.39625   0.39625   1.46700
+ Alpha  occ. eigenvalues --  -20.49362 -11.11511  -1.57552  -0.72113  -0.64241
+ Alpha  occ. eigenvalues --   -0.64241  -0.45542
+ Alpha virt. eigenvalues --    0.37448   0.37448   1.29137
+  Beta  occ. eigenvalues --  -20.49362 -11.11511  -1.57552  -0.72113  -0.64241
+  Beta  occ. eigenvalues --   -0.64241  -0.45542
+  Beta virt. eigenvalues --    0.37448   0.37448   1.29137
           Condensed to atoms (all electrons):
                1          2
-     1  O    8.503453   0.363544
-     2  C    0.363544   4.769459
+     1  O    7.667769   0.566726
+     2  C    0.566726   5.198778
           Atomic-Atomic Spin Densities.
                1          2
      1  O    0.000000   0.000000
      2  C    0.000000   0.000000
  Mulliken charges and spin densities:
                1          2
-     1  O   -0.866997   0.000000
-     2  C    0.866997   0.000000
+     1  O   -0.234496   0.000000
+     2  C    0.234496   0.000000
  Sum of Mulliken charges =   0.00000   0.00000
  Mulliken charges and spin densities with hydrogens summed into heavy atoms:
                1          2
-     1  O   -0.866997   0.000000
-     2  C    0.866997   0.000000
- Electronic spatial extent (au):  <R**2>=             42.2756
+     1  O   -0.234496   0.000000
+     2  C    0.234496   0.000000
+ Electronic spatial extent (au):  <R**2>=             43.2659
  Charge=              0.0000 electrons
  Dipole moment (field-independent basis, Debye):
-    X=              0.0000    Y=              0.0000    Z=              2.2585  Tot=              2.2585
+    X=              0.0000    Y=              0.0000    Z=             -0.4452  Tot=              0.4452
  Quadrupole moment (field-independent basis, Debye-Ang):
-   XX=             -9.0237   YY=             -9.0237   ZZ=             -9.9956
+   XX=             -8.6418   YY=             -8.6418   ZZ=            -12.0912
    XY=              0.0000   XZ=              0.0000   YZ=              0.0000
  Traceless Quadrupole moment (field-independent basis, Debye-Ang):
-   XX=              0.3240   YY=              0.3240   ZZ=             -0.6479
+   XX=              1.1498   YY=              1.1498   ZZ=             -2.2996
    XY=              0.0000   XZ=              0.0000   YZ=              0.0000
  Octapole moment (field-independent basis, Debye-Ang**2):
-  XXX=              0.0000  YYY=              0.0000  ZZZ=            -13.7550  XYY=              0.0000
-  XXY=              0.0000  XXZ=             -3.0738  XZZ=              0.0000  YZZ=              0.0000
-  YYZ=             -3.0738  XYZ=              0.0000
+  XXX=              0.0000  YYY=              0.0000  ZZZ=            -20.5812  XYY=              0.0000
+  XXY=              0.0000  XXZ=             -4.6763  XZZ=              0.0000  YZZ=              0.0000
+  YYZ=             -4.6763  XYZ=              0.0000
  Hexadecapole moment (field-independent basis, Debye-Ang**3):
- XXXX=             -5.5334 YYYY=             -5.5334 ZZZZ=            -36.0510 XXXY=              0.0000
+ XXXX=             -5.3267 YYYY=             -5.3267 ZZZZ=            -47.3397 XXXY=              0.0000
  XXXZ=              0.0000 YYYX=              0.0000 YYYZ=              0.0000 ZZZX=              0.0000
- ZZZY=              0.0000 XXYY=             -1.8445 XXZZ=             -5.3456 YYZZ=             -5.3456
+ ZZZY=              0.0000 XXYY=             -1.7756 XXZZ=             -6.9466 YYZZ=             -6.9466
  XXYZ=              0.0000 YYXZ=              0.0000 ZZXY=              0.0000
- N-N= 2.540050601232D+01 E-N=-3.040504942565D+02  KE= 1.063679083849D+02
+ N-N= 2.540050601232D+01 E-N=-3.126324040376D+02  KE= 1.108354215857D+02
                           Isotropic Fermi Contact Couplings
         Atom                 a.u.       MegaHertz       Gauss      10(-4) cm-1
      1  O(14)              0.00000       0.00000       0.00000       0.00000
@@ -240,15 +247,15 @@
     Center     Electric         -------- Electric Field --------
                Potential          X             Y             Z
  -----------------------------------------------------------------
-    1 Atom    -19.322794      0.000000      0.000000     -0.598593
-    2 Atom    -16.444521      0.000000      0.000000      0.204776
+    1 Atom    -21.812903      0.000000      0.000000     -0.494858
+    2 Atom    -14.554695      0.000000      0.000000      0.373295
  -----------------------------------------------------------------
  -----------------------------------------------------
     Center         ---- Electric Field Gradient ----
                      XX            YY            ZZ
  -----------------------------------------------------
-    1 Atom     -538.154336   -538.154336   -538.449495
-    2 Atom     -524.706683   -524.706683   -523.561907
+    1 Atom     -811.204654   -811.204654   -810.755288
+    2 Atom     -330.487417   -330.487417   -330.125776
  -----------------------------------------------------
  -----------------------------------------------------
     Center         ---- Electric Field Gradient ----
@@ -261,35 +268,37 @@
     Center         ---- Electric Field Gradient ----
                    ----       Eigenvalues       ----
  -----------------------------------------------------
-    1 Atom     -538.449495   -538.154336   -538.154336
-    2 Atom     -524.706683   -524.706683   -523.561907
+    1 Atom     -811.204654   -811.204654   -810.755288
+    2 Atom     -330.487417   -330.487417   -330.125776
  -----------------------------------------------------
  -----------------------------------------------------
     Center         ---- Electric Field Gradient ----
                        ( tensor representation )
                    3XX-RR        3YY-RR        3ZZ-RR
  -----------------------------------------------------
-    1 Atom        0.098386      0.098386     -0.196772
-    2 Atom       -0.381592     -0.381592      0.763184
+    1 Atom       -0.149789     -0.149789      0.299577
+    2 Atom       -0.120547     -0.120547      0.241094
  -----------------------------------------------------
  -----------------------------------------------------
     Center         ---- Electric Field Gradient ----
                        ( tensor representation )
                    ----       Eigenvalues       ----
  -----------------------------------------------------
-    1 Atom       -0.196772      0.098386      0.098386
-    2 Atom       -0.381592     -0.381592      0.763184
+    1 Atom       -0.149789     -0.149789      0.299577
+    2 Atom       -0.120547     -0.120547      0.241094
  -----------------------------------------------------
- 1\1\GINC-AVL03\SP\UHF\Gen\N2\GRUDORFF\23-Apr-2019\0\\#UHF Gen scf=tigh
- t Massage guess=indo integral=NoXCTest Pop=Dipole Density=Current NoSy
- mm\\run\\0,1\O,0,0.,0.,0.\C,0,0.,0.,1.\\Version=ES64L-G09RevD.01\HF=-1
- 08.870538\S2=0.\S2-1=0.\S2A=0.\RMSD=2.007e-09\Dipole=0.,0.,0.8885591\Q
- uadrupole=0.2408594,0.2408594,-0.4817189,0.,0.,0.\PG=D*H [C*(N1.N1)]\\
- @
+ 1\1\GINC-AVL03\SP\UHF\Gen\N2\GRUDORFF\05-Aug-2019\0\\#UHF Gen scf=tigh
+ t Massage integral=NoXCTest Density=Current Prop=EFG\\run\\0,1\O,0,0.,
+ 0.,0.\C,0,0.,0.,1.\\Version=ES64L-G09RevD.01\HF=-111.1436117\S2=0.\S2-
+ 1=0.\S2A=0.\RMSD=2.716e-09\Dipole=0.,0.,-0.1751673\Quadrupole=0.854852
+ 6,0.8548526,-1.7097051,0.,0.,0.\PG=D*H [C*(N1.N1)]\\@
 
 
- It takes a long time to grow an old friend.
-                            -- John Leonard
- Job cpu time:       0 days  0 hours  0 minutes  1.7 seconds.
+ When I told the people of Northern Ireland that I was
+ an atheist, a woman in the audience stood up and said,
+ "Yes, but is it the God of the Catholics or the God
+ of the Protestants in whom you don't believe?"
+                               -- Quentin Crisp
+ Job cpu time:       0 days  0 hours  0 minutes  2.1 seconds.
  File lengths (MBytes):  RWF=      5 Int=      0 D2E=      0 Chk=      1 Scr=      1
- Normal termination of Gaussian 09 at Tue Apr 23 12:51:24 2019.
+ Normal termination of Gaussian 09 at Mon Aug  5 15:09:04 2019.

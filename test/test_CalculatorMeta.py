@@ -43,7 +43,7 @@ def test_gaussian_input():
 	grid = None
 	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 	expected = '''%Chk=run.chk
-#CCSD(Full,MaxCyc=100) Gen scf=tight Massage integral=NoXCTest Pop=Dipole Density=Current NoSymm
+#CCSD(Full,MaxCyc=100) Gen scf=tight Massage integral=NoXCTest Density=Current Prop=EFG
 
 run
 
