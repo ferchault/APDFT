@@ -25,47 +25,6 @@ class Derivative(apdft.physics.APDFT):
     def _get_target_name(target):
         return ",".join([apdft.physics.charge_to_label(_) for _ in target])
 
-    def _print_energies(self, targets, energies, comparison_energies):
-        if comparison_energies is None:
-            for target, energy in zip(targets, energies):
-                targetname = DerivativeFolders._get_target_name(target)
-                apdft.log.log(
-                    "Energy calculated",
-                    level="RESULT",
-                    value=energy,
-                    kind="total_energy",
-                    target=target,
-                    targetname=targetname,
-                )
-        else:
-            for target, energy, comparison in zip(
-                targets, energies, comparison_energies
-            ):
-                targetname = DerivativeFolders._get_target_name(target)
-                apdft.log.log(
-                    "Energy calculated",
-                    level="RESULT",
-                    value=energy,
-                    kind="total_energy",
-                    target=target,
-                    targetname=targetname,
-                    reference=comparison,
-                    error=energy - comparison,
-                )
-
-    def _print_dipoles(self, targets, dipoles, comparison_dipoles):
-        if comparison_dipoles is not None:
-            for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
-                targetname = DerivativeFolders._get_target_name(target)
-                apdft.log.log(
-                    "Dipole calculated",
-                    level="RESULT",
-                    kind="total_dipole",
-                    reference=list(comparison),
-                    value=list(dipole),
-                    target=target,
-                    targetname=targetname,
-                )
 
 
 

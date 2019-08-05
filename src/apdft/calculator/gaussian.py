@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from apdft import log
 from apdft import calculator
+import apdft.physics as ap
 
 import os
 import sys
@@ -8,13 +9,12 @@ import numpy as np
 import basis_set_exchange as bse
 import jinja2 as j
 
-# load local orbkit
-basedir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append("%s/../../../dep/orbkit/orbkit" % basedir)
-import orbkit
-
-
 class GaussianCalculator(calculator.Calculator):
+    """ Performs the QM calculations for APDFT with the help of Gaussian.
+
+    General Idea:
+    Gaussian supports both fractional nuclar charges (via the undocumented `Massage` keyword) and the evaluation of the electrostatic potential at the nucleus (via the `Prop` keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian."""
+
     _methods = {
         "CCSD": "CCSD(Full,MaxCyc=100)",
         "PBE0": "PBE1PBE",
@@ -71,26 +71,6 @@ class GaussianCalculator(calculator.Calculator):
             ["%d Nuc %f" % (_[0] + 1, _[1]) for _ in enumerate(nuclear_charges)]
         )
 
-    @staticmethod
-    def density_on_grid(inputfile, grid):
-        orbkit.options.quiet = True
-        orbkit.grid.x = grid[:, 0] * 1.88973
-        orbkit.grid.y = grid[:, 1] * 1.88973
-        orbkit.grid.z = grid[:, 2] * 1.88973
-        orbkit.grid.is_initialized = True
-
-        try:
-            qc = orbkit.read.main_read(inputfile, itype="gaussian.fchk")
-            rho = orbkit.core.rho_compute(qc, numproc=1)
-        except:
-            log.log(
-                "Unable to read fchk file with orbkit.",
-                level="error",
-                filename=inputfile,
-            )
-            return grid[:, 0] * 0
-        return rho
-
     def get_input(
         self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
     ):
@@ -119,9 +99,6 @@ class GaussianCalculator(calculator.Calculator):
             template = j.Template(fh.read())
         return template.render()
 
-    def get_density_on_grid(self, folder, gridpoints):
-        return GaussianCalculator.density_on_grid(folder + "/run.fchk", gridpoints)
-
     @staticmethod
     def get_total_energy(folder):
         """ Returns the total energy in Hartree."""
@@ -135,8 +112,22 @@ class GaussianCalculator(calculator.Calculator):
         return energy
 
     @staticmethod
-    def get_electronic_dipole(folder, gridcoords, gridweights):
-        """ Returns the electronic dipole moment."""
+    def get_epn(folder, coordinates, includeatoms, nuclear_charges):
+        """ Extracts the EPN from a Gaussian log file. 
 
-        rho = GaussianCalculator.density_on_grid("%s/run.fchk" % folder, gridcoords)
-        return -np.sum(gridcoords.T * rho * gridweights, axis=1)
+        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. """
+        # TODO: includeatoms
+        # TODO: nucnuc
+        with open(folder + '/run.log') as fh:
+            lines = fh.readlines()
+        
+        offset = lines.index('    Center     Electric         -------- Electric Field --------\n') + 3
+        epns = []
+        for atomidx, line in enumerate(lines[offset:offset+len(coordinates)]):
+            if atomidx not in includeatoms:
+                continue
+            # Gaussian convention: 
+            epn = float(line.strip().split()[2])
+            epn -= ap.Coulomb.nuclear_potential(coordinates, nuclear_charges, atomidx)
+            epns.append(-epn)
+        return np.array(epns)

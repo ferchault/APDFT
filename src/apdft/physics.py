@@ -6,6 +6,7 @@ from pyscf import dft
 import apdft
 import os
 import itertools as it
+import pandas as pd
 
 #: Conversion factor from Bohr in Angstrom.
 angstrom = 1 / 0.52917721067
@@ -34,6 +35,17 @@ class Coulomb(object):
             for j in range(i + 1, natoms):
                 d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
                 ret += charges[i] * charges[j] / d
+        return ret
+    
+    @staticmethod
+    def nuclear_potential(coordinates, charges, at):
+        natoms = len(coordinates)
+        ret = 0.0
+        for i in range(natoms):
+            if i == at:
+                continue
+            d = np.linalg.norm((coordinates[i] - coordinates[at]) * angstrom)
+            ret += charges[i] / d
         return ret
 
 
@@ -266,22 +278,68 @@ class APDFT(object):
         
         return alphas
     
+
+    def _print_energies(self, targets, energies, comparison_energies):
+        if comparison_energies is None:
+            for target, energy in zip(targets, energies):
+                targetname = APDFT._get_target_name(target)
+                apdft.log.log(
+                    "Energy calculated",
+                    level="RESULT",
+                    value=energy,
+                    kind="total_energy",
+                    target=target,
+                    targetname=targetname,
+                )
+        else:
+            for target, energy, comparison in zip(
+                targets, energies, comparison_energies
+            ):
+                targetname = APDFT._get_target_name(target)
+                apdft.log.log(
+                    "Energy calculated",
+                    level="RESULT",
+                    value=energy,
+                    kind="total_energy",
+                    target=target,
+                    targetname=targetname,
+                    reference=comparison,
+                    error=energy - comparison,
+                )
+
+    def _print_dipoles(self, targets, dipoles, comparison_dipoles):
+        if comparison_dipoles is not None:
+            for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
+                targetname = APDFT._get_target_name(target)
+                apdft.log.log(
+                    "Dipole calculated",
+                    level="RESULT",
+                    kind="total_dipole",
+                    reference=list(comparison),
+                    value=list(dipole),
+                    target=target,
+                    targetname=targetname,
+                )
+    @staticmethod
+    def _get_target_name(target):
+        return ",".join([apdft.physics.charge_to_label(_) for _ in target])
+
     def get_epn_matrix(self):
         """ Collects :math:`\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|`. """
         N = len(self._include_atoms)
     
         coefficients = np.zeros((1 + N*2 + N * (N - 1), N))
-        coordinates = self._coordinates[self._include_atoms]
         
         # order 0
         pos = 0
-        coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-0/site-all-cc/DENSITY' % self._basepath)
+        get_epn = lambda folder: self._calculator.get_epn(folder, self._coordinates, self._include_atoms, self._nuclear_numbers)
+        coefficients[pos, :] = get_epn('%s/QM/order-0/site-all-cc/' % self._basepath)
         pos += 1
         
         # order 1
         for site in self._include_atoms:
-            coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-1/site-%d-up/DENSITY' % (self._basepath,site))
-            coefficients[pos+1, :] = self._calculator.get_epn(coordinates, '%s/QM/order-1/site-%d-dn/DENSITY' % (self._basepath,site))
+            coefficients[pos, :] = get_epn('%s/QM/order-1/site-%d-up/' % (self._basepath,site))
+            coefficients[pos+1, :] = get_epn('%s/QM/order-1/site-%d-dn/' % (self._basepath,site))
             pos += 2
         
         # order 2
@@ -290,8 +348,8 @@ class APDFT(object):
                 if site_j <= site_i:
                     continue
                 
-                coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-2/site-%d-%d-up/DENSITY' % (self._basepath,site_i, site_j))
-                coefficients[pos+1, :] = self._calculator.get_epn(coordinates, '%s/QM/order-2/site-%d-%d-dn/DENSITY' % (self._basepath,site_i, site_j))
+                coefficients[pos, :] = get_epn('%s/QM/order-2/site-%d-%d-up/' % (self._basepath,site_i, site_j))
+                coefficients[pos+1, :] = get_epn('%s/QM/order-2/site-%d-%d-dn/' % (self._basepath,site_i, site_j))
                 pos += 2
         
         return coefficients
@@ -382,14 +440,14 @@ class APDFT(object):
             self._nuclear_numbers, is_reference_molecule=True
         )
         epn_matrix = self.get_epn_matrix()
-        linear_rho_matrix = self.get_linear_density_matrix()
+        #linear_rho_matrix = self.get_linear_density_matrix()
 
         # get target predictions
         for targetidx, target in enumerate(targets):
             deltaZ = target - self._nuclear_numbers
 
             alphas = self.get_epn_coefficients(deltaZ)
-            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), coefficients))
+            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), epn_matrix))
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             energies[targetidx] = deltaE + refenergy
 
@@ -413,7 +471,6 @@ class APDFT(object):
                 "At least one of the QM calculations has not been performed yet. Please run all QM calculations first.",
                 level="warning",
             )
-            raise
             return
 
         if explicit_reference:
@@ -439,7 +496,7 @@ class APDFT(object):
         self._print_dipoles(targets, dipoles, comparison_dipoles)
 
         # persist results to disk
-        targetnames = [DerivativeFolders._get_target_name(_) for _ in targets]
+        targetnames = [APDFT._get_target_name(_) for _ in targets]
         result_energies = {"targets": targetnames, "total_energy": energies}
         result_dipoles = {
             "targets": targetnames,

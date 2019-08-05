@@ -27,7 +27,7 @@ def mode_energies(conf, modeshort=None):
         2,
         nuclear_numbers,
         coordinates,
-        './QM',
+        '.',
         calculator,
         conf.apdft_maxcharge,
         conf.apdft_maxdz,
