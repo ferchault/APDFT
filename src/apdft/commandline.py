@@ -5,6 +5,7 @@ import enum
 import apdft
 import apdft.settings as aconf
 import apdft.calculator as acalc
+import apdft.physics as ap
 
 
 def mode_energies(conf, modeshort=None):
@@ -22,10 +23,12 @@ def mode_energies(conf, modeshort=None):
         return
 
     # call APDFT library
-    derivatives = apdft.Derivatives.DerivativeFolders(
+    derivatives = ap.APDFT(
         2,
         nuclear_numbers,
         coordinates,
+        './QM',
+        calculator,
         conf.apdft_maxcharge,
         conf.apdft_maxdz,
         conf.apdft_includeonly,
@@ -41,7 +44,6 @@ def mode_energies(conf, modeshort=None):
         level="RESULT",
     )
     if not conf.energy_dryrun:
-        derivatives.assign_calculator(calculator)
         derivatives.prepare(conf.debug_validation)
         derivatives.analyse(conf.debug_validation)
 

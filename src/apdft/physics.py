@@ -4,6 +4,8 @@ import basis_set_exchange as bse
 import pyscf
 from pyscf import dft
 import apdft
+import os
+import itertools as it
 
 #: Conversion factor from Bohr in Angstrom.
 angstrom = 1 / 0.52917721067
@@ -98,50 +100,208 @@ def charge_to_label(Z):
 
 class APDFT(object):
     """ Implementation of alchemical perturbation density functional theory.
-
-	This is an abstract base class. This means that for any use, one needs to inherit from this class.
-	The subclass needs to implement all functions that raise a NotImplementedError upon invocation."""
+    
+    Requires a working directory `basepath` which allows for storing the intermediate calculation results."""
 
     def __init__(
-        self,
-        highest_order,
-        nuclear_numbers,
-        coordinates,
-        max_charge=0,
-        max_deltaz=3,
-        include_atoms=None,
-    ):
-        if highest_order > 2:
-            raise NotImplementedError()
-        self._orders = list(range(0, highest_order + 1))
-        self._nuclear_numbers = np.array(nuclear_numbers)
-        self._coordinates = coordinates
-        self._reader_cache = dict()
-        self._delta = 0.05
-        self._max_charge = max_charge
-        self._max_deltaz = max_deltaz
-        self._gridweights = None
-        self._gridcoords = None
-        if include_atoms is None:
-            self._include_atoms = list(range(len(self._nuclear_numbers)))
-        else:
-            included = []
-            for part in include_atoms:
-                if type(part) == int:
-                    included.append(part)
+            self,
+            highest_order,
+            nuclear_numbers,
+            coordinates,
+            basepath,
+            calculator,
+            max_charge=0,
+            max_deltaz=3,
+            include_atoms=None
+        ):
+            if highest_order > 2:
+                raise NotImplementedError()
+            self._orders = list(range(0, highest_order + 1))
+            self._nuclear_numbers = np.array(nuclear_numbers)
+            self._coordinates = coordinates
+            self._delta = 0.05
+            self._basepath = basepath
+            self._calculator = calculator
+            self._max_charge = max_charge
+            self._max_deltaz = max_deltaz
+            if include_atoms is None:
+                self._include_atoms = list(range(len(self._nuclear_numbers)))
+            else:
+                included = []
+                for part in include_atoms:
+                    if type(part) == int:
+                        included.append(part)
+                    else:
+                        print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
+                        included += list(
+                            np.where(
+                                self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
+                            )[0]
+                        )
+                self._include_atoms = sorted(list(set(included)))
+
+    def _calculate_delta_Z_vector(self, numatoms, order, sites, direction):
+        baseline = np.zeros(numatoms)
+
+        if order > 0:
+            sign = {"up": 1, "dn": -1}[direction] * self._delta
+            baseline[list(sites)] += sign
+
+        return baseline
+
+    def prepare(self, explicit_reference=False):
+        """ Builds a complete folder list of all relevant calculations."""
+        if os.path.isdir("QM"):
+            apdft.log.log(
+                "Input folder exists. Reusing existing data.", level="warning"
+            )
+            return
+
+        commands = []
+
+        for order in self._orders:
+            # only upper triangle with diagonal
+            for combination in it.combinations_with_replacement(
+                self._include_atoms, order
+            ):
+                if len(combination) == 2 and combination[0] == combination[1]:
+                    continue
+                if order > 0:
+                    label = "-" + "-".join(map(str, combination))
+                    directions = ["up", "dn"]
                 else:
-                    print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
-                    included += list(
-                        np.where(
-                            self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
-                        )[0]
+                    directions = ["cc"]
+                    label = "-all"
+
+                for direction in directions:
+                    path = "QM/order-%d/site%s-%s" % (order, label, direction)
+                    os.makedirs(path, exist_ok=True)
+
+                    charges = self._nuclear_numbers + self._calculate_delta_Z_vector(
+                        len(self._nuclear_numbers), order, combination, direction
                     )
-            self._include_atoms = sorted(list(set(included)))
+                    inputfile = self._calculator.get_input(
+                        self._coordinates, self._nuclear_numbers, charges, None
+                    )
+                    with open("%s/run.inp" % path, "w") as fh:
+                        fh.write(inputfile)
+                    with open("%s/run.sh" % path, "w") as fh:
+                        fh.write(
+                            self._calculator.get_runfile(
+                                self._coordinates, self._nuclear_numbers, charges, None
+                            )
+                        )
+                    commands.append("( cd %s && bash run.sh )" % path)
+        if explicit_reference:
+            targets = self.enumerate_all_targets()
+            apdft.log.log(
+                "All targets listed for comparison run.",
+                level="info",
+                count=len(targets),
+            )
+            for target in targets:
+                path = "QM/comparison-%s" % ("-".join(map(str, target)))
+                os.makedirs(path, exist_ok=True)
 
-    def update_grid(self):
-        """ Ensures that the current integration grid is initialised."""
+                inputfile = self._calculator.get_input(
+                    self._coordinates, self._nuclear_numbers, target, None
+                )
+                with open("%s/run.inp" % path, "w") as fh:
+                    fh.write(inputfile)
+                with open("%s/run.sh" % path, "w") as fh:
+                    fh.write(
+                        self._calculator.get_runfile(
+                            self._coordinates, self._nuclear_numbers, target, None
+                        )
+                    )
+                commands.append("( cd %s && bash run.sh )" % path)
+
+        # write commands
+        with open("commands.sh", "w") as fh:
+            fh.write("\n".join(commands))
+
+    def get_epn_coefficients(self, deltaZ):
+        """ EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.
+        
+        The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.
+        TODO: Fix hard-coded weights from stencil."""
+        # build alphas
+        N = len(self._include_atoms)
+        nvals = {0: 1, 1: N*2, 2: N * (N - 1)}
+        alphas = np.zeros(sum([nvals[_] for _ in self._orders]))
+            
+        # order 0
+        if 0 in self._orders:
+            alphas[0] = 1
+    
+        # order 1
+        if 1 in self._orders:
+            for siteidx in range(N):
+                alphas[1 + siteidx*2] += 5 * deltaZ[siteidx]
+                alphas[1 + siteidx*2+1] -= 5 * deltaZ[siteidx]
+            
+        # order 2
+        if 2 in self._orders:
+            pos = 1 + N*2 - 2
+            for siteidx_i in range(N):
+                for siteidx_j in range(siteidx_i, N):
+                    if siteidx_i != siteidx_j:
+                        pos += 2
+                    if deltaZ[siteidx_j] == 0 or deltaZ[siteidx_i] == 0:
+                        continue
+                    if self._include_atoms[siteidx_j] > self._include_atoms[siteidx_i]:
+                        prefactor = 2 * (200/6.) * deltaZ[siteidx_i]*deltaZ[siteidx_j]
+                        alphas[pos] += prefactor
+                        alphas[pos+1] += prefactor
+                        alphas[0] += 2*prefactor
+                        alphas[1 + siteidx_i*2] -= prefactor
+                        alphas[1 + siteidx_i*2+1] -= prefactor
+                        alphas[1 + siteidx_j*2] -= prefactor
+                        alphas[1 + siteidx_j*2+1] -= prefactor
+                    if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
+                        prefactor = (400/6.) * deltaZ[siteidx_i]*deltaZ[siteidx_j]
+                        alphas[0] -= 2*prefactor
+                        alphas[1 + siteidx_i*2] += prefactor
+                        alphas[1 + siteidx_j*2+1] += prefactor
+        
+        return alphas
+    
+    def get_epn_matrix(self):
+        """ Collects :math:`\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|`. """
+        N = len(self._include_atoms)
+    
+        coefficients = np.zeros((1 + N*2 + N * (N - 1), N))
+        coordinates = self._coordinates[self._include_atoms]
+        
+        # order 0
+        pos = 0
+        coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-0/site-all-cc/DENSITY' % self._basepath)
+        pos += 1
+        
+        # order 1
+        for site in self._include_atoms:
+            coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-1/site-%d-up/DENSITY' % (self._basepath,site))
+            coefficients[pos+1, :] = self._calculator.get_epn(coordinates, '%s/QM/order-1/site-%d-dn/DENSITY' % (self._basepath,site))
+            pos += 2
+        
+        # order 2
+        for site_i in self._include_atoms:
+            for site_j in self._include_atoms:
+                if site_j <= site_i:
+                    continue
+                
+                coefficients[pos, :] = self._calculator.get_epn(coordinates, '%s/QM/order-2/site-%d-%d-up/DENSITY' % (self._basepath,site_i, site_j))
+                coefficients[pos+1, :] = self._calculator.get_epn(coordinates, '%s/QM/order-2/site-%d-%d-dn/DENSITY' % (self._basepath,site_i, site_j))
+                pos += 2
+        
+        return coefficients
+    
+    def get_linear_density_coefficients(self, deltaZ):
         raise NotImplementedError()
-
+    
+    def get_linear_density_matrix(self):
+        raise NotImplementedError()
+    
     def enumerate_all_targets(self):
         """ Builds a list of all possible targets.
 
@@ -192,7 +352,7 @@ class APDFT(object):
         coverage = len(self.enumerate_all_targets())
         return cost, coverage
 
-    def get_energy_from_reference(self, nuclear_charges):
+    def get_energy_from_reference(self, nuclear_charges, is_reference_molecule=False):
         """ Retreives the total energy from a QM reference. Abstract function.
 
 		Light function, will not be called often, so no caching needed.
@@ -201,97 +361,98 @@ class APDFT(object):
 			nuclear_charges: 	Integer list of nuclear charges. [e]
 		Returns:
 			The total energy. [Hartree]"""
-        raise NotImplementedError()
+        if is_reference_molecule:
+            return self._calculator.get_total_energy("QM/order-0/site-all-cc")
+        else:
+            return self._calculator.get_total_energy(
+                "QM/comparison-%s" % ("-".join(map(str, nuclear_charges)))
+            )
 
-    def get_density_from_reference(self, nuclear_charges):
-        """ Retreives the density from a QM reference. Abstract function.
-
-		Light function, will not be called often, so no caching needed.
-
-		Args:
-			nuclear_charges: 	Integer list of nuclear charges. [e]
-			gridcoords: 		Grid coordinates. [Angstrom]
-		Returns:
-			A numpy array of electron density at the grid coordinates."""
-        raise NotImplementedError()
-
-    def get_density_derivative(self, sites):
-        """ Retrieves the n-th order density derivative.
-
-		Heavy function, will be called often, caching needed. 
-		The order of the derivative is implicitly known since it's the length of *sites* argument via the chain rule.
-
-		Args:
-			sites:				Integer list of sites that are perturbed.
-		Returns:
-			A numpy array of electron density at the grid coordinates."""
-        raise NotImplementedError()
-
-    def predict_all_targets(self, do_energies=True, do_dipoles=True):
+    def predict_all_targets(self):
         # assert one order of targets
         targets = self.enumerate_all_targets()
-        self.update_grid()
         own_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
 
-        # allocate output
-        if do_energies:
-            energies = np.zeros(len(targets))
-        else:
-            energies = None
-        if do_dipoles:
-            dipoles = np.zeros((len(targets), 3))
-        else:
-            dipoles = None
+        energies = np.zeros(len(targets))
+        dipoles = np.zeros((len(targets), 3))
         natoms = len(self._coordinates)
 
         # get base information
-        grid_ds = np.linalg.norm(self._gridcoords * apdft.physics.angstrom, axis=1)
-        ds = []
-        for site in self._coordinates:
-            ds.append(
-                np.linalg.norm(
-                    (self._gridcoords - site) * apdft.physics.angstrom, axis=1
-                )
-            )
         refenergy = self.get_energy_from_reference(
             self._nuclear_numbers, is_reference_molecule=True
         )
+        epn_matrix = self.get_epn_matrix()
+        linear_rho_matrix = self.get_linear_density_matrix()
 
         # get target predictions
         for targetidx, target in enumerate(targets):
             deltaZ = target - self._nuclear_numbers
 
-            deltaV = np.zeros(len(self._gridweights))
-            for atomidx in range(natoms):
-                deltaV += deltaZ[atomidx] / ds[atomidx]
+            alphas = self.get_epn_coefficients(deltaZ)
+            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), coefficients))
+            deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
+            energies[targetidx] = deltaE + refenergy
 
-            # zeroth order
-            rho = self.get_density_derivative([])
-            rhotilde = rho.copy()
-            rhotarget = rho.copy()
-
-            # first order
-            for atomidx in range(natoms):
-                deriv = self.get_density_derivative([atomidx])
-                rhotilde += deriv * deltaZ[atomidx] / 2
-                rhotarget += deriv * deltaZ[atomidx]
-
-            # second order
-            for i in range(natoms):
-                for j in range(natoms):
-                    deriv = self.get_density_derivative([i, j])
-                    rhotilde += (deriv * deltaZ[i] * deltaZ[j]) / 6
-                    rhotarget += (deriv * deltaZ[i] * deltaZ[j]) / 2
-
-            d_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
-            energies[targetidx] = (
-                -np.sum(rhotilde * deltaV * self._gridweights) + d_nuc_nuc + refenergy
-            )
-            nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-            ed = Dipoles.electron_density(
-                [0, 0, 0], self._gridcoords, rhotarget * self._gridweights
-            )
-            dipoles[targetidx] = ed + nuc_dipole
+            #betas = self.get_linear_density_coefficients(deltaZ)
+            #density_properties = TODO
+            #nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+            #ed = Dipoles.electron_density(
+            #    [0, 0, 0], self._gridcoords, rhotarget * self._gridweights
+            #)
+            #dipoles[targetidx] = ed + nuc_dipole
 
         # return results
         return targets, energies, dipoles
+
+    def analyse(self, explicit_reference=False):
+        """ Performs actual analysis and integration. Prints results"""
+        try:
+            targets, energies, dipoles = self.predict_all_targets()
+        except (FileNotFoundError, AttributeError):
+            apdft.log.log(
+                "At least one of the QM calculations has not been performed yet. Please run all QM calculations first.",
+                level="warning",
+            )
+            raise
+            return
+
+        if explicit_reference:
+            comparison_energies = np.zeros(len(targets))
+            comparison_dipoles = np.zeros((len(targets), 3))
+            for targetidx, target in enumerate(targets):
+                path = "QM/comparison-%s" % "-".join(map(str, target))
+                comparison_energies[targetidx] = self._calculator.get_total_energy(path)
+
+                rho = self._cached_reader(path)
+                nd = apdft.physics.Dipoles.point_charges(
+                    [0, 0, 0], self._coordinates, target
+                )
+                ed = apdft.physics.Dipoles.electron_density(
+                    [0, 0, 0], self._gridcoords, rho * self._gridweights
+                )
+                comparison_dipoles[targetidx] = ed + nd
+        else:
+            comparison_energies = None
+            comparison_dipoles = None
+
+        self._print_energies(targets, energies, comparison_energies)
+        self._print_dipoles(targets, dipoles, comparison_dipoles)
+
+        # persist results to disk
+        targetnames = [DerivativeFolders._get_target_name(_) for _ in targets]
+        result_energies = {"targets": targetnames, "total_energy": energies}
+        result_dipoles = {
+            "targets": targetnames,
+            "dipole_moment_x": dipoles[:, 0],
+            "dipole_moment_y": dipoles[:, 1],
+            "dipole_moment_z": dipoles[:, 2],
+        }
+        if explicit_reference:
+            result_energies["reference_energy"] = comparison_energies
+            result_dipoles["reference_dipole_x"] = comparison_dipoles[:, 0]
+            result_dipoles["reference_dipole_y"] = comparison_dipoles[:, 1]
+            result_dipoles["reference_dipole_z"] = comparison_dipoles[:, 2]
+        pd.DataFrame(result_energies).to_csv("energies.csv")
+        pd.DataFrame(result_dipoles).to_csv("dipoles.csv")
+
+        return targets, energies, comparison_energies
