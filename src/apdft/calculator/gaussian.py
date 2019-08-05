@@ -9,6 +9,7 @@ import numpy as np
 import basis_set_exchange as bse
 import jinja2 as j
 
+
 class GaussianCalculator(calculator.Calculator):
     """ Performs the QM calculations for APDFT with the help of Gaussian.
 
@@ -118,15 +119,20 @@ class GaussianCalculator(calculator.Calculator):
         The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. """
         # TODO: includeatoms
         # TODO: nucnuc
-        with open(folder + '/run.log') as fh:
+        with open(folder + "/run.log") as fh:
             lines = fh.readlines()
-        
-        offset = lines.index('    Center     Electric         -------- Electric Field --------\n') + 3
+
+        offset = (
+            lines.index(
+                "    Center     Electric         -------- Electric Field --------\n"
+            )
+            + 3
+        )
         epns = []
-        for atomidx, line in enumerate(lines[offset:offset+len(coordinates)]):
+        for atomidx, line in enumerate(lines[offset : offset + len(coordinates)]):
             if atomidx not in includeatoms:
                 continue
-            # Gaussian convention: 
+            # Gaussian convention:
             epn = float(line.strip().split()[2])
             epn -= ap.Coulomb.nuclear_potential(coordinates, nuclear_charges, atomidx)
             epns.append(-epn)

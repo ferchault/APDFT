@@ -36,7 +36,7 @@ class Coulomb(object):
                 d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
                 ret += charges[i] * charges[j] / d
         return ret
-    
+
     @staticmethod
     def nuclear_potential(coordinates, charges, at):
         natoms = len(coordinates)
@@ -116,41 +116,41 @@ class APDFT(object):
     Requires a working directory `basepath` which allows for storing the intermediate calculation results."""
 
     def __init__(
-            self,
-            highest_order,
-            nuclear_numbers,
-            coordinates,
-            basepath,
-            calculator,
-            max_charge=0,
-            max_deltaz=3,
-            include_atoms=None
-        ):
-            if highest_order > 2:
-                raise NotImplementedError()
-            self._orders = list(range(0, highest_order + 1))
-            self._nuclear_numbers = np.array(nuclear_numbers)
-            self._coordinates = coordinates
-            self._delta = 0.05
-            self._basepath = basepath
-            self._calculator = calculator
-            self._max_charge = max_charge
-            self._max_deltaz = max_deltaz
-            if include_atoms is None:
-                self._include_atoms = list(range(len(self._nuclear_numbers)))
-            else:
-                included = []
-                for part in include_atoms:
-                    if type(part) == int:
-                        included.append(part)
-                    else:
-                        print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
-                        included += list(
-                            np.where(
-                                self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
-                            )[0]
-                        )
-                self._include_atoms = sorted(list(set(included)))
+        self,
+        highest_order,
+        nuclear_numbers,
+        coordinates,
+        basepath,
+        calculator,
+        max_charge=0,
+        max_deltaz=3,
+        include_atoms=None,
+    ):
+        if highest_order > 2:
+            raise NotImplementedError()
+        self._orders = list(range(0, highest_order + 1))
+        self._nuclear_numbers = np.array(nuclear_numbers)
+        self._coordinates = coordinates
+        self._delta = 0.05
+        self._basepath = basepath
+        self._calculator = calculator
+        self._max_charge = max_charge
+        self._max_deltaz = max_deltaz
+        if include_atoms is None:
+            self._include_atoms = list(range(len(self._nuclear_numbers)))
+        else:
+            included = []
+            for part in include_atoms:
+                if type(part) == int:
+                    included.append(part)
+                else:
+                    print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
+                    included += list(
+                        np.where(
+                            self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
+                        )[0]
+                    )
+            self._include_atoms = sorted(list(set(included)))
 
     def _calculate_delta_Z_vector(self, numatoms, order, sites, direction):
         baseline = np.zeros(numatoms)
@@ -239,22 +239,22 @@ class APDFT(object):
         TODO: Fix hard-coded weights from stencil."""
         # build alphas
         N = len(self._include_atoms)
-        nvals = {0: 1, 1: N*2, 2: N * (N - 1)}
+        nvals = {0: 1, 1: N * 2, 2: N * (N - 1)}
         alphas = np.zeros(sum([nvals[_] for _ in self._orders]))
-            
+
         # order 0
         if 0 in self._orders:
             alphas[0] = 1
-    
+
         # order 1
         if 1 in self._orders:
             for siteidx in range(N):
-                alphas[1 + siteidx*2] += 5 * deltaZ[siteidx]
-                alphas[1 + siteidx*2+1] -= 5 * deltaZ[siteidx]
-            
+                alphas[1 + siteidx * 2] += 5 * deltaZ[siteidx]
+                alphas[1 + siteidx * 2 + 1] -= 5 * deltaZ[siteidx]
+
         # order 2
         if 2 in self._orders:
-            pos = 1 + N*2 - 2
+            pos = 1 + N * 2 - 2
             for siteidx_i in range(N):
                 for siteidx_j in range(siteidx_i, N):
                     if siteidx_i != siteidx_j:
@@ -262,22 +262,23 @@ class APDFT(object):
                     if deltaZ[siteidx_j] == 0 or deltaZ[siteidx_i] == 0:
                         continue
                     if self._include_atoms[siteidx_j] > self._include_atoms[siteidx_i]:
-                        prefactor = 2 * (200/6.) * deltaZ[siteidx_i]*deltaZ[siteidx_j]
+                        prefactor = (
+                            2 * (200 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
+                        )
                         alphas[pos] += prefactor
-                        alphas[pos+1] += prefactor
-                        alphas[0] += 2*prefactor
-                        alphas[1 + siteidx_i*2] -= prefactor
-                        alphas[1 + siteidx_i*2+1] -= prefactor
-                        alphas[1 + siteidx_j*2] -= prefactor
-                        alphas[1 + siteidx_j*2+1] -= prefactor
+                        alphas[pos + 1] += prefactor
+                        alphas[0] += 2 * prefactor
+                        alphas[1 + siteidx_i * 2] -= prefactor
+                        alphas[1 + siteidx_i * 2 + 1] -= prefactor
+                        alphas[1 + siteidx_j * 2] -= prefactor
+                        alphas[1 + siteidx_j * 2 + 1] -= prefactor
                     if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
-                        prefactor = (400/6.) * deltaZ[siteidx_i]*deltaZ[siteidx_j]
-                        alphas[0] -= 2*prefactor
-                        alphas[1 + siteidx_i*2] += prefactor
-                        alphas[1 + siteidx_j*2+1] += prefactor
-        
+                        prefactor = (400 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
+                        alphas[0] -= 2 * prefactor
+                        alphas[1 + siteidx_i * 2] += prefactor
+                        alphas[1 + siteidx_j * 2 + 1] += prefactor
+
         return alphas
-    
 
     def _print_energies(self, targets, energies, comparison_energies):
         if comparison_energies is None:
@@ -320,6 +321,7 @@ class APDFT(object):
                     target=target,
                     targetname=targetname,
                 )
+
     @staticmethod
     def _get_target_name(target):
         return ",".join([apdft.physics.charge_to_label(_) for _ in target])
@@ -327,46 +329,64 @@ class APDFT(object):
     def get_epn_matrix(self):
         """ Collects :math:`\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|`. """
         N = len(self._include_atoms)
-    
-        coefficients = np.zeros((1 + N*2 + N * (N - 1), N))
-        
+
+        coefficients = np.zeros((1 + N * 2 + N * (N - 1), N))
+
         # order 0
         pos = 0
+
         def get_epn(folder):
-            res = 0.
+            res = 0.0
             try:
-                res = self._calculator.get_epn(folder, self._coordinates, self._include_atoms, self._nuclear_numbers)
+                res = self._calculator.get_epn(
+                    folder,
+                    self._coordinates,
+                    self._include_atoms,
+                    self._nuclear_numbers,
+                )
             except ValueError:
-                apdft.log.log('Calculation with incomplete results.', level='error', calulation=folder)
+                apdft.log.log(
+                    "Calculation with incomplete results.",
+                    level="error",
+                    calulation=folder,
+                )
             return res
 
-        coefficients[pos, :] = get_epn('%s/QM/order-0/site-all-cc/' % self._basepath)
+        coefficients[pos, :] = get_epn("%s/QM/order-0/site-all-cc/" % self._basepath)
         pos += 1
-        
+
         # order 1
         for site in self._include_atoms:
-            coefficients[pos, :] = get_epn('%s/QM/order-1/site-%d-up/' % (self._basepath,site))
-            coefficients[pos+1, :] = get_epn('%s/QM/order-1/site-%d-dn/' % (self._basepath,site))
+            coefficients[pos, :] = get_epn(
+                "%s/QM/order-1/site-%d-up/" % (self._basepath, site)
+            )
+            coefficients[pos + 1, :] = get_epn(
+                "%s/QM/order-1/site-%d-dn/" % (self._basepath, site)
+            )
             pos += 2
-        
+
         # order 2
         for site_i in self._include_atoms:
             for site_j in self._include_atoms:
                 if site_j <= site_i:
                     continue
-                
-                coefficients[pos, :] = get_epn('%s/QM/order-2/site-%d-%d-up/' % (self._basepath,site_i, site_j))
-                coefficients[pos+1, :] = get_epn('%s/QM/order-2/site-%d-%d-dn/' % (self._basepath,site_i, site_j))
+
+                coefficients[pos, :] = get_epn(
+                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j)
+                )
+                coefficients[pos + 1, :] = get_epn(
+                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j)
+                )
                 pos += 2
-        
+
         return coefficients
-    
+
     def get_linear_density_coefficients(self, deltaZ):
         raise NotImplementedError()
-    
+
     def get_linear_density_matrix(self):
         raise NotImplementedError()
-    
+
     def enumerate_all_targets(self):
         """ Builds a list of all possible targets.
 
@@ -447,7 +467,7 @@ class APDFT(object):
             self._nuclear_numbers, is_reference_molecule=True
         )
         epn_matrix = self.get_epn_matrix()
-        #linear_rho_matrix = self.get_linear_density_matrix()
+        # linear_rho_matrix = self.get_linear_density_matrix()
 
         # get target predictions
         for targetidx, target in enumerate(targets):
@@ -458,13 +478,13 @@ class APDFT(object):
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             energies[targetidx] = deltaE + refenergy
 
-            #betas = self.get_linear_density_coefficients(deltaZ)
-            #density_properties = TODO
-            #nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-            #ed = Dipoles.electron_density(
+            # betas = self.get_linear_density_coefficients(deltaZ)
+            # density_properties = TODO
+            # nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
+            # ed = Dipoles.electron_density(
             #    [0, 0, 0], self._gridcoords, rhotarget * self._gridweights
-            #)
-            #dipoles[targetidx] = ed + nuc_dipole
+            # )
+            # dipoles[targetidx] = ed + nuc_dipole
 
         # return results
         return targets, energies, dipoles
@@ -492,7 +512,7 @@ class APDFT(object):
                     [0, 0, 0], self._coordinates, target
                 )
                 # TODO: load dipole
-                #comparison_dipoles[targetidx] = ed + nd
+                # comparison_dipoles[targetidx] = ed + nd
         else:
             comparison_energies = None
             comparison_dipoles = None
