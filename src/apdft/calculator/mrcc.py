@@ -100,3 +100,19 @@ class MrccCalculator(calculator.Calculator):
     @staticmethod
     def get_electronic_dipole(folder, gridcoords, gridweights):
         raise NotImplementedError()
+
+    @staticmethod
+    def get_epn(folder, coordinates, includeatoms, nuclear_charges):
+        """ Calculates the EPN from a MRCC density file.
+
+        MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders."""
+        
+        components = MrccCalculator._parse_densityfile('%s/DENSITY' % folder)
+        gridpos, gridweights, density = components[:, :3], components[:, 3], components[:, 4]
+        
+        epns = []
+        for atomidx in includeatoms:
+            ds = np.linalg.norm(gridpos - coordinates[atomidx]* physics.angstrom, axis=1)
+            epns.append((gridweights * density / ds).sum())
+        print (epns)
+        return np.array(epns)
