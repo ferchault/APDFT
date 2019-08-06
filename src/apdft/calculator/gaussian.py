@@ -116,9 +116,14 @@ class GaussianCalculator(calculator.Calculator):
     def get_epn(folder, coordinates, includeatoms, nuclear_charges):
         """ Extracts the EPN from a Gaussian log file. 
 
-        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. """
-        # TODO: includeatoms
-        # TODO: nucnuc
+        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. 
+            
+        Parameters
+        ----------
+            folder: String, the path to the calculation.
+            coordiantes: Nuclear coordinates
+            includeatoms: List of zero-based indices of the atoms to include in APDFT
+            nuclear_charges: Float, list of nuclear charges for this particular calculation."""
         with open(folder + "/run.log") as fh:
             lines = fh.readlines()
 
@@ -132,7 +137,6 @@ class GaussianCalculator(calculator.Calculator):
         for atomidx, line in enumerate(lines[offset : offset + len(coordinates)]):
             if atomidx not in includeatoms:
                 continue
-            # Gaussian convention:
             epn = float(line.strip().split()[2])
             epn -= ap.Coulomb.nuclear_potential(coordinates, nuclear_charges, atomidx)
             epns.append(-epn)

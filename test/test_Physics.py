@@ -87,11 +87,10 @@ def test_readfile(sample_rundir):
 	targets, energies, comparison_energies = derivatives.analyse(explicit_reference=True)
 
 	# check one energy value
-	# TODO: update numbers
-	#lookup  = [1, 13]
-	#pos = targets.index(lookup)
-	#assert abs(energies[pos] - -160.15390496821396) < 1e-7
-	#assert abs(comparison_energies[pos] - -177.78264601773) < 1e-7
+	lookup  = [8, 6]
+	pos = targets.index(lookup)
+	assert abs(energies[pos] - -108.88437251951585) < 1e-7
+	assert abs(comparison_energies[pos] - -111.1436117) < 1e-7
 
 	# without reference
 	derivatives = ap.APDFT(2, nuclear_numbers, coordinates,'.', calculator, 0, 3)
@@ -100,7 +99,7 @@ def test_readfile(sample_rundir):
 	# check one energy value
 	lookup  = [8, 6]
 	pos = targets.index(lookup)
-	assert abs(energies[pos] - -109.41354973018564) < 1e-7
+	assert abs(energies[pos] - -108.88437251951585) < 1e-7
 	assert comparison_energies is None
 
 	os.chdir(pwd)

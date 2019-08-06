@@ -98,3 +98,9 @@ pointcharges
 0.000000 0.000000 0.000000 -0.050000
 0.000000 0.000000 1.000000 0.050000'''
 	assert expected == inputfile
+
+def test_gaussian_epn():
+	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+	epn = GaussianCalculator.get_epn('%s/data/apdft-run/order-1/site-0-up/' % path, np.array([[0., 0.,0.], [0.,0.,1.0]]), [0,1], [7.05, 7])
+	assert (abs(epn[0] - 21.65248147) < 1e-5)
+	assert (abs(epn[1] - 21.60575834) < 1e-5)
