@@ -272,9 +272,14 @@
     <span class="k">def</span> <span class="nf">get_epn</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">includeatoms</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Extracts the EPN from a Gaussian log file. </span>
 
-<span class="sd">        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. &quot;&quot;&quot;</span>
-        <span class="c1"># TODO: includeatoms</span>
-        <span class="c1"># TODO: nucnuc</span>
+<span class="sd">        The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:`\int \rho / |\mathbf{r}-\mathbf{R}_I` is positive. </span>
+<span class="sd">            </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">            folder: String, the path to the calculation.</span>
+<span class="sd">            coordiantes: Nuclear coordinates</span>
+<span class="sd">            includeatoms: List of zero-based indices of the atoms to include in APDFT</span>
+<span class="sd">            nuclear_charges: Float, list of nuclear charges for this particular calculation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/run.log&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
             <span class="n">lines</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
 
@@ -288,7 +293,6 @@
         <span class="k">for</span> <span class="n">atomidx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)]):</span>
             <span class="k">if</span> <span class="n">atomidx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">includeatoms</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="c1"># Gaussian convention:</span>
             <span class="n">epn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">2</span><span class="p">])</span>
             <span class="n">epn</span> <span class="o">-=</span> <span class="n">ap</span><span class="o">.</span><span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclear_potential</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">atomidx</span><span class="p">)</span>
             <span class="n">epns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">epn</span><span class="p">)</span>
