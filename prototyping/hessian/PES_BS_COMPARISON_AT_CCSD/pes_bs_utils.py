@@ -13,7 +13,7 @@ import shutil
 sys.path.append('/home/giorgiod/Documents/APDFT/dep')
 sys.path.append('/home/giorgiod/Documents/APDFT/src')
 
-from apdft import Calculator
+from apdft import calculator
 proj_path='/home/giorgiod/MRCC_interface/PES-BS-ALCHEMY/'
 
 def parse_energy_cc(log_file):
