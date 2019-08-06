@@ -115,14 +115,6 @@ MRCC
     :undoc-members:
     :show-inheritance:
 
-Derivatives
------------
-
-.. automodule:: apdft.Derivatives
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Physics-related functions
 -------------------------
 

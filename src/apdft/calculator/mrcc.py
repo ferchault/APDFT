@@ -105,7 +105,15 @@ class MrccCalculator(calculator.Calculator):
     def get_epn(folder, coordinates, includeatoms, nuclear_charges):
         """ Calculates the EPN from a MRCC density file.
 
-        MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders."""
+        MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders.
+            
+        Args:
+            folder:         String, the path to the calculation.
+            coordiantes:    Nuclear coordinates
+            includeatoms:   List of zero-based indices of the atoms to include in APDFT
+            nuclear_charges: Float, list of nuclear charges for this particular calculation.
+        Returns:
+            Numpy array of EPN in Hartree."""
         
         components = MrccCalculator._parse_densityfile('%s/DENSITY' % folder)
         gridpos, gridweights, density = components[:, :3], components[:, 3], components[:, 4]
