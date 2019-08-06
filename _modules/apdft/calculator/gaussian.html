@@ -296,6 +296,7 @@
             <span class="n">epn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">2</span><span class="p">])</span>
             <span class="n">epn</span> <span class="o">-=</span> <span class="n">ap</span><span class="o">.</span><span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclear_potential</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">atomidx</span><span class="p">)</span>
             <span class="n">epns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">epn</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">epns</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">epns</span><span class="p">)</span></div></div>
 </pre></div>
 

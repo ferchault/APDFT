@@ -93,6 +93,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#adding-support-for-additional-software-packages">Adding support for additional software packages</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#required-interface">Required interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reference-values">Reference values</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="apdft.html">Implementation</a></li>
@@ -204,14 +205,80 @@
 <h1>Adding support for additional software packages<a class="headerlink" href="#adding-support-for-additional-software-packages" title="Permalink to this headline">¶</a></h1>
 <p>To check whether it is possible to do APDFT with your favourite QM code, two requirements need to be checked.</p>
 <p>APDFT requires a QM package to perform calculations with fractional nuclear charges but with a fixed basis set. This means that changing the nuclear charge of a site must not alter the basis set used. While some codes support this directly, some others require a workaround where you initialise the QM calculation with your reference molecule just to add point charges at the sites of the nuclei to counteract the Coulombic interaction between nuclei and electron density. Either of the methods is equivalent. Typically, it is advisable to compare energies of e.g. the Nitrogen dimer at the CO basis set and CO with CO basis set evaluated by defining an Nitrogen dimer input together with two point charges of +1 and -1, respectively.</p>
-<p>The other requirement is that the QM code is able to write out the resulting electron density on a integration grid which only depends on nuclear coordinates but not nuclear charge. The dependence on nuclear coordinates is almost universal since integration grids need to model the core region of the electron density particularly well. It is important however, that a rectangular grid like in cube-files is not sufficient. APDFT requires to evaluate integrals over the change in electron density in space. Rectangular grids are not suitable, since they either are unnecessarily large or feature a resolution which is by far too low. The integration grid must not depend on the actual nuclear charges, since APDFT combines the self-consistent electron density of multiple runs and requires a identical integration grid for that purpose. In an ideal world, the grid coordinates can be specified to the QM code, but any fixed integration grid will do. If it is not possible to specify the required grid points to the QM code, an acceptable alternative is having the QM code list the grid points together with their weights and the corresponding electron density in the output. Another possibilty to fulfill this requirement is a MOLDEN file which contains the basis functions and the coefficients such that APDFT can calculate the spatial electron density.</p>
+<p>The other requirement is that the QM code is able to evaluate</p>
+<div class="math notranslate nohighlight">
+\[\int_\Omega dr \frac{\rho(\mathbf{r})}{|\mathbf{r}-\mathbf{R}_I|}\]</div>
+<p>either by writing out the resulting electron density on a integration grid which only depends on nuclear coordinates but not nuclear charge or by evaluating this integral directly, which is the preferred method.</p>
+<p>In case a grid is needed, the dependence on nuclear coordinates is almost universal since integration grids need to model the core region of the electron density particularly well. It is important however, that a rectangular grid like in cube-files is not sufficient. APDFT requires to evaluate integrals over the change in electron density in space. Rectangular grids are not suitable, since they either are unnecessarily large or feature a resolution which is by far too low. The integration grid must not depend on the actual nuclear charges, since APDFT combines the self-consistent electron density of multiple runs and requires a identical integration grid for that purpose. In an ideal world, the grid coordinates can be specified to the QM code, but any fixed integration grid will do. If it is not possible to specify the required grid points to the QM code, an acceptable alternative is having the QM code list the grid points together with their weights and the corresponding electron density in the output. Another possibilty to fulfill this requirement is a MOLDEN file which contains the basis functions and the coefficients such that APDFT can calculate the spatial electron density.</p>
 <div class="section" id="required-interface">
 <h2>Required interface<a class="headerlink" href="#required-interface" title="Permalink to this headline">¶</a></h2>
 <p>To add support for your favourite QM program, you need a new calculator class. This is done by adding a corresponding file in <a class="reference internal" href="apdft.html#module-apdft.calculator" title="apdft.calculator"><code class="xref py py-mod docutils literal notranslate"><span class="pre">apdft.calculator</span></code></a>, where a new class inherits from <a class="reference internal" href="apdft.html#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a>. This class needs to implement the following functions:</p>
 <ul class="simple">
 <li><p><cite>get_input</cite> for the generation of the corresponding input file. If necessary, there is a folder for input file templates that can help keep the code clean.</p></li>
+<li><p><cite>get_epn</cite> to obtain the electronic electrostatic potential at each nucleus for each calculation.</p></li>
 </ul>
 <p>Furthermore, the attribute <cite>_methods</cite> of the class needs to hold a dictionary of all supported levels of theory. Afterwards, the supported code needs to be registered in <a class="reference internal" href="apdft.html#apdft.settings.CodeEnum" title="apdft.settings.CodeEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.settings.CodeEnum</span></code></a> such that the user can select it via the command line interface. Finally, the command line handler in <code class="xref py py-func docutils literal notranslate"><span class="pre">commandline.mode_energies()</span></code> needs a selection branch for the new calculator.</p>
+</div>
+<div class="section" id="reference-values">
+<h2>Reference values<a class="headerlink" href="#reference-values" title="Permalink to this headline">¶</a></h2>
+<p>To see whether the electronic electrostatic potential at the nuclei is evaluated correctly, here are some reference numbers for the case of the Nitrogen dimer with a bond distance of 1 Angstrom.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Nuclear charges</p></td>
+<td><p>EPN site 1 [H]</p></td>
+<td><p>EPN site 2 [H]</p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p><strong>Gaussian</strong> (analytical evaluation), CCSD/6-31G</p></td>
+</tr>
+<tr class="row-odd"><td><p>7.00, 7.00</p></td>
+<td><p>21.98896747469</p></td>
+<td><p>21.98896747469</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.00</p></td>
+<td><p>22.05431347468</p></td>
+<td><p>21.98919533522</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 7.00</p></td>
+<td><p>21.92294147469</p></td>
+<td><p>21.98846761415</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.05</p></td>
+<td><p>22.05426133522</p></td>
+<td><p>22.05426133522</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 6.95</p></td>
+<td><p>21.92217561415</p></td>
+<td><p>21.92217561415</p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p><strong>MRCC</strong> (numerical evaluation), CCSD/6-31G</p></td>
+</tr>
+<tr class="row-odd"><td><p>7.00, 7.00</p></td>
+<td><p>21.98870584174</p></td>
+<td><p>21.98870584174</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.00</p></td>
+<td><p>22.05398872497</p></td>
+<td><p>21.98892949523</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 7.00</p></td>
+<td><p>21.92274858697</p></td>
+<td><p>21.98820947247</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.05</p></td>
+<td><p>22.05393336588</p></td>
+<td><p>22.05393336588</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 6.95</p></td>
+<td><p>21.92198579936</p></td>
+<td><p>21.92198579936</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 
