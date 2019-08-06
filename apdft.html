@@ -96,7 +96,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">MRCC</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#derivatives">Derivatives</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.physics">Physics-related functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.math">Math-related functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft">APDFT logic</a></li>
@@ -278,18 +277,20 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_epn">
 <em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts the EPN from a Gaussian log file.</p>
-<blockquote>
-<div><p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:<a href="#id1"><span class="problematic" id="id2">`</span></a>int</p>
-</div></blockquote>
-<p>ho / <a href="#id3"><span class="problematic" id="id4">|</span></a>mathbf{r}-mathbf{R}_I` is positive.</p>
-<blockquote>
-<div><blockquote>
-<div><p>folder: String, the path to the calculation.
-coordiantes: Nuclear coordinates
-includeatoms: List of zero-based indices of the atoms to include in APDFT
-nuclear_charges: Float, list of nuclear charges for this particular calculation.</p>
-</div></blockquote>
-</div></blockquote>
+<p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where <span class="math notranslate nohighlight">\(\int \rho / |\mathbf{r}-\mathbf{R}_I|\)</span> is positive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>folder</strong> – String, the path to the calculation.</p></li>
+<li><p><strong>coordiantes</strong> – Nuclear coordinates</p></li>
+<li><p><strong>includeatoms</strong> – List of zero-based indices of the atoms to include in APDFT</p></li>
+<li><p><strong>nuclear_charges</strong> – Float, list of nuclear charges for this particular calculation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Numpy array of EPN in Hartree.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -324,18 +325,20 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 <dt>
 <em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Extracts the EPN from a Gaussian log file.</p>
-<blockquote>
-<div><p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where :math:<a href="#id5"><span class="problematic" id="id6">`</span></a>int</p>
-</div></blockquote>
-<p>ho / <a href="#id7"><span class="problematic" id="id8">|</span></a>mathbf{r}-mathbf{R}_I` is positive.</p>
-<blockquote>
-<div><blockquote>
-<div><p>folder: String, the path to the calculation.
-coordiantes: Nuclear coordinates
-includeatoms: List of zero-based indices of the atoms to include in APDFT
-nuclear_charges: Float, list of nuclear charges for this particular calculation.</p>
-</div></blockquote>
-</div></blockquote>
+<p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where <span class="math notranslate nohighlight">\(\int \rho / |\mathbf{r}-\mathbf{R}_I|\)</span> is positive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>folder</strong> – String, the path to the calculation.</p></li>
+<li><p><strong>coordiantes</strong> – Nuclear coordinates</p></li>
+<li><p><strong>includeatoms</strong> – List of zero-based indices of the atoms to include in APDFT</p></li>
+<li><p><strong>nuclear_charges</strong> – Float, list of nuclear charges for this particular calculation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Numpy array of EPN in Hartree.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -357,9 +360,6 @@ nuclear_charges: Float, list of nuclear charges for this particular calculation.
 </dd></dl>
 
 </div>
-</div>
-<div class="section" id="derivatives">
-<h2>Derivatives<a class="headerlink" href="#derivatives" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-apdft.physics">
 <span id="physics-related-functions"></span><h2>Physics-related functions<a class="headerlink" href="#module-apdft.physics" title="Permalink to this headline">¶</a></h2>

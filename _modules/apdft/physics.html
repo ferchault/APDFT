@@ -492,14 +492,11 @@
         <span class="k">def</span> <span class="nf">get_epn</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">combination</span><span class="p">):</span>
             <span class="n">res</span> <span class="o">=</span> <span class="mf">0.0</span>
             <span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_delta_Z_vector</span><span class="p">(</span>
-                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">),</span> <span class="n">order</span><span class="p">,</span> <span class="n">combination</span><span class="p">,</span> <span class="n">direction</span>
-                    <span class="p">)</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">),</span> <span class="n">order</span><span class="p">,</span> <span class="n">combination</span><span class="p">,</span> <span class="n">direction</span>
+            <span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculator</span><span class="o">.</span><span class="n">get_epn</span><span class="p">(</span>
-                    <span class="n">folder</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">,</span>
-                    <span class="n">charges</span><span class="p">,</span>
+                    <span class="n">folder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">,</span> <span class="n">charges</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
@@ -509,16 +506,18 @@
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">res</span>
 
-        <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-0/site-all-cc/&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-0/site-all-cc/&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="p">)</span>
         <span class="n">pos</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="c1"># order 1</span>
         <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
             <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
-                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">]</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
-                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;dn&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">]</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;dn&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">]</span>
             <span class="p">)</span>
             <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
 
@@ -529,10 +528,16 @@
                     <span class="k">continue</span>
 
                 <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
-                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;up&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">]</span>
+                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">),</span>
+                    <span class="mi">2</span><span class="p">,</span>
+                    <span class="s2">&quot;up&quot;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">],</span>
                 <span class="p">)</span>
                 <span class="n">coefficients</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
-                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;dn&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">]</span>
+                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">),</span>
+                    <span class="mi">2</span><span class="p">,</span>
+                    <span class="s2">&quot;dn&quot;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">],</span>
                 <span class="p">)</span>
                 <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
 
