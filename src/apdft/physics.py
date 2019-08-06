@@ -338,14 +338,11 @@ class APDFT(object):
         def get_epn(folder, order, direction, combination):
             res = 0.0
             charges = self._nuclear_numbers + self._calculate_delta_Z_vector(
-                        len(self._nuclear_numbers), order, combination, direction
-                    )
+                len(self._nuclear_numbers), order, combination, direction
+            )
             try:
                 res = self._calculator.get_epn(
-                    folder,
-                    self._coordinates,
-                    self._include_atoms,
-                    charges,
+                    folder, self._coordinates, self._include_atoms, charges
                 )
             except ValueError:
                 apdft.log.log(
@@ -355,16 +352,18 @@ class APDFT(object):
                 )
             return res
 
-        coefficients[pos, :] = get_epn("%s/QM/order-0/site-all-cc/" % self._basepath, 0, 'up', 0)
+        coefficients[pos, :] = get_epn(
+            "%s/QM/order-0/site-all-cc/" % self._basepath, 0, "up", 0
+        )
         pos += 1
 
         # order 1
         for site in self._include_atoms:
             coefficients[pos, :] = get_epn(
-                "%s/QM/order-1/site-%d-up/" % (self._basepath, site), 1, 'up', [site]
+                "%s/QM/order-1/site-%d-up/" % (self._basepath, site), 1, "up", [site]
             )
             coefficients[pos + 1, :] = get_epn(
-                "%s/QM/order-1/site-%d-dn/" % (self._basepath, site), 1, 'dn', [site]
+                "%s/QM/order-1/site-%d-dn/" % (self._basepath, site), 1, "dn", [site]
             )
             pos += 2
 
@@ -375,10 +374,16 @@ class APDFT(object):
                     continue
 
                 coefficients[pos, :] = get_epn(
-                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j), 2, 'up', [site_i, site_j]
+                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j),
+                    2,
+                    "up",
+                    [site_i, site_j],
                 )
                 coefficients[pos + 1, :] = get_epn(
-                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j), 2, 'dn', [site_i, site_j]
+                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j),
+                    2,
+                    "dn",
+                    [site_i, site_j],
                 )
                 pos += 2
 

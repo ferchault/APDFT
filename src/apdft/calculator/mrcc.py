@@ -114,13 +114,19 @@ class MrccCalculator(calculator.Calculator):
             nuclear_charges: Float, list of nuclear charges for this particular calculation.
         Returns:
             Numpy array of EPN in Hartree."""
-        
-        components = MrccCalculator._parse_densityfile('%s/DENSITY' % folder)
-        gridpos, gridweights, density = components[:, :3], components[:, 3], components[:, 4]
-        
+
+        components = MrccCalculator._parse_densityfile("%s/DENSITY" % folder)
+        gridpos, gridweights, density = (
+            components[:, :3],
+            components[:, 3],
+            components[:, 4],
+        )
+
         epns = []
         for atomidx in includeatoms:
-            ds = np.linalg.norm(gridpos - coordinates[atomidx]* physics.angstrom, axis=1)
+            ds = np.linalg.norm(
+                gridpos - coordinates[atomidx] * physics.angstrom, axis=1
+            )
             epns.append((gridweights * density / ds).sum())
-        print (epns)
+        print(epns)
         return np.array(epns)
