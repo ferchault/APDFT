@@ -178,17 +178,63 @@
 <td rowspan="2"><p><strong>PYSCF</strong></p></td>
 </tr>
 <tr class="row-even"></tr>
-<tr class="row-odd"><td colspan="4"><p><em>Wavefunction methods</em></p></td>
+<tr class="row-odd"><td colspan="4"><p><strong>Wavefunction methods</strong></p></td>
 </tr>
 <tr class="row-even"><td><p>CCSDT</p></td>
-<td></td>
-<td></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><p>CCSD</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
+</tr>
+<tr class="row-even"><td><p>HF</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p><strong>DFT Hybrid</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>PBE0</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>B3LYP</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HSE06</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p><strong>DFT meta-GGA</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>SCAN</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>TPSS</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>M06L</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p><strong>DFT GGA</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>PBE</p></td>
+<td></td>
+<td><p>yes</p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -224,58 +270,70 @@
 <p>To see whether the electronic electrostatic potential at the nuclei is evaluated correctly, here are some reference numbers for the case of the Nitrogen dimer with a bond distance of 1 Angstrom.</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 35%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
+<col style="width: 22%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 28%" />
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p>Nuclear charges</p></td>
-<td><p>EPN site 1 [H]</p></td>
-<td><p>EPN site 2 [H]</p></td>
+<td><p>EPN site 1 [a.u.]</p></td>
+<td><p>EPN site 2 [a.u.]</p></td>
+<td><p>Total Energy [a.u.]</p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p><strong>Gaussian</strong> (analytical evaluation), CCSD/6-31G</p></td>
+<tr class="row-even"><td colspan="4"><p><strong>Gaussian</strong> (analytical evaluation), CCSD/6-31G</p></td>
 </tr>
 <tr class="row-odd"><td><p>7.00, 7.00</p></td>
 <td><p>21.98896747469</p></td>
 <td><p>21.98896747469</p></td>
+<td><p>-109.0418572</p></td>
 </tr>
 <tr class="row-even"><td><p>7.05, 7.00</p></td>
 <td><p>22.05431347468</p></td>
 <td><p>21.98919533522</p></td>
+<td><p>-109.9577300</p></td>
 </tr>
 <tr class="row-odd"><td><p>6.95, 7.00</p></td>
 <td><p>21.92294147469</p></td>
 <td><p>21.98846761415</p></td>
+<td><p>-108.1292686</p></td>
 </tr>
 <tr class="row-even"><td><p>7.05, 7.05</p></td>
 <td><p>22.05426133522</p></td>
 <td><p>22.05426133522</p></td>
+<td><p>-110.8722842</p></td>
 </tr>
 <tr class="row-odd"><td><p>6.95, 6.95</p></td>
 <td><p>21.92217561415</p></td>
 <td><p>21.92217561415</p></td>
+<td><p>-107.2153887</p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p><strong>MRCC</strong> (numerical evaluation), CCSD/6-31G</p></td>
+<tr class="row-even"><td colspan="4"><p><strong>MRCC</strong> (numerical evaluation), CCSD/6-31G</p></td>
 </tr>
 <tr class="row-odd"><td><p>7.00, 7.00</p></td>
 <td><p>21.98870584174</p></td>
 <td><p>21.98870584174</p></td>
+<td><p>-109.0398258</p></td>
 </tr>
 <tr class="row-even"><td><p>7.05, 7.00</p></td>
 <td><p>22.05398872497</p></td>
 <td><p>21.98892949523</p></td>
+<td><p>-109.9557470</p></td>
 </tr>
 <tr class="row-odd"><td><p>6.95, 7.00</p></td>
 <td><p>21.92274858697</p></td>
 <td><p>21.98820947247</p></td>
+<td><p>-108.1271854</p></td>
 </tr>
 <tr class="row-even"><td><p>7.05, 7.05</p></td>
 <td><p>22.05393336588</p></td>
 <td><p>22.05393336588</p></td>
+<td><p>-110.8703496</p></td>
 </tr>
 <tr class="row-odd"><td><p>6.95, 6.95</p></td>
 <td><p>21.92198579936</p></td>
 <td><p>21.92198579936</p></td>
+<td><p>-107.2132536</p></td>
 </tr>
 </tbody>
 </table>
