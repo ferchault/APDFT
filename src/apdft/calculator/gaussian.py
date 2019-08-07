@@ -18,9 +18,14 @@ class GaussianCalculator(calculator.Calculator):
 
     _methods = {
         "CCSD": "CCSD(Full,MaxCyc=100)",
+        "CCSDT": "CCSDT(Full,MaxCyc=100)",
         "PBE0": "PBE1PBE",
         "PBE": "PBEPBE",
         "HF": "UHF",
+        "HSE06": 'HSEH1PBE',
+        'B3LYP': 'B3LYP',
+        'M06L': 'M06L integral=ultrafine',
+        'TPSS': 'TPSSTPSS'
     }
 
     @staticmethod

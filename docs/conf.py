@@ -212,7 +212,12 @@ header = '+ **Method** ' + ' ' * (method_length - 12) + '|'
 for code in aconf.CodeEnum:
 	header += '**' + code.value + '**' + ' ' * (name_length - len(code.value) - 4) + '|'
 lines = [header]
-lines += build_features_output('*Wavefunction methods*', ['CCSDT', 'CCSD'], len(aconf.CodeEnum), name_length, method_length)
+
+shorthand = lambda title, methods: build_features_output('**%s**' % title, methods, len(aconf.CodeEnum), name_length, method_length)
+lines += shorthand('Wavefunction methods', ['CCSDT', 'CCSD', 'HF'])
+lines += shorthand('DFT Hybrid', ['PBE0', 'B3LYP', 'HSE06'])[1:]
+lines += shorthand('DFT meta-GGA', ['SCAN', 'TPSS', 'M06L'])[1:]
+lines += shorthand('DFT GGA', ['PBE', ])[1:]
 lines = lines[1:2] + lines
 with open('generated-featurematrix.rst', 'w') as fh:
 	fh.write('\n'.join(lines))
