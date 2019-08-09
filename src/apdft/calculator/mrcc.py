@@ -90,6 +90,9 @@ class MrccCalculator(calculator.Calculator):
                 if "Total CCSD energy [au]:" in line:
                     energy = float(line.strip().split()[-1])
                     break
+                if "***FINAL KOHN-SHAM ENERGY:" in line:
+                    energy = float(line.strip().split()[-2])
+                    break
         if energy is None:
             log.log(
                 "Unable to read energy from log file.", filename=logfile, level="error"
