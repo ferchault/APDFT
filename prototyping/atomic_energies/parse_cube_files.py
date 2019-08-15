@@ -19,6 +19,7 @@ import copy
 from ase.units import Bohr
 
 class CUBE(object):
+    
     def __init__(self, fname):
         f = open(fname, 'r')
         for i in range(2): f.readline() # echo comment
@@ -55,6 +56,12 @@ class CUBE(object):
         """
         projected_density = np.sum(self.data*self.dv, axis=axes)
         return(projected_density)
+        
+    def scale(self):
+        """
+        get density scaled by volume of gridpoints
+        """
+        self.data_scaled = (self.data*self.dv).copy()
         
     def plot_projection(self, axes):
         """
