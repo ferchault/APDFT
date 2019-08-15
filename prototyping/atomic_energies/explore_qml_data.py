@@ -13,6 +13,9 @@ import qml
 from matplotlib import pyplot as plt
 import os
 
+from ase import Atoms
+from ase.visualize import view
+
 ###############################################################################
 ###                                I/O-functions
 ###############################################################################
@@ -102,6 +105,18 @@ def max_dist_distribution(compounds):
         distances[idx] = max_dist_center_nuc(com)
     return(distances)
 
+###############################################################################
+###                                show molecules
+###############################################################################
+
+def show(compound):
+    """
+    compound: compound of qm9 in qml format
+    shows molecular geometry in Avogadro
+    """
+    com = Atoms(positions=compound.coordinates, symbols=compound.atomtypes)
+    view(com, viewer='Avogadro')
+    
 ###############################################################################
 ###                                other
 ###############################################################################
