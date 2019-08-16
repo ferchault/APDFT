@@ -10,6 +10,7 @@ import os
 import itertools
 import re
 import pandas as pd
+import numpy as np
 
 def read_filestream_from_line(fs, start_line):
     """
@@ -79,18 +80,25 @@ def parse_log_file(path_log):
         header = fs_cropped[0]
         # convert values to floats
         data=[ [float(el) for el in line] for line in fs_cropped[1:] ]
+        
         # write scf information to panads dataframe
         df = pd.DataFrame(data, columns=header)
         gemax = df['GEMAX'][len(df['GEMAX'])-1]
-        if type(gemax)!=float:
-            print('No float in %s' % path_log)
-        assert type(gemax)==float, "No float %s" % gemax
+        
+        if np.dtype(gemax)!='float64':
+            print('Problem with gemax in %s' % path_log)
+        assert np.dtype(gemax)=='float64', "gemax = %s" % gemax
+        
         num_it = int(df['NFI'][len(df['NFI'])-1])
-        assert type(num_it)==int, "No integer %s" % num_it
+        if type(num_it)!=int:
+            print('Problem with num_it in %s' % path_log)
+        assert type(num_it)==int, "num_it = %s" % num_it
         
         save_file = 'parsed_' + os.path.basename(path_log)
         dirname = os.path.dirname(path_log)
-        df.to_csv(os.path.join(dirname, save_file), sep='\t', header=True, index=False)
+        #df.to_csv(os.path.join(dirname, save_file), sep='\t', header=True, index=False)
         status = "finished"
         return(status, gemax, num_it)
+        
+parse_log_file('/home/misa/APDFT/prototyping/atomic_energies/hitp/run.log')
         
