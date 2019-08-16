@@ -9,7 +9,7 @@ from apdft import log
 
 
 class PyscfCalculator(apc.Calculator):
-    _methods = {"CCSD": "ccsd"}
+    _methods = {"CCSD": "CCSD"}
 
     @staticmethod
     def _format_coordinates(nuclear_numbers, coordinates):
@@ -44,7 +44,7 @@ class PyscfCalculator(apc.Calculator):
         env["deltaZ"] = PyscfCalculator._format_list(
             np.array(nuclear_charges) - np.array(nuclear_numbers)
         )
-        env["method"] = self._method
+        env["method"] = self._methods[self._method]
         return template.render(**env)
 
     @staticmethod
@@ -75,7 +75,7 @@ class PyscfCalculator(apc.Calculator):
 
         # check that all included sites are in fact present
         included_results = epns[:, 0].astype(np.int)
-        if not set(included_results) != set(includeatoms):
+        if not set(included_results) == set(includeatoms):
             log.log(
                 "Atom selections do not match. Likely the configuration has changed in the meantime.",
                 level="error",
