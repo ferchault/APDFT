@@ -8,6 +8,8 @@ from apdft.calculator.gaussian import GaussianCalculator
 from apdft.calculator.mrcc import MrccCalculator
 import getpass
 
+BASEPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+
 def test_local_execution():
 	method = 'CCSD'
 	basisset = 'STO-3G'
@@ -100,7 +102,10 @@ pointcharges
 	assert expected == inputfile
 
 def test_gaussian_epn():
-	path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-	epn = GaussianCalculator.get_epn('%s/data/apdft-run/order-1/site-0-up/' % path, np.array([[0., 0.,0.], [0.,0.,1.0]]), [0,1], [7.05, 7])
+	epn = GaussianCalculator.get_epn('%s/data/apdft-run/order-1/site-0-up/' % BASEPATH, np.array([[0., 0.,0.], [0.,0.,1.0]]), [0,1], [7.05, 7])
 	assert (abs(epn[0] - 21.65248147) < 1e-5)
 	assert (abs(epn[1] - 21.60575834) < 1e-5)
+
+def test_mrcc_dft_energy():
+	energy = MrccCalculator.get_total_energy('%s/data/mrcc-dft-energy/' % BASEPATH)
+	assert (abs(energy - -925.1422270624525481) < 1e-7)

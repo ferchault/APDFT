@@ -22,10 +22,10 @@ class GaussianCalculator(calculator.Calculator):
         "PBE0": "PBE1PBE",
         "PBE": "PBEPBE",
         "HF": "UHF",
-        "HSE06": 'HSEH1PBE',
-        'B3LYP': 'B3LYP',
-        'M06L': 'M06L integral=ultrafine',
-        'TPSS': 'TPSSTPSS'
+        "HSE06": "HSEH1PBE",
+        "B3LYP": "B3LYP",
+        "M06L": "M06L integral=ultrafine",
+        "TPSS": "TPSSTPSS",
     }
 
     @staticmethod
