@@ -82,9 +82,11 @@ def parse_log_file(path_log):
         # write scf information to panads dataframe
         df = pd.DataFrame(data, columns=header)
         gemax = df['GEMAX'][len(df['GEMAX'])-1]
-        assert type(gemax)==float, "No float"
+        if type(gemax)!=float:
+            print('No float in %s' % path_log)
+        assert type(gemax)==float, "No float %s" % gemax
         num_it = int(df['NFI'][len(df['NFI'])-1])
-        assert type(num_it)==int, "No integer"
+        assert type(num_it)==int, "No integer %s" % num_it
         
         save_file = 'parsed_' + os.path.basename(path_log)
         dirname = os.path.dirname(path_log)
