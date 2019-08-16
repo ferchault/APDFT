@@ -1,4 +1,9 @@
-dep/orbkit
+QM
+*.fchk
+*.log
+*.tar
+*.csv
+apdft.conf
 docs/generated-featurematrix.rst
 manualtest
 *.gz

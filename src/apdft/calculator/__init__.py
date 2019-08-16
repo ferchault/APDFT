@@ -7,7 +7,46 @@ import string
 import jinja2 as j
 
 
-class Calculator(object):
+class CalculatorInterface(object):
+    """ All the functions that need to be implemented for a new code to be supported in APDFT. """
+
+    def get_input(
+        self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
+    ):
+        """ Generates the calculation input file for the external code. 
+        
+        It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.
+
+        Args:
+            coordinates:		A (3,N) array of nuclear coordinates :math:`\\mathbf{r_i}`. [Angstrom]
+			nuclear_numbers:	A N array of nuclear numbers :math:`q_i`. [e]
+            nuclear_charges:	A N array of the effective nuclear charges :math:`q_i`. [e]
+            grid:               Deprecated.
+            iscomparison:       Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.
+        Returns:
+            File contents as string.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_total_energy(folder):
+        """ Extracts the total energy of a calculation.
+        
+        Args:
+            folder:             String. Path to the QM calculation from which the energy is to be extracted.
+        Returns:
+            Total energy including nuclear-nuclear interaction [Hartree]."""
+        raise NotImplementedError()
+
+    def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):
+        raise NotImplementedError()
+
+    def get_epn(folder, coordinates, includeatoms, nuclear_charges):
+        """ Extracts the electronic contribution to the electrostatic potential at the nuclei. """
+        raise NotImplementedError()
+
+
+class Calculator(CalculatorInterface):
     """ A concurrency-safe blocking interface for an external QM code."""
 
     _methods = {}
