@@ -79,8 +79,8 @@ def parse_log_file(path_log):
 
         # test if fs_cropped empty
         if len(fs_cropped) == 0:
-            print('Got empty log-file in %s' %path_log)
-        assert len(fs_cropped) != 0, "Failed to read log-file"
+            status = 'broken'
+            return(status, 'fs_cropped is empty', None)
         
         # use first line as header
         header = fs_cropped[0]
