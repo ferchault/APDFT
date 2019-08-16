@@ -6,8 +6,10 @@ import string
 
 import jinja2 as j
 
+
 class CalculatorInterface(object):
     """ All the functions that need to be implemented for a new code to be supported in APDFT. """
+
     def get_input(
         self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
     ):
@@ -25,7 +27,7 @@ class CalculatorInterface(object):
             File contents as string.
         """
         raise NotImplementedError()
-    
+
     @staticmethod
     def get_total_energy(folder):
         """ Extracts the total energy of a calculation.
@@ -35,14 +37,13 @@ class CalculatorInterface(object):
         Returns:
             Total energy including nuclear-nuclear interaction [Hartree]."""
         raise NotImplementedError()
-    
+
     def get_runfile(self, coordinates, nuclear_numbers, nuclear_charges, grid):
         raise NotImplementedError()
-    
+
     def get_epn(folder, coordinates, includeatoms, nuclear_charges):
         """ Extracts the electronic contribution to the electrostatic potential at the nuclei. """
         raise NotImplementedError()
-
 
 
 class Calculator(CalculatorInterface):
