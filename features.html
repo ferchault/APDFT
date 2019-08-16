@@ -87,6 +87,7 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Features and supported software</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pyscf">PySCF</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#gaussian-g09">Gaussian (G09)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mrcc">MRCC</a></li>
 </ul>
@@ -193,7 +194,7 @@
 <tr class="row-even"><td><p>HF</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
-<td></td>
+<td><p>yes</p></td>
 </tr>
 <tr class="row-odd"><td colspan="4"><p><strong>DFT Hybrid</strong></p></td>
 </tr>
@@ -238,6 +239,10 @@
 </tr>
 </tbody>
 </table>
+<div class="section" id="pyscf">
+<h2>PySCF<a class="headerlink" href="#pyscf" title="Permalink to this headline">¶</a></h2>
+<p>Recommended for testing. Free to use for both academic and commercial use, already installed if you install APDFT, so it works out-of-the-box. For large scale production runs, other codes might be more efficient.</p>
+</div>
 <div class="section" id="gaussian-g09">
 <h2>Gaussian (G09)<a class="headerlink" href="#gaussian-g09" title="Permalink to this headline">¶</a></h2>
 <p>If you have a license for <a class="reference external" href="http://gaussian.com/">Gaussian</a>, APDFT can calculate the following levels of theory, all of which can be combined with all Gaussian basis sets from the <a class="reference external" href="https://www.basissetexchange.org/">EMSL Basis Set Exchange</a>.</p>
@@ -334,6 +339,33 @@
 <td><p>21.92198579936</p></td>
 <td><p>21.92198579936</p></td>
 <td><p>-107.2132536</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p><strong>PySCF</strong> (analytical evaluation), CCSD/6-31G</p></td>
+</tr>
+<tr class="row-odd"><td><p>7.00, 7.00</p></td>
+<td><p>21.99292179017</p></td>
+<td><p>21.99292179017</p></td>
+<td><p>-109.0418571</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.00</p></td>
+<td><p>22.05794809640</p></td>
+<td><p>21.99345693140</p></td>
+<td><p>-109.9577300</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 7.00</p></td>
+<td><p>21.92718607388</p></td>
+<td><p>21.99212675698</p></td>
+<td><p>-108.1292685</p></td>
+</tr>
+<tr class="row-even"><td><p>7.05, 7.05</p></td>
+<td><p>22.05821304142</p></td>
+<td><p>22.05821304140</p></td>
+<td><p>-110.8722841</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.95, 6.95</p></td>
+<td><p>21.92613340256</p></td>
+<td><p>21.92613340258</p></td>
+<td><p>-107.2153886</p></td>
 </tr>
 </tbody>
 </table>

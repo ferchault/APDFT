@@ -161,7 +161,46 @@
 <span class="kn">import</span> <span class="nn">jinja2</span> <span class="k">as</span> <span class="nn">j</span>
 
 
-<div class="viewcode-block" id="Calculator"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.Calculator">[docs]</a><span class="k">class</span> <span class="nc">Calculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="CalculatorInterface"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface">[docs]</a><span class="k">class</span> <span class="nc">CalculatorInterface</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; All the functions that need to be implemented for a new code to be supported in APDFT. &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CalculatorInterface.get_input"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface.get_input">[docs]</a>    <span class="k">def</span> <span class="nf">get_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Generates the calculation input file for the external code. </span>
+<span class="sd">        </span>
+<span class="sd">        It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            coordinates:		A (3,N) array of nuclear coordinates :math:`\\mathbf{r_i}`. [Angstrom]</span>
+<span class="sd">			nuclear_numbers:	A N array of nuclear numbers :math:`q_i`. [e]</span>
+<span class="sd">            nuclear_charges:	A N array of the effective nuclear charges :math:`q_i`. [e]</span>
+<span class="sd">            grid:               Deprecated.</span>
+<span class="sd">            iscomparison:       Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            File contents as string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CalculatorInterface.get_total_energy"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface.get_total_energy">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_total_energy</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Extracts the total energy of a calculation.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            folder:             String. Path to the QM calculation from which the energy is to be extracted.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Total energy including nuclear-nuclear interaction [Hartree].&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CalculatorInterface.get_runfile"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface.get_runfile">[docs]</a>    <span class="k">def</span> <span class="nf">get_runfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CalculatorInterface.get_epn"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface.get_epn">[docs]</a>    <span class="k">def</span> <span class="nf">get_epn</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">includeatoms</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Extracts the electronic contribution to the electrostatic potential at the nuclei. &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Calculator"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.Calculator">[docs]</a><span class="k">class</span> <span class="nc">Calculator</span><span class="p">(</span><span class="n">CalculatorInterface</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; A concurrency-safe blocking interface for an external QM code.&quot;&quot;&quot;</span>
 
     <span class="n">_methods</span> <span class="o">=</span> <span class="p">{}</span>

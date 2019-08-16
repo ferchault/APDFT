@@ -232,7 +232,7 @@
 <dl class="class">
 <dt id="apdft.calculator.Calculator">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">Calculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#apdft.calculator.CalculatorInterface" title="apdft.calculator.CalculatorInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.CalculatorInterface</span></code></a></p>
 <p>A concurrency-safe blocking interface for an external QM code.</p>
 <dl class="method">
 <dt id="apdft.calculator.Calculator.get_density_on_grid">
@@ -250,6 +250,59 @@
 <dt id="apdft.calculator.Calculator.get_methods">
 <code class="sig-name descname">get_methods</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_methods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="apdft.calculator.CalculatorInterface">
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">CalculatorInterface</code><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>All the functions that need to be implemented for a new code to be supported in APDFT.</p>
+<dl class="method">
+<dt id="apdft.calculator.CalculatorInterface.get_epn">
+<code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_epn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the electronic contribution to the electrostatic potential at the nuclei.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.CalculatorInterface.get_input">
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the calculation input file for the external code.</p>
+<p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coordinates</strong> – A (3,N) array of nuclear coordinates <span class="math notranslate nohighlight">\(\mathbf{r_i}\)</span>. [Angstrom]
+nuclear_numbers:        A N array of nuclear numbers <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>grid</strong> – Deprecated.</p></li>
+<li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>File contents as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.CalculatorInterface.get_runfile">
+<code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_runfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.CalculatorInterface.get_total_energy">
+<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_total_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the total energy of a calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>folder</strong> – String. Path to the QM calculation from which the energy is to be extracted.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Total energy including nuclear-nuclear interaction [Hartree].</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -296,7 +349,23 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 <dl class="method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_input">
 <code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_input" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Generates the calculation input file for the external code.</p>
+<p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coordinates</strong> – A (3,N) array of nuclear coordinates <span class="math notranslate nohighlight">\(\mathbf{r_i}\)</span>. [Angstrom]
+nuclear_numbers:        A N array of nuclear numbers <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>grid</strong> – Deprecated.</p></li>
+<li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>File contents as string.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_runfile">
@@ -344,7 +413,23 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 <dl class="method">
 <dt>
 <code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a></dt>
-<dd></dd></dl>
+<dd><p>Generates the calculation input file for the external code.</p>
+<p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coordinates</strong> – A (3,N) array of nuclear coordinates <span class="math notranslate nohighlight">\(\mathbf{r_i}\)</span>. [Angstrom]
+nuclear_numbers:        A N array of nuclear numbers <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
+<li><p><strong>grid</strong> – Deprecated.</p></li>
+<li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>File contents as string.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt>
