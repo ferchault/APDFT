@@ -76,8 +76,12 @@ def parse_log_file(path_log):
         fs_cropped = [line.strip('\n)') for line in fs_cropped]
         fs_cropped=[line.split() for line in fs_cropped]
         fs_cropped = list(filter(None, fs_cropped))
+        try:
         # use first line as header
-        header = fs_cropped[0]
+            header = fs_cropped[0]
+        except IndexError as e:
+            print('Index error in %s' % path_log)
+            raise Exception("IndexError")
         # convert values to floats
         data=[ [float(el) for el in line] for line in fs_cropped[1:] ]
         
