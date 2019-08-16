@@ -76,12 +76,14 @@ def parse_log_file(path_log):
         fs_cropped = [line.strip('\n)') for line in fs_cropped]
         fs_cropped=[line.split() for line in fs_cropped]
         fs_cropped = list(filter(None, fs_cropped))
-        try:
+
+        # test if fs_cropped empty
+        if len(fs_cropped) == 0:
+            print('Got empty log-file in %s' %path_log)
+        assert len(fs_cropped) != 0, "Failed to read log-file"
+        
         # use first line as header
-            header = fs_cropped[0]
-        except IndexError as e:
-            print('Index error in %s' % path_log)
-            raise Exception("IndexError")
+        header = fs_cropped[0]
         # convert values to floats
         data=[ [float(el) for el in line] for line in fs_cropped[1:] ]
         
@@ -103,6 +105,4 @@ def parse_log_file(path_log):
         #df.to_csv(os.path.join(dirname, save_file), sep='\t', header=True, index=False)
         status = "finished"
         return(status, gemax, num_it)
-        
-parse_log_file('/home/misa/APDFT/prototyping/atomic_energies/hitp/run.log')
         
