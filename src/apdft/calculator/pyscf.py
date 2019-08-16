@@ -9,7 +9,7 @@ from apdft import log
 
 
 class PyscfCalculator(apc.Calculator):
-    _methods = {"CCSD": "CCSD"}
+    _methods = {"CCSD": "CCSD", "HF": "HF"}
 
     @staticmethod
     def _format_coordinates(nuclear_numbers, coordinates):

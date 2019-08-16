@@ -19,34 +19,38 @@ mol.verbose = 0
 mol.build()
 
 method = "{{ method }}"
-if method not in ["CCSD"]:
+if method not in ["CCSD", "HF"]:
     raise NotImplementedError("Method %s not supported." % method)
 
 deltaZ = np.array(({{deltaZ}}))
 includeonly = np.array(({{includeonly}}))
 
-calc = pyscf.scf.RHF(mol)
+def add_qmmm(calc, mol, deltaZ):
+    mf = pyscf.qmmm.mm_charge(calc, mol.atom_coords() / angstrom, deltaZ)
+    class NoSelfQMMM(mf.__class__):
+        def energy_nuc(self):
+            q = mol.atom_charges().astype(np.float)
+            q[includeonly] += deltaZ
+            return mol.energy_nuc(q)
+    return NoSelfQMMM()
 
-mf = pyscf.qmmm.mm_charge(calc, mol.atom_coords() / angstrom, deltaZ)
-
-
-class NoSelfQMMM(mf.__class__):
-    def energy_nuc(self):
-        q = mol.atom_charges().astype(np.float)
-        q[includeonly] += deltaZ
-        return mol.energy_nuc(q)
-
-
-mf = NoSelfQMMM()
-
-hfe = mf.kernel(verbose=0)
-mycc = pyscf.cc.CCSD(mf).run()
-dm1 = mycc.make_rdm1()
-dm1_ao = np.einsum("pi,ij,qj->pq", mf.mo_coeff, dm1, mf.mo_coeff.conj())
+if method == "HF":
+    calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
+    hfe = calc.kernel(verbose=0)
+    dm1_ao = calc.make_rdm1()
+    total_energy = calc.e_tot
+if method == "CCSD":
+    calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
+    hfe = calc.kernel(verbose=0)
+    mycc = pyscf.cc.CCSD(calc).run()
+    dm1 = mycc.make_rdm1()
+    dm1_ao = np.einsum("pi,ij,qj->pq", calc.mo_coeff, dm1, calc.mo_coeff.conj())
+    total_energy = mycc.e_tot
 
 # GRIDLESS, as things should be ############################
 # Total energy of SCF run
-print("TOTAL_ENERGY", mycc.e_tot)
+    
+print("TOTAL_ENERGY", total_energy)
 
 # Electronic EPN from electron density
 for site in includeonly:
