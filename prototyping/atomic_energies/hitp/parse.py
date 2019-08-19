@@ -69,7 +69,7 @@ def parse_log_file(path_log):
             fs_cropped = read_filestream_till_line(fs_cropped, end_line)
             
         
-        strings_to_remove = ['LINE', 'RESTART', '\*']
+        strings_to_remove = ['LINE', 'RESTART', '\*', 'ODIIS']
         fs_cropped = remove_strings_from_list(strings_to_remove, fs_cropped)
         
         # remove \n, split lines in separate values, remove empty lists (linebreaks)
