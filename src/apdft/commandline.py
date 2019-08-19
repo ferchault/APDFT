@@ -8,6 +8,23 @@ import apdft.calculator as acalc
 import apdft.physics as ap
 
 
+def entry_cli():
+    # load configuration
+    parser = acmd.build_main_commandline()
+    conf = aconf.Configuration()
+    conf.from_file()
+    mode, modeshort, conf = acmd.parse_into(parser, configuration=conf)
+
+    # execute
+    if mode == "energies":
+        acmd.mode_energies(conf, modeshort)
+    else:
+        apdft.log.log("Unknown mode %s" % mode, level="error")
+
+    # persist configuration
+    conf.to_file()
+
+
 def mode_energies(conf, modeshort=None):
     # select QM code
     calculator_options = conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
