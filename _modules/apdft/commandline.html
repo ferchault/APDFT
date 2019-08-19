@@ -162,6 +162,23 @@
 <span class="kn">import</span> <span class="nn">apdft.physics</span> <span class="k">as</span> <span class="nn">ap</span>
 
 
+<div class="viewcode-block" id="entry_cli"><a class="viewcode-back" href="../../apdft.html#apdft.commandline.entry_cli">[docs]</a><span class="k">def</span> <span class="nf">entry_cli</span><span class="p">():</span>
+    <span class="c1"># load configuration</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">acmd</span><span class="o">.</span><span class="n">build_main_commandline</span><span class="p">()</span>
+    <span class="n">conf</span> <span class="o">=</span> <span class="n">aconf</span><span class="o">.</span><span class="n">Configuration</span><span class="p">()</span>
+    <span class="n">conf</span><span class="o">.</span><span class="n">from_file</span><span class="p">()</span>
+    <span class="n">mode</span><span class="p">,</span> <span class="n">modeshort</span><span class="p">,</span> <span class="n">conf</span> <span class="o">=</span> <span class="n">acmd</span><span class="o">.</span><span class="n">parse_into</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="n">conf</span><span class="p">)</span>
+
+    <span class="c1"># execute</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;energies&quot;</span><span class="p">:</span>
+        <span class="n">acmd</span><span class="o">.</span><span class="n">mode_energies</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">modeshort</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Unknown mode </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">mode</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+
+    <span class="c1"># persist configuration</span>
+    <span class="n">conf</span><span class="o">.</span><span class="n">to_file</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="mode_energies"><a class="viewcode-back" href="../../apdft.html#apdft.commandline.mode_energies">[docs]</a><span class="k">def</span> <span class="nf">mode_energies</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">modeshort</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># select QM code</span>
     <span class="n">calculator_options</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">apdft_method</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">apdft_basisset</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">debug_superimpose</span>
