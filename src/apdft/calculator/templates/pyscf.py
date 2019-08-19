@@ -25,14 +25,18 @@ if method not in ["CCSD", "HF"]:
 deltaZ = np.array(({{deltaZ}}))
 includeonly = np.array(({{includeonly}}))
 
+
 def add_qmmm(calc, mol, deltaZ):
     mf = pyscf.qmmm.mm_charge(calc, mol.atom_coords() / angstrom, deltaZ)
+
     class NoSelfQMMM(mf.__class__):
         def energy_nuc(self):
             q = mol.atom_charges().astype(np.float)
             q[includeonly] += deltaZ
             return mol.energy_nuc(q)
+
     return NoSelfQMMM()
+
 
 if method == "HF":
     calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
@@ -49,7 +53,7 @@ if method == "CCSD":
 
 # GRIDLESS, as things should be ############################
 # Total energy of SCF run
-    
+
 print("TOTAL_ENERGY", total_energy)
 
 # Electronic EPN from electron density
