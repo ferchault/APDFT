@@ -56,7 +56,8 @@ def reshape_densities(density_arrays):
     
 def check_shapes(density_arrays):
     """
-    checks if the densities have the same shape
+    checks if each array in a set (list) has the same shape
+    density_arrays: list of density
     """
     prev_shape = None
     for idx, density in enumerate(density_arrays):
@@ -64,3 +65,45 @@ def check_shapes(density_arrays):
             prev_shape = density.shape
         assert prev_shape == density.shape, "Densities have not the same shape!"
         prev_shape = density.shape
+        
+def calculate_alchemical_potential(density, meshgrid, pos_nuc):
+    """
+    calculates the alchemical potential (see: arXiv:1907.06677v1, J. Chem. Phys. 125, 154104 (2006) )
+    density: electron density of the system (numpy array)
+    meshgrid: points in space at which the density is given (output of numpy.meshgrid())
+    pos_nuc: position of the nucleus for which the alchemical potential is calculated (numpy array)
+    """
+    # calculate distance between gridpoints and position of nucleus
+    
+    dist_gpt_nuc = np.sqrt(np.power(meshgrid[0]-pos_nuc[0], 2) + np.power(meshgrid[1]-pos_nuc[1], 2) + np.power(meshgrid[2]-pos_nuc[2], 2))
+    
+    # density already scaled
+    return((density/dist_gpt_nuc).sum())
+    
+def get_atomic_energies(density, nuclei, meshgrid):
+    """
+    returns the atomic energies of the compound
+    nuclei: charge and coordinates of nuclei in compound
+    """
+        
+    # calculate atomic energies for every atom in compound
+    atomic_energies = []
+    for nuc in nuclei:
+        alch_pot = calculate_alchemical_potential(density, meshgrid, nuc[1:4])
+        atomic_en = nuc[0]*alch_pot
+        atomic_energies.append(atomic_en)
+    
+    return(atomic_energies)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
