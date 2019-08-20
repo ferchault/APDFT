@@ -7,6 +7,7 @@ Created on Thu Aug 15 16:21:09 2019
 """
 
 import numpy as np
+from parse_cube_files import CUBE
 
 def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     """
@@ -83,7 +84,7 @@ def calculate_alchemical_potential(density, meshgrid, pos_nuc):
     return(-(density.flatten()/dist_gpt_nuc).sum())
     #return(-(density/dist_gpt_nuc).sum())
     
-def get_atomic_energies(density, nuclei, meshgrid):
+def calculate_atomic_energies(density, nuclei, meshgrid):
     """
     returns the atomic energies of the compound
     nuclei: charge and coordinates of nuclei in compound
@@ -127,6 +128,39 @@ def transfer_atomic_energies(at_en_alch, total_en, free_at_en):
     
     return(atomisation_energies)
     
+def atomic_energy_decomposition(cube_files, save=False):
+    
+    # sort cube-files
+    
+    # read data from cube files
+    scaled_densities = [] # density at every grid point scaled by its volume
+    nuclei = None # charge and positions of nuclei
+    gpts = None # grid points where the density is given
+    for idx, file in enumerate(cube_files):
+        cube_obj = CUBE(file)
+        cube_obj.scale()
+        scaled_densities.append(cube_obj.data_scaled)
+        
+        if idx == 0: # read these values only from one cube file because they are always the same
+            nuclei = cube_obj.atoms
+            gpts = cube_obj.get_grid()
+            
+    
+    # integrate density with respect to lambda
+    # where to get lambda-values?
+    av_dens = integrate_lambda_density(scaled_densities, lam_vals)
+    
+    # calculate alchemical potentials and atomic energies
+    atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts)
+    
+    if save:
+        # write atomic energies and alchemical potentials to file
+    else:
+        return(atomic_energies, alch_pots)
+    
+        
+    
+
     
     
     
