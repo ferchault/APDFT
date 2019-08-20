@@ -128,21 +128,33 @@ def transfer_atomic_energies(at_en_alch, total_en, free_at_en):
     
     return(atomisation_energies)
     
-def atomic_energy_decomposition(cube_files, save=False):
-    
-    # sort cube-files
-    
-    # read data from cube files
-    scaled_densities = [] # density at every grid point scaled by its volume
+def atomic_energy_decomposition(cube_files, save_dir=None):
+    """
+    returns alchemical potentials and atomic energies for atoms in compound
+   
+    cube_files: list of tuples
+    tuple[0] = path to cube file and tuple[1] = lambda value for cube-file
+        assumed order of elements: lowest lambda value has index 0 
+        and highest lambda value has highest index
+    save_dir: path to file where output is written; if None atomic energies and 
+        alchemical potentials are returned as a tuple
+        if given charge, coordinates, alchemical potentials and atomic energies
+        are written to file
+   """
+   
+   # read data from cube files
+    scaled_densities = [] # density scaled by the volume of the gridpoints
+    lam_vals = [] # lambda values of the densities
     nuclei = None # charge and positions of nuclei
     gpts = None # grid points where the density is given
     for idx, file in enumerate(cube_files):
-        cube_obj = CUBE(file)
+        cube_obj = CUBE(file[0])
         cube_obj.scale()
         scaled_densities.append(cube_obj.data_scaled)
+        lam_vals.append(file[1])
         
         if idx == 0: # read these values only from one cube file because they are always the same
-            nuclei = cube_obj.atoms
+            nuclei = np.array(cube_obj.atoms)
             gpts = cube_obj.get_grid()
             
     
@@ -153,8 +165,11 @@ def atomic_energy_decomposition(cube_files, save=False):
     # calculate alchemical potentials and atomic energies
     atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts)
     
-    if save:
+    if save_dir:
         # write atomic energies and alchemical potentials to file
+        store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies]).T
+        header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies'
+        np.savetxt(save_dir, store, delimiter='\t', header = header)
     else:
         return(atomic_energies, alch_pots)
     
