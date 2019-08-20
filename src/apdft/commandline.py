@@ -10,14 +10,14 @@ import apdft.physics as ap
 
 def entry_cli():
     # load configuration
-    parser = acmd.build_main_commandline()
+    parser = build_main_commandline()
     conf = aconf.Configuration()
     conf.from_file()
-    mode, modeshort, conf = acmd.parse_into(parser, configuration=conf)
+    mode, modeshort, conf = parse_into(parser, configuration=conf)
 
     # execute
     if mode == "energies":
-        acmd.mode_energies(conf, modeshort)
+        mode_energies(conf, modeshort)
     else:
         apdft.log.log("Unknown mode %s" % mode, level="error")
 
