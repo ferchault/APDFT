@@ -6,6 +6,17 @@ APDFT does not perform calculations itself. You will need access to one of the s
 Installing APDFT
 ----------------
 
+You can install APDFT from PyPI:
+
+.. code ::
+
+    pip install apdft
+
+For regular users, this is sufficient.
+
+Installing the development version
+----------------------------------
+
 First, clone APDFT from github:
 
 .. code ::
@@ -19,14 +30,6 @@ APDFT requires python 3.6 or newer. If that is met, all dependencies can be inst
     
     pip3 install jinja2 basis_set_exchange Cython numpy scipy h5py pyscf cclib structlog colorama
 
-Since one of the dependencies, orbkit, is not pre-packaged, it needs to be installed manually. To that end, please run
-
-.. code ::
-
-    cd dep; . install.sh; cd ../../../
-
-which will download and install the latest version of orbkit.
-
 Finally, the paths need to be set correctly:
 
 .. code ::
@@ -35,4 +38,4 @@ Finally, the paths need to be set correctly:
     echo 'export PYTHONPATH="'$(realpath src)':$PYTHONPATH"' >> ~/.bashrc
     source ~/.bashrc
 
-Now you are ready to run *apdft.py* on the command line. Have a look at :ref:`Getting Started` to see an example.
+Now you are ready to run *cli.py* on the command line as a substitute for *apdft* which would be installed by pip. Have a look at :ref:`Getting Started` to see an example.
