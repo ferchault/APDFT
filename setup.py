@@ -16,8 +16,8 @@ APDFT is a software to allow quantum-chemistry calculations of many isoelectroni
 
 All gaussian basis sets from the EMSL Basis Set Exchange and a variety of methods (HF, LDA, PBE, PBE0, CCSD) are supported. APDFT does not reinvent the wheel but leverages other QM software in the background.""",
     url="https://github.com/ferchault/apdft",
-    packages=setuptools.find_packages('src/'),
-    package_dir={'':'src'},
+    packages=setuptools.find_packages("src/"),
+    package_dir={"": "src"},
     entry_points={"console_scripts": ["apdft=apdft.commandline:entry_cli"]},
     python_requires=">=3.6,<4",
     classifiers=[
@@ -35,5 +35,6 @@ All gaussian basis sets from the EMSL Basis Set Exchange and a variety of method
         "pandas",
         "pyscf",
         "structlog",
+        "colorama",
     ],
 )
