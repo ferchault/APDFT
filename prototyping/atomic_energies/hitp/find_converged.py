@@ -9,6 +9,7 @@ Created on Mon Aug  5 14:32:08 2019
 import glob
 import os
 from parse import parse_log_file
+import pandas as pd
 
 def get_tree(path, depth):
     """
@@ -108,3 +109,28 @@ def find_compounds_finished(dirs):
 
     return(all_finished)
     
+def unified_convergence_lambda(path, lam_ve, save=None):
+    """
+    return concatenated Dataframes for convergence for one compound for one lambda value over several restarts
+    """
+    # sorted paths to all parsed log-files (pandas Dataframe) with the same lambda-value
+#    direc = path + '/*/' + 've_' + lam_ve + '/parsed_run.log'
+#    direc = glob.glob(direc)
+#    direc.sort()
+    direc = path
+    df = pd.read_csv(direc[0], sep='\t')
+    # read log-files and append content to list
+    for idx, log_f in enumerate(direc):
+        if idx!=0:
+            tmp = pd.read_csv(log_f, sep='\t')
+            tmp['NFI'] = tmp['NFI']+df['NFI'][len(df['NFI'])-1]
+            df = pd.concat([df, tmp])
+            
+    if save:
+        df.to_csv(save, sep='\t', header=True, index=False)
+    else:
+        return(df)
+            
+            
+        
+        
