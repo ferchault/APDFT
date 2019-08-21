@@ -21,43 +21,54 @@ def get_tree(path, depth):
     else:
         raise Exception("Depth not implemented!")
         
-def get_status(dirs, dest, num=''):
-    """
-    find log-files for converged calculations and write their directories to file
-    
-    also write directories of corrupted log-files
-    """
-    ready2cube = []
-    broken = []
-    for d in dirs:
-        status, gemax, num_it = parse_log_file(os.path.join(d,'run.log'))
-        if status == 'finished' and gemax < 1e-6:
-            ready2cube.append(d)
-        elif status == 'broken':
-            broken.append(d+'\t'+gemax)
-    return(ready2cube, broken)
 
-def get_status_and_write(dirs, dest, num=''):
+def get_status(dirs, dest, save_df=False, write=True):
     """
-    find log-files for converged calculations and write their directories to file
+    determine the status of calculation from their log-files, returns a tuple of lists
+    every element of the tuple describes one status (broken, converged, restart...)
+    each element of the tuple contains all directories with the same status
     
-    also write directories of corrupted log-files
+    dirs: list of paths to log-files
+    dest: path to destination where the output files are written
+    save_df: save pandas Dataframes made from the log-files in the corresponding log-file directories
+    write: if True writes the status to files in dest, otherwise the results are returned as a tuple of lists
     """
+    
+    # get status for every directory in dirs
     ready2cube = []
+    restart = []
     broken = []
+    other = []
     for d in dirs:
-        status, gemax, num_it = parse_log_file(os.path.join(d,'run.log'))
+        status, gemax, num_it = parse_log_file(os.path.join(d,'run.log'), save=save_df)
         if status == 'finished' and gemax < 1e-6:
             ready2cube.append(d)
+        elif status == 'finished' and gemax > 1e-6:
+            restart.append(d)
         elif status == 'broken':
             broken.append(d+'\t'+gemax)
-    with open(os.path.join(dest, 'ready2cube'+num), 'w') as fs:
-        for item in ready2cube:
-            fs.write("%s\n" % item)
-            
-    with open(os.path.join(dest, 'broken'+num), 'w') as fs:
-        for item in broken:
-            fs.write("%s\n" % item)
+        elif status == "Running, not started or broken":
+            other.append(d)
+    
+    # write results to files or return as lists
+    if write:
+        with open(os.path.join(dest, 'ready2cube'), 'w') as fs:
+            for item in ready2cube:
+                fs.write("%s\n" % item)
+                
+        with open(os.path.join(dest, 'restart'), 'w') as fs:
+            for item in restart:
+                fs.write("%s\n" % item)
+                
+        with open(os.path.join(dest, 'broken'), 'w') as fs:
+            for item in broken:
+                fs.write("%s\n" % item)
+        
+        with open(os.path.join(dest, 'other'), 'w') as fs:
+            for item in other:
+                fs.write("%s\n" % item)
+    else:
+        return(ready2cube, restart, broken, other)
             
 def concatenate_files(file_paths):
     """
