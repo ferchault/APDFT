@@ -54,10 +54,10 @@ def pattern_in_string(pattern_list, string):
     return(any(found))
 
 
-def parse_log_file(path_log):
+def parse_log_file(path_log, save=False):
     # does log-file exist, if not calculation still running
     if not os.path.isfile(path_log):
-        status = "Running or not started"
+        status = "Running, not started or broken"
         return(status, None, None)
     else:
         # parse log-file
@@ -100,9 +100,10 @@ def parse_log_file(path_log):
             print('Problem with num_it in %s' % path_log)
         assert type(num_it)==int, "num_it = %s" % num_it
         
-        save_file = 'parsed_' + os.path.basename(path_log)
-        dirname = os.path.dirname(path_log)
-        #df.to_csv(os.path.join(dirname, save_file), sep='\t', header=True, index=False)
+        if save:
+            save_file = 'parsed_' + os.path.basename(path_log)
+            dirname = os.path.dirname(path_log)
+            df.to_csv(os.path.join(dirname, save_file), sep='\t', header=True, index=False)
         status = "finished"
         return(status, gemax, num_it)
         
