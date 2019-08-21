@@ -86,22 +86,30 @@ def concatenate_files(file_paths):
 def find_compounds_finished(dirs):
     """
     dirs: absolute path on scicore to every log-file
-    count the number of occurences of each compound and return path if ==5 (all calculations are converged)
+    count the number of occurences of each compound and return path if >=5 (all calculations are converged)
     """
     # isolate name of compound from paths and store in list
     comp_names = []
+    comp_names_ve = []
     for idx, el in enumerate(dirs):
-        splitted = el.split('/')
-        comp_name = splitted[9]
-        comp_names.append(comp_name)
-    
+        splitted = el.split('/')[9:12]
+        splitted[1] = '#'
+        comp_name_ve = splitted[0]+splitted[1]+splitted[2]
+        comp_names_ve.append(comp_name_ve)
+        comp_names.append(splitted[0])
+        
     # count the number of occurences of each compound and return path if ==5 (all calculations are converged)
     # set returns the names of the compunds (every unique name)
     all_finished = [] # compounds for which all calculations are converged
     for compound in set(comp_names):
-        occurences = comp_names.count(compound)
+        occurences = 0
+        for num_ve in ['#ve_8', '#ve_15','#ve_23', '#ve_30', '#ve_38']:
+           sub_occ = comp_names_ve.count(compound+num_ve)
+           if sub_occ > 0:
+               occurences += 1
+        
 #        assert occurences > 5, "More occurences than lambda-values"
-        if occurences >= 5:
+        if occurences == 5:
             compound = './' + compound + '/' # build relative path
             all_finished.append(compound)
         if occurences > 5:
