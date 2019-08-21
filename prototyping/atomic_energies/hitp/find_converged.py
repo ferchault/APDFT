@@ -112,12 +112,15 @@ def find_compounds_finished(dirs):
 def unified_convergence_lambda(path, lam_ve, save=None):
     """
     return concatenated Dataframes for convergence for one compound for one lambda value over several restarts
+    path: path to compound
+    lam_ve: lambda value given in valence electrons as a string for which dataframes will be concatenated
+    save: path where concatenated fill will be saved
     """
     # sorted paths to all parsed log-files (pandas Dataframe) with the same lambda-value
-#    direc = path + '/*/' + 've_' + lam_ve + '/parsed_run.log'
-#    direc = glob.glob(direc)
-#    direc.sort()
-    direc = path
+    direc = path + '/*/' + 've_' + lam_ve + '/parsed_run.log'
+    direc = glob.glob(direc)
+    direc.sort()
+    
     df = pd.read_csv(direc[0], sep='\t')
     # read log-files and append content to list
     for idx, log_f in enumerate(direc):
