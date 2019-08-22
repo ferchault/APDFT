@@ -426,7 +426,7 @@ class APDFT(object):
         # order 1
         for site in self._include_atoms:
             coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
-            coeff[pos + 1, :] = get_epn(folders[pos], 1, "dn", [site])
+            coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
             pos += 2
 
         # order 2
@@ -436,7 +436,7 @@ class APDFT(object):
                     continue
 
                 coeff[pos, :] = get_epn(folders[pos], 2, "up", [site_i, site_j])
-                coeff[pos + 1, :] = get_epn(folders[pos], 2, "dn", [site_i, site_j])
+                coeff[pos + 1, :] = get_epn(folders[pos + 1], 2, "dn", [site_i, site_j])
                 pos += 2
 
         return coeff
@@ -557,6 +557,7 @@ class APDFT(object):
             alphas = self.get_epn_coefficients(deltaZ)
             deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), epn_matrix))
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
+            print (deltaE)
             energies[targetidx] = deltaE + refenergy
 
             if dipole_matrix is not None:
@@ -579,7 +580,6 @@ class APDFT(object):
                 "At least one of the QM calculations has not been performed yet. Please run all QM calculations first.",
                 level="warning",
             )
-            raise
             return
 
         if explicit_reference:
