@@ -41,7 +41,10 @@ class CUBE(object):
         self.atoms = []
         for i in range(self.natoms):
           tkns = f.readline().split()
-          self.atoms.append([tkns[0], tkns[2], tkns[3], tkns[4]])
+          self.atoms.append([float(tkns[0]), float(tkns[2]), float(tkns[3]), float(tkns[4])])
+          
+        self.atoms = np.array(self.atoms)
+        
         self.data = np.zeros((self.NX,self.NY,self.NZ))
         i=0
         for s in f:
@@ -57,9 +60,27 @@ class CUBE(object):
         projected_density = np.sum(self.data*self.dv, axis=axes)
         return(projected_density)
         
+    def get_grid(self):
+        """
+        returns the coordinates of the grid points where the density values are given as a meshgrid
+        works so far only for orthogonal coordinate axes
+        """
+        # length along the axes
+        l_x = self.X[0]*self.NX
+        l_y = self.Y[1]*self.NX
+        l_z = self.Z[2]*self.NZ
+        # gpts along every axis
+        x_coords = np.linspace(self.origin[0], l_x-self.X[0], self.NX)
+        y_coords = np.linspace(self.origin[1], l_y-self.Y[1], self.NY)
+        z_coords = np.linspace(self.origin[2], l_z-self.Z[2], self.NZ)
+        # create gridpoints
+        meshgrid = np.meshgrid(x_coords, y_coords, z_coords, indexing='ij')
+        return(meshgrid)
+        
+        
     def scale(self):
         """
-        get density scaled by volume of gridpoints
+        calculate density scaled by volume of gridpoints
         """
         self.data_scaled = (self.data*self.dv).copy()
         
