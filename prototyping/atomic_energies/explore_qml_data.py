@@ -5,7 +5,9 @@ Created on Tue Jul  9 08:03:20 2019
 
 @author: misa
 
-Set of functions to explore datasets where data entries are qml.compounds
+Set of functions to 
+a) explore datasets where data entries are qml.compounds
+b) parse qm9 files for properties
 """
 
 import numpy as np
@@ -142,6 +144,41 @@ def get_num_val_elec(nuclear_charges):
             assert('Cannot calculate number of valence electrons!')
     return(num_val)
 
+def get_free_atom_data(path='/home/misa/datasets/atomref_qm9.txt'):
+    """
+    returns a dictionary of shape {key:element} {element_symbol : B3LYP energy of free atom at 0K (from qm9)}
+    for elements used in qm9 dataset using atomref.txt from https://doi.org/10.6084/m9.figshare.c.978904.v5
+    
+    path: path to atomref data 
+    """
+    f_ref=open(path, 'r')
+    lines=f_ref.readlines()
+    f_ref.close()
+    atoms = lines[5:10]
+    
+    free_atoms = {}
+    for atom in atoms:
+        energy = float(atom.split()[2])
+        symbol = atom.split()[0]
+        free_atoms[symbol] = energy
 
+    return(free_atoms)
 
+def get_property(path, prop):
+    """
+    returns a property of a compound of qm9 (see doi: 10.1038/sdata.2014.22 (2014).)
+    
+    path: path to the xyz-file of the compund
+    prop: returned property
+        U0: Internal energy at 0 K; unit: Ha
+    """
+    
+    f=open(path, 'r')
+    props = f.readline()
+    props = f.readline()
+    f.close()
+    if prop == 'U0':
+        return(float(props.split('\t')[11]))
+    else:
+        raise Exception("Unknown Property")
 
