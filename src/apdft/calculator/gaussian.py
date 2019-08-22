@@ -146,5 +146,4 @@ class GaussianCalculator(calculator.Calculator):
             epn = float(line.strip().split()[2])
             epn -= ap.Coulomb.nuclear_potential(coordinates, nuclear_charges, atomidx)
             epns.append(-epn)
-        print(epns)
         return np.array(epns)

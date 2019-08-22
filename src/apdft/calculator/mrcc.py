@@ -131,5 +131,4 @@ class MrccCalculator(calculator.Calculator):
                 gridpos - coordinates[atomidx] * physics.angstrom, axis=1
             )
             epns.append((gridweights * density / ds).sum())
-        print(epns)
         return np.array(epns)
