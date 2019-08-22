@@ -142,8 +142,8 @@ def atomic_energy_decomposition(cube_files, save_dir=None):
         store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies]).T
         header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies'
         np.savetxt(save_dir, store, delimiter='\t', header = header)
-    else:
-        return(atomic_energies, alch_pots)
+
+    return(atomic_energies, alch_pots)
     
 def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     """
