@@ -160,7 +160,7 @@ def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     
     at_en_dec: atomic energies calculated from lambda averaged alchemical potential
     total_en: total energy of the system at the desired level of theory
-    free_at_en: energies of single atoms at the desired level of theory
+    free_at_en: energies of the single atoms for the corresponding alchemical potential
     """
     
     # shift at_en_alch to give total_en
@@ -174,6 +174,32 @@ def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     
     return(atomisation_energies)
     
+def get_free_atom_energies(nuc, e_free):
+    """
+    returns np.array with energy of the free atoms for every element of nuc
+    
+    nuc: list of nuclear charges
+    e_free: energy of free atoms used in qm9 as dict {element_symbol:energy}
+    """
+    
+    energy_free_atom = np.zeros(len(nuc))
+    
+    for idx, n in enumerate(nuc):
+        
+        if int(n)==1:
+            energy_free_atom[idx] = e_free['H']
+        elif int(n) == 6:
+            energy_free_atom[idx] = e_free['C']
+        elif int(n) == 7:
+            energy_free_atom[idx] = e_free['N']
+        elif int(n) == 8:
+            energy_free_atom[idx] = e_free['O']
+        elif int(n) == 9:
+            energy_free_atom[idx] = e_free['F']
+        else:
+            raise Exception("Element not in qm9")
+            
+    return(energy_free_atom)
 
     
     
