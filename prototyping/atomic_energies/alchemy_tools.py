@@ -9,6 +9,9 @@ Created on Thu Aug 15 16:21:09 2019
 import numpy as np
 from parse_cube_files import CUBE
 
+import sys
+sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
+
 def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     """
     calculates \int d\lambda \rho(\lambda, vec{r}) numerically
@@ -75,14 +78,11 @@ def calculate_alchemical_potential(density, meshgrid, pos_nuc):
     pos_nuc: position of the nucleus for which the alchemical potential is calculated (numpy array)
     """
     # calculate distance between gridpoints and position of nucleus
-    
-    #dist_gpt_nuc = np.sqrt(np.power(meshgrid[0]-pos_nuc[0], 2) + np.power(meshgrid[1]-pos_nuc[1], 2) + np.power(meshgrid[2]-pos_nuc[2], 2))
     meshgrid_xyz = np.vstack([_.flatten() for _ in meshgrid]).T
     dist_gpt_nuc = np.linalg.norm(meshgrid_xyz - pos_nuc, axis=1)
     
     # density already scaled
     return(-(density.flatten()/dist_gpt_nuc).sum())
-    #return(-(density/dist_gpt_nuc).sum())
     
 def calculate_atomic_energies(density, nuclei, meshgrid):
     """
@@ -91,13 +91,14 @@ def calculate_atomic_energies(density, nuclei, meshgrid):
     """
         
     # calculate atomic energies for every atom in compound
-    atomic_energies = []
-    for nuc in nuclei:
+    atomic_energies = np.empty(nuclei.shape[0])
+    alch_pots = np.empty(nuclei.shape[0])
+    for idx, nuc in enumerate(nuclei):
         alch_pot = calculate_alchemical_potential(density, meshgrid, nuc[1:4])
-        atomic_en = nuc[0]*alch_pot
-        atomic_energies.append(atomic_en)
+        alch_pots[idx] = alch_pot
+        atomic_energies[idx] = nuc[0]*alch_pot
     
-    return(atomic_energies)
+    return(atomic_energies, alch_pots)
     
 def transfer_atomic_energies(at_en_alch, total_en, free_at_en):
     """
@@ -153,7 +154,7 @@ def atomic_energy_decomposition(cube_files, save_dir=None):
         scaled_densities.append(cube_obj.data_scaled)
         lam_vals.append(file[1])
         
-        if idx == 0: # read these values only from one cube file because they are always the same
+        if idx == len(cube_files)-1: # read these values only from one cube file because they are always the same
             nuclei = np.array(cube_obj.atoms)
             gpts = cube_obj.get_grid()
             
