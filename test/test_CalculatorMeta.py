@@ -2,6 +2,7 @@
 import pytest
 import numpy as np
 import os
+import basis_set_exchange as bse
 import tempfile
 from apdft.calculator import MockCalculator
 from apdft.calculator.gaussian import GaussianCalculator
@@ -120,4 +121,9 @@ def test_pyscf_read_dipole():
 	assert (abs(dipole[0] - 0) < 1e-7)
 	assert (abs(dipole[1] - 0) < 1e-7)
 	assert (abs(dipole[2] - -0.053729479129616675) < 1e-7)
-	
+
+def test_pyscf_basiset():
+	res = PyscfCalculator._format_basis([7])
+	assert (res == str({7: bse.get_basis("6-31G", "N", fmt="nwchem")}))
+	res = PyscfCalculator._format_basis([1])
+	assert (res == str({1: bse.get_basis("6-31G", "H", fmt="nwchem")}))
