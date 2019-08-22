@@ -494,8 +494,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <dl class="method">
 <dt id="apdft.physics.APDFT.get_energy_from_reference">
 <code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em>, <em class="sig-param">is_reference_molecule=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retreives the total energy from a QM reference. Abstract function.</p>
-<p>Light function, will not be called often, so no caching needed.</p>
+<dd><p>Retreives the total energy from a QM reference.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>nuclear_charges</strong> – Integer list of nuclear charges. [e]</p>
@@ -520,6 +519,17 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dd></dl>
 
 <dl class="method">
+<dt id="apdft.physics.APDFT.get_folder_order">
+<code class="sig-name descname">get_folder_order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_folder_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_folder_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a static order of calculation folders to build the individual derivative entries.</p>
+<p>To allow for a more efficient evaluation of APDFT, terms are collected and most of the evaluation
+is done with the combined cofficients of those terms. This requires the terms to be handled in a certain
+fixed order that is stable in the various parts of the code. Depending on the selected expansion order, this
+function builds the list of folders to be included.</p>
+<p>Returns: List of strings, the folder names.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="apdft.physics.APDFT.get_linear_density_coefficients">
 <code class="sig-name descname">get_linear_density_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_coefficients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtains the finite difference coefficients for a property linear in the density.</p>
@@ -535,8 +545,17 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 
 <dl class="method">
 <dt id="apdft.physics.APDFT.get_linear_density_matrix">
-<code class="sig-name descname">get_linear_density_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_matrix" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="sig-name descname">get_linear_density_matrix</code><span class="sig-paren">(</span><em class="sig-param">propertyname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the value matrix for properties linear in density.</p>
+<p>Valid properties are: ELECTRONIC_DIPOLE, IONIC_FORCE, ELECTRONIC_QUADRUPOLE.
+:param self: APDFT instance.
+:param propertyname: String. One of the choices above.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>(N, m) array for an m-dimensional property over N QM calculations or None if the property is not implemented with this QM code.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="apdft.physics.APDFT.predict_all_targets">
