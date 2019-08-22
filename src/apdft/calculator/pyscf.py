@@ -83,3 +83,7 @@ class PyscfCalculator(apc.Calculator):
 
         included_results = list(included_results)
         return epns[[included_results.index(_) for _ in includeatoms], 1]
+
+    @staticmethod
+    def get_electronic_dipole(folder):
+        return PyscfCalculator._read_value(folder, "ELECTRONIC_DIPOLE", True)[0]

@@ -329,7 +329,18 @@ class APDFT(object):
                 )
 
     def _print_dipoles(self, targets, dipoles, comparison_dipoles):
-        if comparison_dipoles is not None:
+        if comparison_dipoles is None:
+            for target, dipole in zip(targets, dipoles):
+                targetname = APDFT._get_target_name(target)
+                apdft.log.log(
+                    "Dipole calculated",
+                    level="RESULT",
+                    kind="total_dipole",
+                    value=list(dipole),
+                    target=target,
+                    targetname=targetname,
+                )
+        else:
             for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
                 targetname = APDFT._get_target_name(target)
                 apdft.log.log(
@@ -346,14 +357,47 @@ class APDFT(object):
     def _get_target_name(target):
         return ",".join([apdft.physics.charge_to_label(_) for _ in target])
 
+    def get_folder_order(self):
+        """ Returns a static order of calculation folders to build the individual derivative entries.
+
+        To allow for a more efficient evaluation of APDFT, terms are collected and most of the evaluation
+        is done with the combined cofficients of those terms. This requires the terms to be handled in a certain
+        fixed order that is stable in the various parts of the code. Depending on the selected expansion order, this 
+        function builds the list of folders to be included.
+
+        Returns: List of strings, the folder names."""
+
+        folders = []
+
+        # order 0
+        folders.append("%s/QM/order-0/site-all-cc/" % self._basepath)
+
+        # order 1
+        for site in self._include_atoms:
+            folders.append("%s/QM/order-1/site-%d-up/" % (self._basepath, site))
+            folders.append("%s/QM/order-1/site-%d-dn/" % (self._basepath, site))
+
+        # order 2
+        for site_i in self._include_atoms:
+            for site_j in self._include_atoms:
+                if site_j <= site_i:
+                    continue
+
+                folders.append(
+                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j)
+                )
+                folders.append(
+                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j)
+                )
+
+        return folders
+
     def get_epn_matrix(self):
         """ Collects :math:`\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|`. """
         N = len(self._include_atoms)
+        folders = self.get_folder_order()
 
-        coefficients = np.zeros((1 + N * 2 + N * (N - 1), N))
-
-        # order 0
-        pos = 0
+        coeff = np.zeros((len(folders), N))
 
         def get_epn(folder, order, direction, combination):
             res = 0.0
@@ -372,19 +416,17 @@ class APDFT(object):
                 )
             return res
 
-        coefficients[pos, :] = get_epn(
-            "%s/QM/order-0/site-all-cc/" % self._basepath, 0, "up", 0
-        )
+        # order 0
+        pos = 0
+
+        # order 0
+        coeff[pos, :] = get_epn(folders[pos], 0, "up", 0)
         pos += 1
 
         # order 1
         for site in self._include_atoms:
-            coefficients[pos, :] = get_epn(
-                "%s/QM/order-1/site-%d-up/" % (self._basepath, site), 1, "up", [site]
-            )
-            coefficients[pos + 1, :] = get_epn(
-                "%s/QM/order-1/site-%d-dn/" % (self._basepath, site), 1, "dn", [site]
-            )
+            coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
+            coeff[pos + 1, :] = get_epn(folders[pos], 1, "dn", [site])
             pos += 2
 
         # order 2
@@ -393,21 +435,11 @@ class APDFT(object):
                 if site_j <= site_i:
                     continue
 
-                coefficients[pos, :] = get_epn(
-                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j),
-                    2,
-                    "up",
-                    [site_i, site_j],
-                )
-                coefficients[pos + 1, :] = get_epn(
-                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j),
-                    2,
-                    "dn",
-                    [site_i, site_j],
-                )
+                coeff[pos, :] = get_epn(folders[pos], 2, "up", [site_i, site_j])
+                coeff[pos + 1, :] = get_epn(folders[pos], 2, "dn", [site_i, site_j])
                 pos += 2
 
-        return coefficients
+        return coeff
 
     def get_linear_density_coefficients(self, deltaZ):
         """ Obtains the finite difference coefficients for a property linear in the density. 
@@ -417,9 +449,6 @@ class APDFT(object):
         Returns:
             Vector of coefficients."""
         return self._get_stencil_coefficients(deltaZ, 0)
-
-    def get_linear_density_matrix(self):
-        raise NotImplementedError()
 
     def enumerate_all_targets(self):
         """ Builds a list of all possible targets.
@@ -472,9 +501,7 @@ class APDFT(object):
         return cost, coverage
 
     def get_energy_from_reference(self, nuclear_charges, is_reference_molecule=False):
-        """ Retreives the total energy from a QM reference. Abstract function.
-
-		Light function, will not be called often, so no caching needed.
+        """ Retreives the total energy from a QM reference. 
 
 		Args:
 			nuclear_charges: 	Integer list of nuclear charges. [e]
@@ -486,6 +513,26 @@ class APDFT(object):
             return self._calculator.get_total_energy(
                 "QM/comparison-%s" % ("-".join(map(str, nuclear_charges)))
             )
+
+    def get_linear_density_matrix(self, propertyname):
+        """ Retrieves the value matrix for properties linear in density.
+
+        Valid properties are: ELECTRONIC_DIPOLE, IONIC_FORCE, ELECTRONIC_QUADRUPOLE.
+        Args:
+            self:           APDFT instance.
+            propertyname:   String. One of the choices above.
+        Returns: 
+            (N, m) array for an m-dimensional property over N QM calculations or None if the property is not implemented with this QM code."""
+
+        functionname = "get_%s" % propertyname.lower()
+        try:
+            function = getattr(self._calculator, functionname)
+        except AttributeError:
+            return None
+
+        folders = self.get_folder_order()
+        results = [function(folder) for folder in folders]
+        return np.array(results)
 
     def predict_all_targets(self):
         # assert one order of targets
@@ -501,7 +548,7 @@ class APDFT(object):
             self._nuclear_numbers, is_reference_molecule=True
         )
         epn_matrix = self.get_epn_matrix()
-        # linear_rho_matrix = self.get_linear_density_matrix()
+        dipole_matrix = self.get_linear_density_matrix("ELECTRONIC_DIPOLE")
 
         # get target predictions
         for targetidx, target in enumerate(targets):
@@ -512,13 +559,12 @@ class APDFT(object):
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             energies[targetidx] = deltaE + refenergy
 
-            # betas = self.get_linear_density_coefficients(deltaZ)
-            # density_properties = TODO
-            # nuc_dipole = Dipoles.point_charges([0, 0, 0], self._coordinates, target)
-            # ed = Dipoles.electron_density(
-            #    [0, 0, 0], self._gridcoords, rhotarget * self._gridweights
-            # )
-            # dipoles[targetidx] = ed + nuc_dipole
+            betas = self.get_linear_density_coefficients(deltaZ)
+            nuc_dipole = Dipoles.point_charges(
+                self._coordinates.mean(axis=0), self._coordinates, target
+            )
+            ed = np.multiply(dipole_matrix, betas[:, np.newaxis]).sum(axis=0)
+            dipoles[targetidx] = ed + nuc_dipole
 
         # return results
         return targets, energies, dipoles
