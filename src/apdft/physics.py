@@ -248,9 +248,10 @@ class APDFT(object):
 
         # order 1
         if 1 in self._orders:
+            prefactor = 0.5 / (2 * self._delta)
             for siteidx in range(N):
-                alphas[1 + siteidx * 2] += 5 * deltaZ[siteidx]
-                alphas[1 + siteidx * 2 + 1] -= 5 * deltaZ[siteidx]
+                alphas[1 + siteidx * 2] += prefactor * deltaZ[siteidx]
+                alphas[1 + siteidx * 2 + 1] -= prefactor * deltaZ[siteidx]
 
         # order 2
         if 2 in self._orders:
@@ -262,9 +263,8 @@ class APDFT(object):
                     if deltaZ[siteidx_j] == 0 or deltaZ[siteidx_i] == 0:
                         continue
                     if self._include_atoms[siteidx_j] > self._include_atoms[siteidx_i]:
-                        prefactor = (
-                            2 * (200 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
-                        )
+                        prefactor = (1 / (2 * self._delta ** 2)) / 2 / 3
+                        prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[pos] += prefactor
                         alphas[pos + 1] += prefactor
                         alphas[0] += 2 * prefactor
@@ -273,7 +273,8 @@ class APDFT(object):
                         alphas[1 + siteidx_j * 2] -= prefactor
                         alphas[1 + siteidx_j * 2 + 1] -= prefactor
                     if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
-                        prefactor = (400 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
+                        prefactor = (1 / (self._delta ** 2)) / 2 / 3
+                        prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[0] -= 2 * prefactor
                         alphas[1 + siteidx_i * 2] += prefactor
                         alphas[1 + siteidx_j * 2 + 1] += prefactor
