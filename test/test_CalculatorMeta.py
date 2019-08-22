@@ -5,6 +5,7 @@ import os
 import tempfile
 from apdft.calculator import MockCalculator
 from apdft.calculator.gaussian import GaussianCalculator
+from apdft.calculator.pyscf import PyscfCalculator
 from apdft.calculator.mrcc import MrccCalculator
 import getpass
 
@@ -109,3 +110,14 @@ def test_gaussian_epn():
 def test_mrcc_dft_energy():
 	energy = MrccCalculator.get_total_energy('%s/data/mrcc-dft-energy/' % BASEPATH)
 	assert (abs(energy - -925.1422270624525481) < 1e-7)
+
+def test_pyscf_read_energy():
+	energy = PyscfCalculator.get_total_energy('%s/data/pyscf-hf-run/' % BASEPATH)
+	assert (abs(energy - -109.75023802562146) < 1e-7)
+
+def test_pyscf_read_dipole():
+	dipole = PyscfCalculator.get_electronic_dipole('%s/data/pyscf-hf-run/' % BASEPATH)
+	assert (abs(dipole[0] - 0) < 1e-7)
+	assert (abs(dipole[1] - 0) < 1e-7)
+	assert (abs(dipole[2] - -0.053729479129616675) < 1e-7)
+	

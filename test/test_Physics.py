@@ -89,6 +89,7 @@ def test_readfile(sample_rundir):
 	# check one energy value
 	lookup  = [8, 6]
 	pos = targets.index(lookup)
+	print (energies)
 	assert abs(energies[pos] - -108.88437251951585) < 1e-7
 	assert abs(comparison_energies[pos] - -111.1436117) < 1e-7
 

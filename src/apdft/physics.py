@@ -557,7 +557,6 @@ class APDFT(object):
             alphas = self.get_epn_coefficients(deltaZ)
             deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), epn_matrix))
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
-            print (deltaE)
             energies[targetidx] = deltaE + refenergy
 
             if dipole_matrix is not None:
