@@ -386,11 +386,20 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;commands.sh&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
             <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">commands</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="APDFT.get_epn_coefficients"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_epn_coefficients">[docs]</a>    <span class="k">def</span> <span class="nf">get_epn_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deltaZ</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.</span>
-<span class="sd">        </span>
-<span class="sd">        The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.</span>
-<span class="sd">        TODO: Fix hard-coded weights from stencil.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_get_stencil_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deltaZ</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculates the prefactors of the density terms outlined in the documentation of the implementation, e.g. alpha and beta.</span>
+
+<span class="sd">        In general, this collects all terms of the taylor expansion for one particular target and returns their coefficients.</span>
+<span class="sd">        For energies, the n-th order derivative of the density is divided by :math:`(n+1)!`, while the target density is obtained</span>
+<span class="sd">        from a regular Taylor expansion, i.e. the density derivative is divided by :math:`n!`. Therefore, a `shift` of 1 returns</span>
+<span class="sd">        energy coefficients and a `shift` of 0 returns density coefficients.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            self:   APDFT instance to obtain the stencil from.</span>
+<span class="sd">            deltaZ: Array of length N. Target system as described by the change in nuclear charges. [e]</span>
+<span class="sd">            shift:  Integer. Shift of the factorial term in the energy expansion or density expansion.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="c1"># build alphas</span>
         <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">)</span>
         <span class="n">nvals</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">N</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)}</span>
@@ -402,7 +411,7 @@
 
         <span class="c1"># order 1</span>
         <span class="k">if</span> <span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">:</span>
-            <span class="n">prefactor</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span><span class="p">)</span>
+            <span class="n">prefactor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">shift</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">siteidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
                 <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prefactor</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx</span><span class="p">]</span>
                 <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="n">prefactor</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx</span><span class="p">]</span>
@@ -417,7 +426,9 @@
                     <span class="k">if</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_j</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                         <span class="k">continue</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">[</span><span class="n">siteidx_j</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">[</span><span class="n">siteidx_i</span><span class="p">]:</span>
-                        <span class="n">prefactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span>
+                        <span class="n">prefactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span>
+                            <span class="mi">2</span> <span class="o">+</span> <span class="n">shift</span>
+                        <span class="p">)</span>
                         <span class="n">prefactor</span> <span class="o">*=</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_i</span><span class="p">]</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_j</span><span class="p">]</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prefactor</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prefactor</span>
@@ -427,13 +438,21 @@
                         <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx_j</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-=</span> <span class="n">prefactor</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx_j</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="n">prefactor</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">[</span><span class="n">siteidx_j</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">[</span><span class="n">siteidx_i</span><span class="p">]:</span>
-                        <span class="n">prefactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span>
+                        <span class="n">prefactor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_delta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span>
+                            <span class="mi">2</span> <span class="o">+</span> <span class="n">shift</span>
+                        <span class="p">)</span>
                         <span class="n">prefactor</span> <span class="o">*=</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_i</span><span class="p">]</span> <span class="o">*</span> <span class="n">deltaZ</span><span class="p">[</span><span class="n">siteidx_j</span><span class="p">]</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">prefactor</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx_i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prefactor</span>
                         <span class="n">alphas</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">siteidx_j</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">prefactor</span>
 
-        <span class="k">return</span> <span class="n">alphas</span></div>
+        <span class="k">return</span> <span class="n">alphas</span>
+
+<div class="viewcode-block" id="APDFT.get_epn_coefficients"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_epn_coefficients">[docs]</a>    <span class="k">def</span> <span class="nf">get_epn_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deltaZ</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.</span>
+<span class="sd">        </span>
+<span class="sd">        The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stencil_coefficients</span><span class="p">(</span><span class="n">deltaZ</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_print_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">energies</span><span class="p">,</span> <span class="n">comparison_energies</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">comparison_energies</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -545,7 +564,13 @@
         <span class="k">return</span> <span class="n">coefficients</span></div>
 
 <div class="viewcode-block" id="APDFT.get_linear_density_coefficients"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_linear_density_coefficients">[docs]</a>    <span class="k">def</span> <span class="nf">get_linear_density_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deltaZ</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+        <span class="sd">&quot;&quot;&quot; Obtains the finite difference coefficients for a property linear in the density. </span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            deltaZ:     Array of integers of length N. Target system expressed in the change in nuclear charges from the reference system. [e]</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Vector of coefficients.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stencil_coefficients</span><span class="p">(</span><span class="n">deltaZ</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="APDFT.get_linear_density_matrix"><a class="viewcode-back" href="../../apdft.html#apdft.physics.APDFT.get_linear_density_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">get_linear_density_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>

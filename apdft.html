@@ -510,8 +510,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <dt id="apdft.physics.APDFT.get_epn_coefficients">
 <code class="sig-name descname">get_epn_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_coefficients" title="Permalink to this definition">¶</a></dt>
 <dd><p>EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.</p>
-<p>The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.
-TODO: Fix hard-coded weights from stencil.</p>
+<p>The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.</p>
 </dd></dl>
 
 <dl class="method">
@@ -523,7 +522,16 @@ TODO: Fix hard-coded weights from stencil.</p>
 <dl class="method">
 <dt id="apdft.physics.APDFT.get_linear_density_coefficients">
 <code class="sig-name descname">get_linear_density_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_coefficients" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Obtains the finite difference coefficients for a property linear in the density.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deltaZ</strong> – Array of integers of length N. Target system expressed in the change in nuclear charges from the reference system. [e]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Vector of coefficients.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="apdft.physics.APDFT.get_linear_density_matrix">
