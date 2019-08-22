@@ -232,11 +232,20 @@ class APDFT(object):
         with open("commands.sh", "w") as fh:
             fh.write("\n".join(commands))
 
-    def get_epn_coefficients(self, deltaZ):
-        """ EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.
-        
-        The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.
-        TODO: Fix hard-coded weights from stencil."""
+    def _get_stencil_coefficients(self, deltaZ, shift):
+        """ Calculates the prefactors of the density terms outlined in the documentation of the implementation, e.g. alpha and beta.
+
+        In general, this collects all terms of the taylor expansion for one particular target and returns their coefficients.
+        For energies, the n-th order derivative of the density is divided by :math:`(n+1)!`, while the target density is obtained
+        from a regular Taylor expansion, i.e. the density derivative is divided by :math:`n!`. Therefore, a `shift` of 1 returns
+        energy coefficients and a `shift` of 0 returns density coefficients.
+
+        Args:
+            self:   APDFT instance to obtain the stencil from.
+            deltaZ: Array of length N. Target system as described by the change in nuclear charges. [e]
+            shift:  Integer. Shift of the factorial term in the energy expansion or density expansion.
+        """
+
         # build alphas
         N = len(self._include_atoms)
         nvals = {0: 1, 1: N * 2, 2: N * (N - 1)}
@@ -248,9 +257,10 @@ class APDFT(object):
 
         # order 1
         if 1 in self._orders:
+            prefactor = 1 / (2 * self._delta) / np.math.factorial(1 + shift)
             for siteidx in range(N):
-                alphas[1 + siteidx * 2] += 5 * deltaZ[siteidx]
-                alphas[1 + siteidx * 2 + 1] -= 5 * deltaZ[siteidx]
+                alphas[1 + siteidx * 2] += prefactor * deltaZ[siteidx]
+                alphas[1 + siteidx * 2 + 1] -= prefactor * deltaZ[siteidx]
 
         # order 2
         if 2 in self._orders:
@@ -262,9 +272,10 @@ class APDFT(object):
                     if deltaZ[siteidx_j] == 0 or deltaZ[siteidx_i] == 0:
                         continue
                     if self._include_atoms[siteidx_j] > self._include_atoms[siteidx_i]:
-                        prefactor = (
-                            2 * (200 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
+                        prefactor = (1 / (2 * self._delta ** 2)) / np.math.factorial(
+                            2 + shift
                         )
+                        prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[pos] += prefactor
                         alphas[pos + 1] += prefactor
                         alphas[0] += 2 * prefactor
@@ -273,12 +284,21 @@ class APDFT(object):
                         alphas[1 + siteidx_j * 2] -= prefactor
                         alphas[1 + siteidx_j * 2 + 1] -= prefactor
                     if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
-                        prefactor = (400 / 6.0) * deltaZ[siteidx_i] * deltaZ[siteidx_j]
+                        prefactor = (1 / (self._delta ** 2)) / np.math.factorial(
+                            2 + shift
+                        )
+                        prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[0] -= 2 * prefactor
                         alphas[1 + siteidx_i * 2] += prefactor
                         alphas[1 + siteidx_j * 2 + 1] += prefactor
 
         return alphas
+
+    def get_epn_coefficients(self, deltaZ):
+        """ EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.
+        
+        The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed."""
+        return self._get_stencil_coefficients(deltaZ, 1)
 
     def _print_energies(self, targets, energies, comparison_energies):
         if comparison_energies is None:
@@ -390,7 +410,13 @@ class APDFT(object):
         return coefficients
 
     def get_linear_density_coefficients(self, deltaZ):
-        raise NotImplementedError()
+        """ Obtains the finite difference coefficients for a property linear in the density. 
+        
+        Args:
+            deltaZ:     Array of integers of length N. Target system expressed in the change in nuclear charges from the reference system. [e]
+        Returns:
+            Vector of coefficients."""
+        return self._get_stencil_coefficients(deltaZ, 0)
 
     def get_linear_density_matrix(self):
         raise NotImplementedError()
