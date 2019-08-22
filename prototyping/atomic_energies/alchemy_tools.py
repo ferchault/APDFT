@@ -102,7 +102,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid):
         
 def atomic_energy_decomposition(cube_files, save_dir=None):
     """
-    returns alchemical potentials and atomic energies for atoms in compound
+    returns cahrge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
    
     cube_files: list of tuples
     tuple[0] = path to cube file and tuple[1] = lambda value for cube-file
@@ -143,7 +143,7 @@ def atomic_energy_decomposition(cube_files, save_dir=None):
         header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies'
         np.savetxt(save_dir, store, delimiter='\t', header = header)
 
-    return(atomic_energies, alch_pots)
+    return(nuclei, atomic_energies, alch_pots)
     
 def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     """
