@@ -99,36 +99,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid):
         atomic_energies[idx] = nuc[0]*alch_pot
     
     return(atomic_energies, alch_pots)
-    
-def transfer_atomic_energies(at_en_alch, total_en, free_at_en):
-    """
-    returns atomic contributions to the atomisation energy
-    
-    1) shift of the atomic energies calculated from the lambda-averaged 
-       alchemical potential (at_en_alch) to the total energy (total_en) at some level of theory
-        - at_en_alch are relative to the free electron gas with pbc
-        - total_en is the total energy of the compund e.g. calculated with B3LYP
-        - after the shift the sum of the atomic energies is equal to total_en
         
-    2) get the atomisation energy
-       - from each atomic energy the energy of the corresponding free atom is subtracted
-    
-    at_en_dec: atomic energies calculated from lambda averaged alchemical potential
-    total_en: total energy of the system at the desired level of theory
-    free_at_en: energies of single atoms at the desired level of theory
-    """
-    
-    # shift at_en_alch to give total_en
-    num_atoms = len(at_en_alch)
-    total_en_alch = at_en_alch.sum()
-    shift = (total_en - total_en_alch) / num_atoms
-    at_en_alch_shifted = at_en_alch + shift
-    
-    # calculate contribution of every atom to the atomisation energy
-    atomisation_energies = at_en_alch_shifted - free_at_en
-    
-    return(atomisation_energies)
-    
 def atomic_energy_decomposition(cube_files, save_dir=None):
     """
     returns alchemical potentials and atomic energies for atoms in compound
@@ -174,7 +145,34 @@ def atomic_energy_decomposition(cube_files, save_dir=None):
     else:
         return(atomic_energies, alch_pots)
     
+def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
+    """
+    returns atomic contributions to the atomisation energy
+    
+    1) shift of the atomic energies calculated from the lambda-averaged 
+       alchemical potential (at_en_alch) to the total energy (total_en) at some level of theory
+        - ae_alch are relative to the free electron gas with pbc
+        - total_en is the total energy of the compund e.g. calculated with B3LYP
+        - after the shift the sum of the atomic energies is equal to total_en
         
+    2) get the atomisation energy
+       - from each atomic energy the energy of the corresponding free atom is subtracted
+    
+    at_en_dec: atomic energies calculated from lambda averaged alchemical potential
+    total_en: total energy of the system at the desired level of theory
+    free_at_en: energies of single atoms at the desired level of theory
+    """
+    
+    # shift at_en_alch to give total_en
+    total_en_alch = ae_alch.sum()
+    num_atoms = len(ae_alch)
+    shift = (total_en - total_en_alch) / num_atoms
+    ae_alch_shifted = ae_alch + shift
+    
+    # calculate contribution of every atom to the atomisation energy
+    atomisation_energies = ae_alch_shifted - free_at_en
+    
+    return(atomisation_energies)
     
 
     
