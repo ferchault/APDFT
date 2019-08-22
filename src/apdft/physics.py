@@ -559,12 +559,13 @@ class APDFT(object):
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             energies[targetidx] = deltaE + refenergy
 
-            betas = self.get_linear_density_coefficients(deltaZ)
-            nuc_dipole = Dipoles.point_charges(
-                self._coordinates.mean(axis=0), self._coordinates, target
-            )
-            ed = np.multiply(dipole_matrix, betas[:, np.newaxis]).sum(axis=0)
-            dipoles[targetidx] = ed + nuc_dipole
+            if dipole_matrix is not None:
+                betas = self.get_linear_density_coefficients(deltaZ)
+                nuc_dipole = Dipoles.point_charges(
+                    self._coordinates.mean(axis=0), self._coordinates, target
+                )
+                ed = np.multiply(dipole_matrix, betas[:, np.newaxis]).sum(axis=0)
+                dipoles[targetidx] = ed + nuc_dipole
 
         # return results
         return targets, energies, dipoles
