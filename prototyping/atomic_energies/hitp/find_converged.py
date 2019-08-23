@@ -141,7 +141,45 @@ def unified_convergence_lambda(path, lam_ve, save=None):
         df.to_csv(save, sep='\t', header=True, index=False)
     else:
         return(df)
-            
-            
+                
+def order_cubes(dirs):
+    """
+    for every directory
+    rename and move cube-files for every lambda value in new subdirectory
+    
+    dirs: paths to all compounds
+    """
+    
+    for path in dirs:
+    
+        # single compound
+        if not os.path.exists(os.path.join(path, 'cube-files')):
+            os.mkdir(os.path.join(path, 'cube-files'))
+        else:
+            print('Warning, {} exists already!'.format(os.path.join(path, 'cube-files')))
         
+        # get paths to the cube files
+        paths_cube_files = glob.glob(path + '/*/*/DENSITY.cube')
+        #sort paths to ensure that the cube-files from the last run is selected if several cube-files exist
+        paths_cube_files.sort()
+        cube_dict = {'ve_8':'', 've_15':'', 've_23':'', 've_30':'', 've_38':''}
+        for pcf in paths_cube_files:
+            num_ve = pcf.split('/')[len(pcf.split('/'))-2]
+            cube_dict[num_ve] = pcf
+    
+        for num_ve, pcf in cube_dict.items():
+            # rename and move cube-file
+            if pcf != '':
+                new_path = os.path.join(path, 'cube-files/' + num_ve + '.cube')
+                os.rename(pcf, new_path)
         
+    
+    
+    
+    
+    
+    
+
+
+
+
