@@ -14,12 +14,11 @@ def wrapper_alch_data():
     returns paths to files from file with all directories
     """
     # load paths to data
-    path = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/finished_paths'
+    path = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/finished_abs'
     paths = []
-    
     with open(path, 'r') as f:
         for line in f:
-            paths.append(line.split())
+            paths.append(line.rstrip('\n'))
     return(paths)
 
 def load_alchemy_data(paths):
@@ -35,7 +34,7 @@ def load_alchemy_data(paths):
     alchemy_data = []
     molecule_size = np.zeros(len(paths), dtype=np.intc)
     for idx, path in enumerate(paths):
-        alch = np.loadtxt(path[1])
+        alch = np.loadtxt(path)
         molecule_size[idx] = len(alch[:,0])
         alchemy_data.append(alch)
     
