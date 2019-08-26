@@ -52,9 +52,10 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep='coulomb'):
     rep: representation
     full_matrix: 2D numpy array where every row contains the representation for one atom
     """
-    
-    full_matrix = np.zeros((np.sum(molecule_size), 210))
     max_size = np.amax(molecule_size)
+    size_U = int(max_size*(max_size + 1)/2) # number of elements in upper triangle of representation matrix
+    full_matrix = np.zeros((np.sum(molecule_size), size_U))
+    
     start = 0
     for idx, molecule in enumerate(alchemy_data):
         if rep=='coulomb':
@@ -87,6 +88,24 @@ def calculate_distances(rep_matrix, norm='l2'):
         width -= 1
         
     return(dist)
-        
-        
+
+def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
+    """
+    extracts the atomic energies from the alchemy files
+    returns a 1D numpy array with the atomic energies for all atoms in the training set
+    
+    alchemy_data: list where every element contains the information about the atoms in one molecule
+    value: label (atomisation energy, atomic energy from LDA...)
+    num_rep: number of reprentations (number of atoms) in training set
+    """
+    
+    energies = np.zeros(num_rep)
+    start = 0
+    for idx, mol in enumerate(alchemy_data):
+        length = len(alchemy_data[idx][:,6])
+        if value == 'atomisation':
+            energies[start:length+start] = alchemy_data[idx][:,6]
+        start += length 
+    
+    
 
