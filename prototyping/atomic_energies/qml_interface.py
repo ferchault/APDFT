@@ -7,6 +7,7 @@ Created on Mon Aug 26 11:37:43 2019
 """
 
 import qml
+import qml.distance
 import numpy as np
 
 def wrapper_alch_data():
@@ -65,7 +66,7 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
         
     return(full_matrix)
     
-def calculate_distances(rep_matrix, norm='l2'):
+def calculate_distances(rep_matrix):
     """
     calculates the distance of every representation with all representations (including itself)
     returns the distances as a 1D numpy array
@@ -73,20 +74,10 @@ def calculate_distances(rep_matrix, norm='l2'):
     rep_matrix: 2D numpy array every row contains the representation for one atom
     dist: distances as a 1D numpy array
     """
-    # define output array
-    dist_shape = int(len(rep_matrix)*(len(rep_matrix)+1)/2)
-    dist = np.empty(dist_shape)
-    # indices of distances in matrix
-    start=0
-    width = len(rep_matrix)
-    # calculate distances
-    for idx in range(0, len(rep_matrix)):
-        if norm=='l2':
-            dist[start:start+width] = np.linalg.norm(rep_matrix[idx]-rep_matrix[idx:], axis=1)
-        start = start+width
-        width -= 1
-        
-    return(dist)
+    
+    d2 = qml.distance.l2_distance(rep_matrix, rep_matrix)
+    d2_flattened = d2[np.triu_indices(len(rep_matrix))]
+    return(d2_flattened)
 
 def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     """
@@ -106,5 +97,6 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,6]
         start += length 
     
+    return(energies)
     
 
