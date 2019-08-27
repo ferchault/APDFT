@@ -40,7 +40,7 @@ def load_alchemy_data(paths):
     
     return(alchemy_data, molecule_size)
     
-def generate_atomic_representations(alchemy_data, molecule_size, rep='coulomb'):
+def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulomb'):
     """
     generates the local representations for every atom
     returns a 2D numpy array where every row contains the representation for one atom
@@ -57,12 +57,12 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep='coulomb'):
     
     start = 0
     for idx, molecule in enumerate(alchemy_data):
-        if rep=='coulomb':
-            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance', interaction_cutoff=5, interaction_decay=2, central_cutoff=7, central_decay=1)
+        if rep_par=='coulomb':
+            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
         for idx2 in range(0, len(rep)):
             full_matrix[start+idx2] = rep[idx2]
         start += len(rep)
-    
+        
     return(full_matrix)
     
 def calculate_distances(rep_matrix, norm='l2'):
