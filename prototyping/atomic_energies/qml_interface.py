@@ -98,5 +98,78 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
         start += length 
     
     return(energies)
+        
+
+def get_indices(dim_full_rep, tr_size, test_size=None):
+    """
+    choose randomly the indices of the representations are used for training and testing
+    each index belongs to the representation vector in the matrix that contains all representations as rows
     
+    @in
+    dim_full_rep_rep: number of representations
+    tr_size: size of the training set
+    test_size: size of the test set (if not given all representations that are not part of the training set)
+    
+    @out
+    2-tuple: (indices of the representations used for training, indices of the representations used for training)
+    """
+    
+    if test_size == None:
+        test_size = dim_full_rep - tr_size
+    all_indices = np.arange(dim_full_rep)
+    np.random.shuffle(all_indices)
+    tr_indices = np.sort(all_indices[0:tr_size])
+    test_indices = np.sort(all_indices[tr_size:tr_size+test_size])
+    return(tr_indices, test_indices)
+    
+def select_sub_matrix(full_matrix, row_ind, col_ind):
+    """
+    returns all possible combinations of row_ind and col_ind as an 2D array
+    
+    @in
+    full_matrix: the matrix from which as sub matrix will be selected
+    row_ind, col_ind: the indices of the rows and cols that will be chosen
+    
+    @out
+    2D numpy array with shape len(row_ind), len(col_ind), the elements have all combinations of 
+    row_ind and col_ind as their index 
+    """
+    tmp = full_matrix[row_ind]
+    sub_matrix = tmp[:, col_ind].copy()
+    return(sub_matrix)
+
+def split_kernel(full_kernel, tr_indices, test_indices):
+    """
+    generates a kernel that is function of training representations
+    and a kernel where every row contains the distances between one test representation
+    and all training representations
+    
+    @in
+    full_kernel: contains the kernel elements for every representation combination
+    tr_indices: the indices of the representations used for training
+    test_indices: indices of the representations used for training
+    
+    @out:
+    2-tuple: (subset of full kernel containing the combinations of all representations for training, 
+              subset of kernel containg the combinations of every test representation with every training representation)
+    """
+    
+    tr_kernel = select_sub_matrix(full_kernel, tr_indices, tr_indices)
+    test_kernel = select_sub_matrix(full_kernel, test_indices, tr_indices)
+    
+    return(tr_kernel, test_kernel)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
