@@ -61,7 +61,7 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
     start = 0
     for idx, molecule in enumerate(alchemy_data):
         if rep_par=='coulomb':
-            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
+            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
         for idx2 in range(0, len(rep)):
             full_matrix[start+idx2] = rep[idx2]
         start += len(rep)
@@ -148,6 +148,29 @@ def get_indices(dim_full_rep, tr_size, test_size=None):
     tr_indices = np.sort(all_indices[0:tr_size])
     test_indices = np.sort(all_indices[tr_size:tr_size+test_size])
     return(tr_indices, test_indices)
+    
+def get_local_idx(global_idx, molecule_size):
+    """
+    global_idx gives the indices of representations (molecules) in the matrix that
+    contains all the global representations, the function then returns for every molecule
+    in global_idx the indices of the local representations (of the atoms) in the full local
+    representation matrix
+    
+    @in
+    global_idx: indices of the global representations in the full representation matrix
+    molecule_size: list of number of atoms of every representation in the full representation matrix
+    
+    @out
+    returns a lsit with the indices of the representations in the full local representation matrix
+    """
+    global_idx.sort()
+    indices = []
+    for idx in global_idx:
+        start_idx = np.sum(molecule_size[0:idx])
+        length = molecule_size[idx]
+        idc_mol = np.arange(start_idx, start_idx+length)
+        indices.extend(idc_mol)
+    return(indices)
     
 def select_sub_matrix(full_matrix, row_ind, col_ind):
     """

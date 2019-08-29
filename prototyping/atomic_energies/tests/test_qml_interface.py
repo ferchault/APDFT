@@ -107,7 +107,53 @@ class TestQmlInterface(unittest.TestCase):
         label_qi = qi.generate_label_vector(alchemy_data, molecule_size.sum())
         # test
         self.assertTrue(np.array_equal(energies, label_qi))
-
-
+        
+    def test_get_local_idx(self):
+        #######################################################################
+        #                    select representation
+        #######################################################################
+        
+        # reference data
+        paths=qi.wrapper_alch_data()
+        alchemy_data, molecule_size = qi.load_alchemy_data(paths)
+        max_size = np.amax(molecule_size)
+        idx = [3, 120, 435]
+        
+        molecule = alchemy_data[idx[0]]
+        rep_ref0 = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
+        
+        molecule = alchemy_data[idx[1]]
+        rep_ref1 = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
+        
+        molecule = alchemy_data[idx[2]]
+        rep_ref2 = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
+        
+        ref_rows = molecule_size[idx[0]]+molecule_size[idx[1]]+molecule_size[idx[2]]
+        rep_ref = np.empty((ref_rows, int(max_size*(max_size+1)/2)))
+        rep_ref[0:molecule_size[idx[0]]] = rep_ref0
+        rep_ref[molecule_size[idx[0]] : molecule_size[idx[0]]+molecule_size[idx[1]] ] = rep_ref1
+        rep_ref[molecule_size[idx[0]]+molecule_size[idx[1]] : molecule_size[idx[0]]+molecule_size[idx[1]]+molecule_size[idx[0]] ] = rep_ref2
+        
+        full_local_rep = qi.generate_atomic_representations(alchemy_data, molecule_size)
+        # execute
+        local_idx = qi.get_local_idx(idx, molecule_size)
+        rep_test = full_local_rep[local_idx]
+        
+        # test
+        self.assertTrue(np.array_equal(rep_ref, rep_test))
+        
+        #######################################################################
+        #                    select kernel
+        #######################################################################
+        
+        # reference
+        kernel_ref = qml.kernels.gaussian_kernel(rep_ref, rep_ref, 1000)
+        
+        full_local_kernel = qml.kernels.gaussian_kernel(full_local_rep, full_local_rep, 1000)
+        local_idx = qi.get_local_idx(idx, molecule_size)
+        kernel_test = qi.select_sub_matrix(full_local_kernel, local_idx, local_idx)
+        
+        self.assertTrue(np.array_equal(kernel_ref, kernel_test))
+        
 if __name__ == '__main__':
     unittest.main()
