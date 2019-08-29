@@ -9,6 +9,8 @@ Created on Mon Aug 26 11:37:43 2019
 import qml
 import qml.distance
 import numpy as np
+import qml.kernels
+import qml.math
 
 def wrapper_alch_data():
     """
@@ -95,6 +97,8 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
         length = len(alchemy_data[idx][:,6])
         if value == 'atomisation':
             energies[start:length+start] = alchemy_data[idx][:,6]
+        elif value == 'atomic':
+            energies[start:length+start] = alchemy_data[idx][:,5]
         start += length 
     
     return(energies)
@@ -159,10 +163,32 @@ def split_kernel(full_kernel, tr_indices, test_indices):
     
     return(tr_kernel, test_kernel)
 
-
-
-
-
+def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
+    
+    # calculate full kernel
+    gaussian_kernel = qml.kernels.gaussian_kernel(rep_matrix, rep_matrix, sigma)
+    
+    # select training and test kernel
+    tr_kernel, test_kernel = split_kernel(gaussian_kernel, tr_ind, test_ind)
+    
+    # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    
+    # calculate errors
+    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
+    mean_pred_error = np.mean(predicition_errors)
+    
+    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
+    mean_tr_error = np.mean(training_errors)
+    
+    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
 
 
 
