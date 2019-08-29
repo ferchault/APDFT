@@ -61,10 +61,33 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
     start = 0
     for idx, molecule in enumerate(alchemy_data):
         if rep_par=='coulomb':
-            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
+            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
         for idx2 in range(0, len(rep)):
             full_matrix[start+idx2] = rep[idx2]
         start += len(rep)
+        
+    return(full_matrix)
+    
+def wrapper_global_representations(alchemy_data, molecule_size, rep_par='coulomb'):
+    """
+    generates the local representations for every atom
+    returns a 2D numpy array where every row contains the representation for one atom
+    
+    alchemy_data: list every element contains the information about the atoms in one molecule
+    molecule_size: numpy array, every element is the number of atoms in a molecule (necessary to 
+    generate the matrix for storage and get the correct size of the representations)
+    rep: representation
+    full_matrix: 2D numpy array where every row contains the representation for one atom
+    """
+    max_size = np.amax(molecule_size)
+    size_U = int(max_size*(max_size + 1)/2) # number of elements in upper triangle of representation matrix
+    full_matrix = np.zeros( (len(alchemy_data), size_U) ) # matrix which contains the representations of all molecules
+    
+    for idx, molecule in enumerate(alchemy_data):
+        #generate representation of molecule
+        if rep_par=='coulomb':
+            rep = qml.representations.generate_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
+            full_matrix[idx] = rep
         
     return(full_matrix)
     
