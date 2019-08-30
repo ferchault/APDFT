@@ -5,12 +5,15 @@ Created on Thu Aug 15 16:21:09 2019
 
 @author: misa
 """
-
+import os
 import numpy as np
-from parse_cube_files import CUBE
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
+
+from parse_cube_files import CUBE
+from explore_qml_data import get_property, get_free_atom_data
+
 
 def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     """
@@ -174,6 +177,45 @@ def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     
     return(atomisation_energies)
     
+def write_atomisation_energies(dirs):
+    """
+    return atomisation energies for compounds given in dirs
+    dirs: path to compounds
+    """
+    for comp_path in dirs:
+        # get lambda = 0
+        path_ueg = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/ueg/ueg.cube'
+        cube_files = [(path_ueg, 0.0)] # stores tuples of paths and lambda values
+        # get paths and almbda_values
+        ve = np.array([8, 15, 23, 30, 38])
+        
+        for num_ve in ve:
+            path_tmp = 'cube-files/ve_' + str(num_ve) + '.cube'
+            cube_files.append( (os.path.join(comp_path, path_tmp), num_ve/38) )
+#        print('##############################')
+#        [print(el) for el in cube_files]
+        
+        # calculate atomic energies in LDA relative to UEG with pbc
+        nuclei, atomic_energies, alch_pots = atomic_energy_decomposition(cube_files)
+        
+        # total energy from B3LYP
+        comp_name = comp_path.split('/')[len(comp_path.split('/'))-2]
+        total_energy = get_property(os.path.join('/home/misa/datasets/qm9', comp_name + '.xyz'), 'U0')
+        # energies of the free atoms in qm9
+        free_atoms = get_free_atom_data()
+        # free atom energy for every atom in compound
+        free_en = get_free_atom_energies(nuclei[:,0], free_atoms)
+        
+        atomisation_energies = calculate_atomisation_energies(atomic_energies, total_energy, free_en)
+        
+        # write atomic energies and alchemical potentials to file
+        store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies, atomisation_energies]).T
+        header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies\t atomisation_energies'
+        save_dir = os.path.join(comp_path, 'atomic_energies.txt')
+        np.savetxt(save_dir, store, delimiter='\t', header = header)
+        
+        
+
 def get_free_atom_energies(nuc, e_free):
     """
     returns np.array with energy of the free atoms for every element of nuc

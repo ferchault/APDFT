@@ -57,3 +57,29 @@ def test_atomic_energy_decomposition():
     t2 = np.allclose(al_pot, al_pot_test)
     
     return(t1, t2)
+    
+def test_write_atomisation_energies():
+    # data from analysis/lambda_integrals.ipny
+    ref_part=np.loadtxt('/home/misa/APDFT/prototyping/atomic_energies/results/test_calculations/lambda_integrals/output')
+    #    ref_charge = ref[:,0]
+    #    ref_x = ref[:,1]
+    #    ref_y = ref[:,2]
+    #    ref_z = ref[:,3]
+    #    ref_alch = ref[:, 4]
+    #    ref_adec = ref[:, 5]
+    
+    ref_ae = np.array([23.53488468, -0.07943982, -0.76277164, -1.152305  ,  0.15735545,
+        2.43826624,  6.33442572, -4.00594386, -4.31814562, -4.25600311,
+       -4.39080099, -4.40580498, -4.14793128, -4.14118554, -3.15357225])
+    ref = np.empty( ( len(ref_part), len(ref_part.T)+1 ) )
+    for i in range(0, len(ref.T)):
+        if i < len(ref.T)-1:
+            ref[:, i] = ref_part[:, i] 
+        else:
+            ref[:, i] = ref_ae
+    # input data was generated with run_atomisation.py
+    result=np.loadtxt('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/dsgdb9nsd_002626/atomic_energies.txt')
+    for idx in range(0, len(result.T)):
+        print(np.allclose(ref[:, idx],result[:, idx]))
+
+    

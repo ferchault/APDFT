@@ -123,7 +123,19 @@ def test_pyscf_read_dipole():
 	assert (abs(dipole[2] - -0.053729479129616675) < 1e-7)
 
 def test_pyscf_basiset():
-	res = PyscfCalculator._format_basis([7])
+	res = PyscfCalculator._format_basis([7], "6-31G")
 	assert (res == str({7: bse.get_basis("6-31G", "N", fmt="nwchem")}))
-	res = PyscfCalculator._format_basis([1])
+	res = PyscfCalculator._format_basis([1], "6-31G")
 	assert (res == str({1: bse.get_basis("6-31G", "H", fmt="nwchem")}))
+	res = PyscfCalculator._format_basis([1], "STO-3G")
+	assert (res == str({1: bse.get_basis("STO-3G", "H", fmt="nwchem")}))
+
+def test_pyscf_input():
+	method = 'CCSD'
+	basisset = 'STO-3G'
+	c = PyscfCalculator(method, basisset)
+	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
+	nuclear_numbers = np.array([1, 1])
+	nuclear_charges = np.array([0.95, 1.05])
+	grid = None
+	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)

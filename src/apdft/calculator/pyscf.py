@@ -20,10 +20,10 @@ class PyscfCalculator(apc.Calculator):
         return ";".join(ret)
 
     @staticmethod
-    def _format_basis(nuclear_numbers):
+    def _format_basis(nuclear_numbers, basisset):
         basis = {}
         for nuclear_number in set(nuclear_numbers):
-            basis[nuclear_number] = bse.get_basis("6-31G", nuclear_number, fmt="nwchem")
+            basis[nuclear_number] = bse.get_basis(basisset, int(nuclear_number), fmt="nwchem")
         return str(basis)
 
     @staticmethod
@@ -39,7 +39,7 @@ class PyscfCalculator(apc.Calculator):
 
         env = {}
         env["atoms"] = PyscfCalculator._format_coordinates(nuclear_numbers, coordinates)
-        env["basisset"] = PyscfCalculator._format_basis(nuclear_numbers)
+        env["basisset"] = PyscfCalculator._format_basis(nuclear_numbers, self._basisset)
         env["includeonly"] = PyscfCalculator._format_list(range(len(nuclear_numbers)))
         env["deltaZ"] = PyscfCalculator._format_list(
             np.array(nuclear_charges) - np.array(nuclear_numbers)
