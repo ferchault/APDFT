@@ -209,6 +209,19 @@ def split_kernel(full_kernel, tr_indices, test_indices):
     
     return(tr_kernel, test_kernel)
 
+def train_kernel(rep_matrix, tr_ind, labels, sigma, lam_val):
+    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
+        # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    return(coeffs)
+
 def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
     
     # calculate full kernel
@@ -236,10 +249,92 @@ def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
     
     return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
 
+def test_fast(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
+
+    # calculate training kernel
+    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
+    
+    # calculate test kernel
+    test_kernel = qml.kernels.gaussian_kernel(rep_matrix[test_ind], rep_matrix[tr_ind], sigma)
+    
+    # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    
+    # calculate errors
+    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
+    mean_pred_error = np.mean(predicition_errors)
+    
+    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
+    mean_tr_error = np.mean(training_errors)
+    
+    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
 
 
-
-
+def optimize_hypar(rep, labels, sigmas, lams):
+    """
+    finds the combination of sigma and lambda that yields the minimimum prediction error
+    for a given training and validation set
+    
+    @in:
+    rep: tuple containing representations (training set, validation set)
+    lables: tuple containing labels (training set, validation set)
+    sigmas: list of sigmas that will be tried duirng optimizations
+    lams: list of lambdas that will be tried during optimizations
+    
+    @out:
+    mean_errors: tuple (sigma, lambda, corresponding mean error) for all sigma, lambda combinations
+    opt_coeffs: coefficients for the sigma, lambda values which yield the lowest mean error
+    opt_errors: errors for the sigma, lambda values which yield the lowest mean error
+    """
+    
+    # representations for training and validation
+    rep_tr, rep_val = rep
+    labels_tr, labels_val = labels
+    
+    # store validation results
+    mean_errors = np.empty( (len(sigmas)*len(lams), 3) )
+    
+    # optimum coefficients, errors
+    opt_coeffs = np.empty( len(rep_tr) )
+    opt_errors = np.empty( len(rep_val) )
+    
+    start_idx = 0
+    for idx_s, s in enumerate(sigmas):
+        # build kernel for different sigmas
+        tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, s)
+        val_kernel = qml.kernels.gaussian_kernel(rep_val, rep_tr, s)
+        
+        for idx_l, l in enumerate(lams):
+            tr_kernel = tr_kernel + np.identity(len(tr_kernel))*l
+            coeffs = qml.math.cho_solve(tr_kernel, labels_tr)
+            
+            # validation
+            val_errors = np.abs( np.dot(val_kernel, coeffs) - labels_val ) 
+            val_err_mean = val_errors.mean()
+            
+            # evaluate validation and store data
+            mean_errors[start_idx+idx_l] = s, l, val_err_mean
+            
+            tmp = mean_errors[:, 2]
+            if np.amin(tmp[0:start_idx+idx_l+1]) == mean_errors[start_idx+idx_l][2]:
+                opt_coeffs = coeffs
+                opt_errors = val_errors
+                
+            
+#            if (start_idx+idx_l == 0) or (mean_errors[start_idx+idx_l,2] < mean_errors[start_idx+idx_l-1,2]):
+#                opt_coeffs = coeffs
+#                opt_errors = val_errors
+            
+        start_idx += len(lams)
+        
+    return( mean_errors, opt_coeffs, opt_errors )
 
 
 
