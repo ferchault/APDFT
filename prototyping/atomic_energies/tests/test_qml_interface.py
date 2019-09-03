@@ -155,5 +155,47 @@ class TestQmlInterface(unittest.TestCase):
         
         self.assertTrue(np.array_equal(kernel_ref, kernel_test))
         
+        
+    def test_optimize_hyperpar(self):
+        # reference data
+        paths=qi.wrapper_alch_data()
+        # load data into list, count number of atoms per molecule
+        alchemy_data, molecule_size = qi.load_alchemy_data(paths)
+        local_reps = qi.generate_atomic_representations(alchemy_data, molecule_size)
+        
+        local_labels = qi.generate_label_vector(alchemy_data, molecule_size.sum())
+        
+        training_set_size = 100
+        global_idc = qi.get_indices(len(alchemy_data), training_set_size)
+        local_idc = qi.get_local_idx(global_idc[0], molecule_size), qi.get_local_idx(global_idc[1], molecule_size)
+        
+        rep = local_reps[local_idc[0]], local_reps[local_idc[1]]
+        labels = local_labels[local_idc[0]], local_labels[local_idc[1]] # labels for training and validation
+        sigmas = np.logspace(-1, 4, 12) #14)
+        lams = np.logspace(-15, 0, 16)#16)
+        
+        # execute
+        out = qi.optimize_hypar(rep, labels, sigmas, lams)
+        results = out[0][np.where(np.amin(out[0][:,2])==out[0])[0]] # best sigma, lambda, mean error
+        results = results.reshape(3)
+        
+        # generate reference from results
+        tr_kernel_ref = qml.kernels.gaussian_kernel(rep[0], rep[0], results[0])
+        val_kernel_ref = qml.kernels.gaussian_kernel(rep[1], rep[0], results[0])
+        
+        tr_kernel_ref = tr_kernel_ref + np.identity(len(tr_kernel_ref))*results[1]
+        coeffs_ref = qml.math.cho_solve(tr_kernel_ref, labels[0])
+            
+        # validation
+        val_errors_ref = np.abs( np.dot(val_kernel_ref, coeffs_ref) - labels[1] ) 
+        val_err_mean_ref = val_errors_ref.mean()
+        
+        # test
+        self.assertTrue( np.array_equal(val_err_mean_ref, results[2]) )
+        self.assertTrue( np.array_equal(coeffs_ref, out[1]) )
+        self.assertTrue( np.array_equal(val_errors_ref, out[2]) )
+            
+        
+        
 if __name__ == '__main__':
     unittest.main()
