@@ -7,6 +7,7 @@ Created on Thu Aug 15 16:21:09 2019
 """
 import os
 import numpy as np
+import scipy
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
@@ -31,6 +32,9 @@ def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     # integration
     if method == 'trapz':
         averaged_density = np.trapz(reshaped_densities, x=lam_vals, axis=0)
+    elif method == 'cspline':
+        poly_obj = scipy.interpolate.CubicSpline(lam_vals, reshaped_densities, axis=0, bc_type=('clamped', 'not-a-knot'))
+        averaged_density = poly_obj.integrate(0, 1)
     else:
         raise Exception("Unknown integration method!")
         
@@ -103,7 +107,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid):
     
     return(atomic_energies, alch_pots)
         
-def atomic_energy_decomposition(cube_files, save_dir=None):
+def atomic_energy_decomposition(cube_files, intgr_method='trapz', save_dir=None):
     """
     returns cahrge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
    
@@ -135,7 +139,7 @@ def atomic_energy_decomposition(cube_files, save_dir=None):
     
     # integrate density with respect to lambda
     # where to get lambda-values?
-    av_dens = integrate_lambda_density(scaled_densities, lam_vals)
+    av_dens = integrate_lambda_density(scaled_densities, lam_vals, method=intgr_method)
     
     # calculate alchemical potentials and atomic energies
     atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts)
@@ -196,7 +200,7 @@ def write_atomisation_energies(dirs):
 #        [print(el) for el in cube_files]
         
         # calculate atomic energies in LDA relative to UEG with pbc
-        nuclei, atomic_energies, alch_pots = atomic_energy_decomposition(cube_files)
+        nuclei, atomic_energies, alch_pots = atomic_energy_decomposition(cube_files, intgr_method='cspline')
         
         # total energy from B3LYP
         comp_name = comp_path.split('/')[len(comp_path.split('/'))-2]
@@ -211,7 +215,7 @@ def write_atomisation_energies(dirs):
         # write atomic energies and alchemical potentials to file
         store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies, atomisation_energies]).T
         header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies\t atomisation_energies'
-        save_dir = os.path.join(comp_path, 'atomic_energies.txt')
+        save_dir = os.path.join(comp_path, 'atomic_energies_cspline.txt')
         np.savetxt(save_dir, store, delimiter='\t', header = header)
         
         
