@@ -127,7 +127,7 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     return(energies)
         
 
-def get_indices(dim_full_rep, tr_size, test_size=None):
+def get_indices(dim_full_rep, tr_size, val_size=None):
     """
     choose randomly the indices of the representations are used for training and testing
     each index belongs to the representation vector in the matrix that contains all representations as rows
@@ -135,19 +135,19 @@ def get_indices(dim_full_rep, tr_size, test_size=None):
     @in
     dim_full_rep_rep: number of representations
     tr_size: size of the training set
-    test_size: size of the test set (if not given all representations that are not part of the training set)
+    val_size: size of the test set (if not given all representations that are not part of the training set)
     
     @out
     2-tuple: (indices of the representations used for training, indices of the representations used for training)
     """
     
-    if test_size == None:
-        test_size = dim_full_rep - tr_size
+    if val_size == None:
+        val_size = dim_full_rep - tr_size
     all_indices = np.arange(dim_full_rep)
     np.random.shuffle(all_indices)
     tr_indices = np.sort(all_indices[0:tr_size])
-    test_indices = np.sort(all_indices[tr_size:tr_size+test_size])
-    return(tr_indices, test_indices)
+    val_indices = np.sort(all_indices[tr_size:tr_size+val_size])
+    return(tr_indices, val_indices)
     
 def get_local_idx(global_idx, molecule_size):
     """
@@ -276,72 +276,6 @@ def test_fast(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
     
     return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
 
-
-def doptimize_hypar(rep, labels, sigmas, lams):
-    """
-    finds the combination of sigma and lambda that yields the minimimum prediction error
-    for a given training and validation set
-    
-    @in:
-    rep: tuple containing representations (training set, validation set)
-    lables: tuple containing labels (training set, validation set)
-    sigmas: list of sigmas that will be tried duirng optimizations
-    lams: list of lambdas that will be tried during optimizations
-    
-    @out:
-    mean_errors: tuple (sigma, lambda, corresponding mean error) for all sigma, lambda combinations
-    opt_coeffs: coefficients for the sigma, lambda values which yield the lowest mean error
-    opt_errors: errors for the sigma, lambda values which yield the lowest mean error
-    """
-    
-    # representations for training and validation
-    rep_tr, rep_val = rep
-    labels_tr, labels_val = labels
-    
-    # store validation results
-    mean_errors = np.empty( (len(sigmas)*len(lams), 3) )
-    
-    # optimum coefficients, errors
-    opt_coeffs = np.zeros( len(rep_tr) )
-    opt_errors = np.zeros( len(rep_val) )
-    
-    start_idx = 0
-    for idx_s, s in enumerate(sigmas):
-        print(start_idx)
-        if start_idx == 144:
-            print('stop')
-        # build kernel for different sigmas
-        tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, s)
-        val_kernel = qml.kernels.gaussian_kernel(rep_val, rep_tr, s)
-        
-        for idx_l, l in enumerate(lams):
-            tr_kernel = tr_kernel + np.identity(len(tr_kernel))*l
-            coeffs = qml.math.cho_solve(tr_kernel, labels_tr)
-            
-            # validation
-            val_errors = np.abs( np.dot(val_kernel, coeffs) - labels_val ) 
-            val_err_mean = val_errors.mean()
-            
-            if start_idx+idx_l == 152:
-                return(val_errors, val_err_mean, tr_kernel, val_kernel, coeffs, s, l)
-            
-            # evaluate validation and store data
-            mean_errors[start_idx+idx_l] = s, l, val_err_mean
-            
-            tmp = mean_errors[:, 2]
-            if np.amin(tmp[0:start_idx+idx_l+1]) == mean_errors[start_idx+idx_l][2]:
-                opt_coeffs = coeffs
-                opt_errors = val_errors
-                
-            
-#            if (start_idx+idx_l == 0) or (mean_errors[start_idx+idx_l,2] < mean_errors[start_idx+idx_l-1,2]):
-#                opt_coeffs = coeffs
-#                opt_errors = val_errors
-            
-        start_idx += len(lams)
-        
-    return( mean_errors, opt_coeffs, opt_errors )
-
 def optimize_hypar(rep, labels, sigmas, lams):
     """
     finds the combination of sigma and lambda that yields the minimimum prediction error
@@ -400,6 +334,36 @@ def optimize_hypar(rep, labels, sigmas, lams):
         start_idx += len(lams)
         
     return( mean_errors, opt_coeffs, opt_errors )
+    
+def predict_labels(rep_test, rep_tr, sigma, coeffs):
+    """
+    predict the labels for a given coefficents and validation/test set
+    """
 
+    kernel = qml.kernels.gaussian_kernel(rep_test, rep_tr, sigma)
+    prediction = np.dot(kernel, coeffs)
+    return(prediction)
 
+def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomisation_en):
+    """
+    calculate the error in atomisation energy when predicting the atomic contributions to the atomisation energy
+    
+    atomsisation_en_predicted: 1D numpy array, the predicted atomic energies
+    molecule_size: the size of every molecule for which the atomic energies where predicted
+    ref_atomisation_en: the correct atomisation energies for the validation/test molecules
+    """
 
+    # sum up atomic energies
+    atomisation_en_predicted = np.zeros(len(molecule_size))
+    start = 0
+    for idx, size in enumerate(molecule_size):
+        atomisation_en_predicted[idx] = atomic_energies[start:start+size].sum()
+        start += size
+    
+    # compare to correct values
+    error = np.abs(atomisation_en_predicted - ref_atomisation_en)
+    
+    return(error)
+    
+    
+    
