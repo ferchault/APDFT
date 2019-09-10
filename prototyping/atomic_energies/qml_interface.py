@@ -12,12 +12,12 @@ import numpy as np
 import qml.kernels
 import qml.math
 
-def wrapper_alch_data():
+def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/finished_abs'):
     """
     returns paths to files from file with all directories
     """
     # load paths to data
-    path = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/finished_abs'
+    path = path
     paths = []
     with open(path, 'r') as f:
         for line in f:
@@ -61,7 +61,8 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
     start = 0
     for idx, molecule in enumerate(alchemy_data):
         if rep_par=='coulomb':
-            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='distance')
+            rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
+            #rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm', central_cutoff = 15, central_decay = 0.1)
         for idx2 in range(0, len(rep)):
             full_matrix[start+idx2] = rep[idx2]
         start += len(rep)
