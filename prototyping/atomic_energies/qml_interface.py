@@ -449,25 +449,30 @@ def predict_labels(rep_test, rep_tr, sigma, coeffs):
     prediction = np.dot(kernel, coeffs)
     return(prediction)
 
-def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomisation_en):
+def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomic_energies):
     """
     calculate the total error in atomisation energy if the atomisation energy is build up from 
     atomic contributions
     
     atomsisation_en_predicted: 1D numpy array, the predicted atomic energies
     molecule_size: the size of every molecule for which the atomic energies where predicted
-    ref_atomisation_en: the correct atomisation energies for the validation/test molecules
+    ref_atomic_energies: the correct atomic energies of the validation/test molecules (the test labels)
+    atomisation_en_ref: the correct (total) atomisation energies of the validation/test molecules
     """
 
     # sum up atomic energies
     atomisation_en_predicted = np.zeros(len(molecule_size))
+    atomisation_en_ref = np.zeros(len(molecule_size))
+    
     start = 0
     for idx, size in enumerate(molecule_size):
         atomisation_en_predicted[idx] = atomic_energies[start:start+size].sum()
+        atomisation_en_ref[idx] = ref_atomic_energies[start:start+size].sum()
+        
         start += size
     
     # compare to correct values
-    error = np.abs(atomisation_en_predicted - ref_atomisation_en)
+    error = np.abs(atomisation_en_predicted - atomisation_en_ref)
     
     return(error)
     
