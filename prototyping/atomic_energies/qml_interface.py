@@ -210,77 +210,11 @@ def split_kernel(full_kernel, tr_indices, test_indices):
     
     return(tr_kernel, test_kernel)
 
-def train_kernel(rep_matrix, tr_ind, labels, sigma, lam_val):
-    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
-        # labels of training representations
-    tr_labels = labels[tr_ind]
-    
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
-    return(coeffs)
-
-def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
-    
-    # calculate full kernel
-    gaussian_kernel = qml.kernels.gaussian_kernel(rep_matrix, rep_matrix, sigma)
-    
-    # select training and test kernel
-    tr_kernel, test_kernel = split_kernel(gaussian_kernel, tr_ind, test_ind)
-    
-    # labels of training representations
-    tr_labels = labels[tr_ind]
-    
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
-    
-    # calculate errors
-    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
-    mean_pred_error = np.mean(predicition_errors)
-    
-    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
-    mean_tr_error = np.mean(training_errors)
-    
-    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
-
-def test_fast(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
-
-    # calculate training kernel
-    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
-    
-    # calculate test kernel
-    test_kernel = qml.kernels.gaussian_kernel(rep_matrix[test_ind], rep_matrix[tr_ind], sigma)
-    
-    # labels of training representations
-    tr_labels = labels[tr_ind]
-    
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
-    
-    # calculate errors
-    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
-    mean_pred_error = np.mean(predicition_errors)
-    
-    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
-    mean_tr_error = np.mean(training_errors)
-    
-    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
-
-def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, mode='local', num_cross=10):
+def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
     sigmas_opt = np.zeros(num_cross)
     lams_opt = np.zeros(num_cross)
-    mean_errors_opt = np.zeros(num_cross)
+    error_molecule = np.zeros(num_cross)
+    error_atomic = np.zeros(num_cross)
 
     for idx in range(0, num_cross):
         
@@ -295,6 +229,7 @@ def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size
         sigmas = np.logspace(-1, 4, 12).tolist()
         lams = np.logspace(-15, 0, 16).tolist()
         results = optimize_hypar(rep_splitted_loc, labels_splitted_loc, sigmas, lams)
+        error_atomic[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,2]
         
         # calculate error per molecule
         
@@ -302,10 +237,11 @@ def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size
         sigma_opt = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,0]
         coeffs = results[1] 
         atomic_energies = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma_opt, coeffs)
+        error_molecule[idx] = calculate_error_atomisation_energy(atomic_energies, molecule_size[global_idc[1]], labels_splitted_loc[1]).mean()
         
-        mean_errors_opt[idx] = calculate_error_atomisation_energy(atomic_energies, molecule_size[global_idc[1]], labels_splitted_loc[1]).mean()
-        
-    return(mean_errors_opt.mean())
+    statistics_atomic = error_atomic.mean(), error_atomic.std()
+    statistics_molecule = error_molecule.mean(), error_molecule.std()
+    return(statistics_atomic, statistics_molecule)
         
 def crossvalidate(total_set_size, tr_set_size, reps, labels, molecule_size, mode='local', num_cross=10):
     
@@ -475,5 +411,94 @@ def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomi
     
     return(error)
     
+def shift_by_mean_energy(reps, labels):
+    """
+    shifts the atomic energies by the mean atomic energy for the corresponding element
+    returns the shifted energies as a copy
+    
+    reps: the (local) representations
+    labels: the (local) labels
+    labels_copy: copy of labels, shifted by mean energies
+    """
+    
+    labels_copy = labels.copy()
+    
+    # get the element (charge) from the representations
+    nuc_charges = np.power(reps*2, 1/2.4)[:,0].astype(int)
+    
+    # shift the energies for each element
+    for el in set(nuc_charges):
+        idc_el = np.where(nuc_charges==el)
+        mean_energy = labels_copy[idc_el].mean()
+        labels_copy[idc_el] = labels_copy[idc_el] - mean_energy
+        
+    return(labels_copy)
+    
+def train_kernel(rep_matrix, tr_ind, labels, sigma, lam_val):
+    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
+        # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    return(coeffs)
+
+def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
+    
+    # calculate full kernel
+    gaussian_kernel = qml.kernels.gaussian_kernel(rep_matrix, rep_matrix, sigma)
+    
+    # select training and test kernel
+    tr_kernel, test_kernel = split_kernel(gaussian_kernel, tr_ind, test_ind)
+    
+    # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    
+    # calculate errors
+    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
+    mean_pred_error = np.mean(predicition_errors)
+    
+    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
+    mean_tr_error = np.mean(training_errors)
+    
+    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
+
+def test_fast(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
+
+    # calculate training kernel
+    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
+    
+    # calculate test kernel
+    test_kernel = qml.kernels.gaussian_kernel(rep_matrix[test_ind], rep_matrix[tr_ind], sigma)
+    
+    # labels of training representations
+    tr_labels = labels[tr_ind]
+    
+    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
+    if lam_val == 0:
+        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
+    else:
+        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
+        coeffs = qml.math.cho_solve(mat, tr_labels)
+    
+    # calculate errors
+    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
+    mean_pred_error = np.mean(predicition_errors)
+    
+    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
+    mean_tr_error = np.mean(training_errors)
+    
+    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
     
     
