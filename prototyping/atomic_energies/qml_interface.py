@@ -210,109 +210,120 @@ def split_kernel(full_kernel, tr_indices, test_indices):
     
     return(tr_kernel, test_kernel)
 
-def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
-    sigmas_opt = np.zeros(num_cross)
-    lams_opt = np.zeros(num_cross)
-    error_molecule = np.zeros(num_cross)
-    error_atomic = np.zeros(num_cross)
-
+def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, molecule=False, num_cross=10):
+    """
+    calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
+    
+    reps: representations of training and validation data
+    labels: labels of training and validation data
+    molecule_size: the number of atoms for every representation
+    tr_set_size: the size of the training set
+    sigma: the kernel width
+    lam_val: the regularizer
+    num_cross: the number of cross-validations
+    
+    error_crossval: the mean error for every cross-validation run
+    """
+    
+    error_crossval = np.zeros(num_cross)
+    
     for idx in range(0, num_cross):
         
         # split data into training and validation set
-        global_idc = get_indices(total_set_size, tr_set_size)
-        local_idc = get_local_idx(global_idc[0], molecule_size), get_local_idx(global_idc[1], molecule_size)
+        global_idc_tr, global_idc_val = get_indices(len(reps), tr_set_size)
+        local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
+        rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
+        labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
         
-        rep_splitted_loc = reps[local_idc[0]], reps[local_idc[1]] # select the representations
-        labels_splitted_loc = labels[local_idc[0]], labels[local_idc[1]] # select the labels
+        # calculate error
+        coeffs = train_kernel(rep_splitted_loc[0], labels_splitted_loc[0], sigma, lam_val)
+        labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
         
-        # optimize hyperparameters via grid search
-        sigmas = np.logspace(-1, 4, 12).tolist()
-        lams = np.logspace(-15, 0, 16).tolist()
-        results = optimize_hypar(rep_splitted_loc, labels_splitted_loc, sigmas, lams)
-        error_atomic[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,2]
-        
-        # calculate error per molecule
-        
-        # predict atomic energies
-        sigma_opt = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,0]
-        coeffs = results[1] 
-        atomic_energies = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma_opt, coeffs)
-        error_molecule[idx] = calculate_error_atomisation_energy(atomic_energies, molecule_size[global_idc[1]], labels_splitted_loc[1]).mean()
-        
-    statistics_atomic = error_atomic.mean(), error_atomic.std()
-    statistics_molecule = error_molecule.mean(), error_molecule.std()
-    return(statistics_atomic, statistics_molecule)
-        
-def crossvalidate(total_set_size, tr_set_size, reps, labels, molecule_size, mode='local', num_cross=10):
+        if molecule:
+            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val[1]], labels_splitted_loc[1]).mean()
+        else:
+            error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
     
-    sigmas_opt = np.zeros(num_cross)
-    lams_opt = np.zeros(num_cross)
-    mean_errors_opt = np.zeros(num_cross)
+    return(error_crossval.mean(), error_crossval.std())
+
+def split_data(reps, labels, tr_set_size, molecule_size):
+    # split data into training and validation set
+    global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
+    local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
+    rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
+    labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
     
-    for idx in range(0, num_cross):
-    
-        data = cv_select_data(total_set_size, tr_set_size, reps, labels, molecule_size, mode=mode)
-        
-        sigmas = np.logspace(-1, 4, 12).tolist()
-        lams = np.logspace(-15, 0, 16).tolist()
-        if mode == 'local' or mode == 'global':
-            rep_hyper = data[0]
-            labels_hyper = data[1]
-            results = optimize_hypar(rep_hyper, labels_hyper, sigmas, lams)
-            
-        # store output
-        sigmas_opt[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,0]
-        lams_opt[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,1]
-        mean_errors_opt[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,2]
-    
-    # return average values
-    return(mean_errors_opt.mean(), sigmas_opt.mean(), lams_opt.mean())
-    
-    # store output
-    
-def cv_select_data(total_set_size, tr_set_size, reps, labels, molecule_size, mode='local'):
-    """
-    select random representations and labels for cross-validation
-    
-    total_set_size: total number of molecules in the dataset
-    tr_set_size: number of molecules used for training
-    reps: tuple (global representations, local representations)
-    labels: tuple (global labels, local labels)
-    molecule_size: numpy array 1D the length of the molecules in the dataset
-    """
-    
-#    if mode == 'both':
-#        # global model
-#        global_idc = get_indices(total_set_size, tr_set_size)
-#        rep_splitted_gl = reps[global_idc[0]], reps[global_idc[1]]
-#        labels_splitted_gl = labels[global_idc[0]], labels[global_idc[1]]
-#        gl_out = rep_splitted_gl, labels_splitted_gl
+    return(rep_splitted_loc, labels_splitted_loc)
+
+#def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
+#    sigmas_opt = np.zeros(num_cross)
+#    lams_opt = np.zeros(num_cross)
+#    error_molecule = np.zeros(num_cross)
+#    error_atomic = np.zeros(num_cross)
+#
+#    for idx in range(0, num_cross):
 #        
-#        # local model
-#        # get the indices of the corresponding atomic representations, labels
+#        # split data into training and validation set
+#        global_idc = get_indices(total_set_size, tr_set_size)
 #        local_idc = get_local_idx(global_idc[0], molecule_size), get_local_idx(global_idc[1], molecule_size)
+#        
 #        rep_splitted_loc = reps[local_idc[0]], reps[local_idc[1]] # select the representations
 #        labels_splitted_loc = labels[local_idc[0]], labels[local_idc[1]] # select the labels
-#        loc_out = rep_splitted_loc, labels_splitted_loc
 #        
-#        return(gl_out, loc_out)
+#        # optimize hyperparameters via grid search
+#        sigmas = np.logspace(-1, 4, 12).tolist()
+#        lams = np.logspace(-15, 0, 16).tolist()
+#        results = optimize_hypar(rep_splitted_loc, labels_splitted_loc, sigmas, lams)
+#        error_atomic[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,2]
+#        
+#        # calculate error per molecule
+#        
+#        # predict atomic energies
+#        sigma_opt = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,0]
+#        coeffs = results[1] 
+#        atomic_energies = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma_opt, coeffs)
+#        error_molecule[idx] = calculate_error_atomisation_energy(atomic_energies, molecule_size[global_idc[1]], labels_splitted_loc[1]).mean()
+#        
+#    statistics_atomic = error_atomic.mean(), error_atomic.std()
+#    statistics_molecule = error_molecule.mean(), error_molecule.std()
+#    return(statistics_atomic, statistics_molecule)
         
-    if mode == 'global':
-        # global model
-        global_idc = get_indices(total_set_size, tr_set_size)
-        rep_splitted_gl = reps[global_idc[0]], reps[global_idc[1]]
-        labels_splitted_gl = labels[global_idc[0]], labels[global_idc[1]]
-        gl_out = rep_splitted_gl, labels_splitted_gl
-        return(rep_splitted_gl, labels_splitted_gl)
-    elif mode == 'local':
-        # local model
-        # get the indices of the corresponding atomic representations, labels
-        global_idc = get_indices(total_set_size, tr_set_size)
-        local_idc = get_local_idx(global_idc[0], molecule_size), get_local_idx(global_idc[1], molecule_size)
-        rep_splitted_loc = reps[local_idc[0]], reps[local_idc[1]] # select the representations
-        labels_splitted_loc = labels[local_idc[0]], labels[local_idc[1]] # select the labels
-        loc_out = rep_splitted_loc, labels_splitted_loc
-        return(rep_splitted_loc, labels_splitted_loc)
+
+def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10):
+    """
+    returns the sigma, lambda values that yield the minimum mean error for a num_cv-fold cross-validation, as well as the mean error
+    for these sigma, lambda-values
+    
+    reps: all representations
+    labels: all labels
+    tr_set_size: size of the training set
+    molecule_size: number of atoms in each molecule
+    num_cv: number of sets for cross-validation
+    """
+    
+    sigmas = np.logspace(-1, 4, 12).tolist()
+    lams = np.logspace(-15, 0, 16).tolist()
+    
+    # storage of output of optimization
+    opt_data = np.zeros((num_cv, len(sigmas)*len(lams), 3))
+    
+    for idx in range(0, num_cv):
+        reps_splitted, labels_splitted = split_data(reps, labels, tr_set_size, molecule_size)
+        
+        # optimize hyperparameters via grid search
+        results = optimize_hypar(reps_splitted, labels_splitted, sigmas, lams)
+        opt_data[idx] = results[0]
+        
+    # find set of hyperparameters with minimum mean error
+    mean_errors = opt_data.mean(axis=0)[:,2] # mean error for every set of hyper-paramters
+    min_error = np.amin(mean_errors) # minimum mean error
+    idx_opt = np.where(mean_errors==min_error) # idx of set of hyperparameters with lowest mean error
+    opt_sigma = opt_data[0][idx_opt][0,0] # sigma value for minimum error
+    opt_lambda = opt_data[0][idx_opt][0,1] # lambda value for minimum error
+    
+    
+    return(opt_sigma, opt_lambda, min_error)
+        
 
 def optimize_hypar(rep, labels, sigmas, lams):
     """
@@ -375,9 +386,8 @@ def optimize_hypar(rep, labels, sigmas, lams):
     
 def predict_labels(rep_test, rep_tr, sigma, coeffs):
     """
-    predict the labels for a given coefficents and validation/test set
+    predict the labels for given coefficents and training, validation/test set
     """
-
     kernel = qml.kernels.gaussian_kernel(rep_test, rep_tr, sigma)
     prediction = np.dot(kernel, coeffs)
     return(prediction)
@@ -387,7 +397,8 @@ def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomi
     calculate the total error in atomisation energy if the atomisation energy is build up from 
     atomic contributions
     
-    atomsisation_en_predicted: 1D numpy array, the predicted atomic energies
+    atomic_energies: the predicted atomic energies
+    atomsisation_en_predicted: 1D numpy array, the predicted atomisation energies for every molecule
     molecule_size: the size of every molecule for which the atomic energies where predicted
     ref_atomic_energies: the correct atomic energies of the validation/test molecules (the test labels)
     atomisation_en_ref: the correct (total) atomisation energies of the validation/test molecules
@@ -434,17 +445,18 @@ def shift_by_mean_energy(reps, labels):
         
     return(labels_copy)
     
-def train_kernel(rep_matrix, tr_ind, labels, sigma, lam_val):
-    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
-        # labels of training representations
-    tr_labels = labels[tr_ind]
+def train_kernel(rep_tr, labels_tr, sigma, lam_val):
+    """
+    return coefficients from representation, labels, sigma and lambda
     
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
+    rep_tr: training representations
+    labels_tr: training labels
+    sigma: kernel width
+    lam_val: regularizer
+    """
+    tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, sigma)
+    reg_kernel = tr_kernel + np.identity(len(tr_kernel))*lam_val
+    coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
     return(coeffs)
 
 def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
