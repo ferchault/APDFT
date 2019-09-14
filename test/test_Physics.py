@@ -155,7 +155,7 @@ def test_filecontents():
 
 def test_too_high_order():
 	with pytest.raises(NotImplementedError):
-		d = ap.APDFT(3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), '.', MockCalculator('method', 'basis_set'))
+		ap.APDFT(3, [2, 3], np.array([[0, 0, 1], [0, 0, 2]]), '.', MockCalculator('method', 'basis_set'))
 
 def test_restricted_atom_set():
 	d = ap.APDFT(0, [2, 2], np.array([[0, 0, 1], [0, 0, 2]]), '.', MockCalculator('method', 'basis_set'), 0, 5, [0,])
