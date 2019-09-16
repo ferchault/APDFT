@@ -23,7 +23,9 @@ class PyscfCalculator(apc.Calculator):
     def _format_basis(nuclear_numbers, basisset):
         basis = {}
         for nuclear_number in set(nuclear_numbers):
-            basis[nuclear_number] = bse.get_basis(basisset, int(nuclear_number), fmt="nwchem")
+            basis[nuclear_number] = bse.get_basis(
+                basisset, int(nuclear_number), fmt="nwchem"
+            )
         return str(basis)
 
     @staticmethod
