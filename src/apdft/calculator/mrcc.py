@@ -36,7 +36,10 @@ class MrccCalculator(calculator.Calculator):
 
     @staticmethod
     def get_grid(nuclear_numbers, coordinates, outputfolder):
-        """ Obtains the integration grid from one of the MRCC output files. """
+        """ Obtains the integration grid from one of the MRCC output files.
+
+        Returns:
+            Grid coordinates [Angstrom], grid weights."""
         ccdensity = MrccCalculator._parse_densityfile("%s/DENSITY" % outputfolder)
         return ccdensity[:, :3] / physics.angstrom, ccdensity[:, 3]
 
