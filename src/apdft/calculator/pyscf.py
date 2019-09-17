@@ -6,6 +6,7 @@ import os
 import jinja2 as j
 import numpy as np
 from apdft import log
+import functools
 
 
 class PyscfCalculator(apc.Calculator):
@@ -50,8 +51,14 @@ class PyscfCalculator(apc.Calculator):
         return template.render(**env)
 
     @staticmethod
-    def _read_value(folder, label, multiple):
-        lines = open("%s/run.log" % folder).readlines()
+    @functools.lru_cache(maxsize=10)
+    def _cached_log_read(folder):
+        return open("%s/run.log" % folder).readlines()
+
+    @staticmethod
+    def _read_value(folder, label, multiple, lines=None):
+        if lines is None:
+            lines = PyscfCalculator._cached_log_read(folder)
         res = []
         for line in lines:
             parts = line.strip().split()
