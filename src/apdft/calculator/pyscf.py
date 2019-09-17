@@ -64,9 +64,13 @@ class PyscfCalculator(apc.Calculator):
             parts = line.strip().split()
             if parts[0] == label:
                 res.append([float(_) for _ in parts[1:]])
+                # check for nan / inf values
+                if not np.isfinite(res[-1]).all():
+                    raise ValueError("Invalid value in log file.")
                 if not multiple:
                     return np.array(res[0])
-        return np.array(res)
+
+        return res
 
     @staticmethod
     def get_total_energy(folder):
