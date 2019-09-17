@@ -70,7 +70,7 @@ class PyscfCalculator(apc.Calculator):
                 if not multiple:
                     return np.array(res[0])
 
-        return res
+        return np.array(res)
 
     @staticmethod
     def get_total_energy(folder):
