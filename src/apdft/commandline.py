@@ -21,8 +21,20 @@ def entry_cli():
     else:
         apdft.log.log("Unknown mode %s" % mode, level="error")
 
+    # emphasize warnings
+    errorcount = apdft.LOG_LEVEL_USAGE.get("error", 0)
+    returncode = 0
+    if errorcount > 0:
+        apdft.log.log(
+            "This run had errors. The results are not to be trusted.",
+            errorcount=errorcount,
+            level="error",
+        )
+        returncode = 1
+
     # persist configuration
     conf.to_file()
+    return returncode
 
 
 def mode_energies(conf, modeshort=None):

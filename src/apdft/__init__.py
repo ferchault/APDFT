@@ -7,6 +7,17 @@ from . import commandline
 from . import settings
 from . import math
 
+LOG_LEVEL_USAGE = {}
+
+
+def count_log_level_usage(_, __, event_dict):
+    level = event_dict["level"]
+    if level not in LOG_LEVEL_USAGE:
+        LOG_LEVEL_USAGE[level] = 0
+    LOG_LEVEL_USAGE[level] += 1
+    return event_dict
+
+
 # setup output
 def _setup_logging():
     import structlog
@@ -23,6 +34,7 @@ def _setup_logging():
         processors=[
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M"),
             structlog.processors.StackInfoRenderer(),
+            count_log_level_usage,
             structlog.processors.format_exc_info,
             renderer,
         ],
