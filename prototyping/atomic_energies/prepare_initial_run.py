@@ -35,15 +35,15 @@ def gd_comp(compound_path, lambda_ve):
     
     # make directory from compound
     compound_name = os.path.basename(compound_path).split('.')[0]
-    directory = os.path.join('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/', compound_name + '/run0')
+    base_directory = os.path.join('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/', compound_name)
     
     # generate parent directory
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    if not os.path.exists(base_directory):
+        os.makedirs(base_directory)
     
     for lambda_val in lambda_ve:
         # generate subdirectory for specific lambda value
-        directory_lambda = os.path.join(directory, 've_' + str(int(lambda_val)))
+        directory_lambda = os.path.join(base_directory, 've_' + str(int(lambda_val)) + '/run0/')
         if not os.path.exists(directory_lambda):
             os.makedirs(directory_lambda)
             
