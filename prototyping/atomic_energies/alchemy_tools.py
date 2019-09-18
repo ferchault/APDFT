@@ -218,7 +218,50 @@ def write_atomisation_energies(dirs):
         save_dir = os.path.join(comp_path, 'atomic_energies_cspline.txt')
         np.savetxt(save_dir, store, delimiter='\t', header = header)
         
+def test_impact_lambda(dirs):
+    """
+    calculate integrals while neglecting one lambda value to estimate error of to little lambda values
+    return atomisation energies for compounds given in dirs
+    dirs: path to compounds
+    """
+    for comp_path in dirs:
+        # get lambda = 0
+        path_ueg = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/ueg/ueg.cube'
+        cube_files = [(path_ueg, 0.0)] # stores tuples of paths and lambda values
+        # get paths and almbda_values
+        ve = np.array([8, 15, 23, 30, 38])
         
+        for num_ve in ve:
+            path_tmp = 'cube-files/ve_' + str(num_ve) + '.cube'
+            cube_files.append( (os.path.join(comp_path, path_tmp), num_ve/38) )
+#        print('##############################')
+#        [print(el) for el in cube_files]
+        no_30 = [cube_files[0], cube_files[1], cube_files[2], cube_files[3], cube_files[5]]
+        no_23 = [cube_files[0], cube_files[1], cube_files[2], cube_files[4], cube_files[5]]
+        no_15 = [cube_files[0], cube_files[1], cube_files[3], cube_files[4], cube_files[5]]
+        no_8 = [cube_files[0], cube_files[2], cube_files[3], cube_files[4], cube_files[5]]
+        cube_sets = [no_8, no_15, no_23, no_30]
+        cube_set_names = ['no_8', 'no_15', 'no_23', 'no_30']
+        
+        for idx,cube_file_set in enumerate(cube_sets):
+            # calculate atomic energies in LDA relative to UEG with pbc
+            nuclei, atomic_energies, alch_pots = atomic_energy_decomposition(cube_file_set)
+            
+            # total energy from B3LYP
+            comp_name = comp_path.split('/')[len(comp_path.split('/'))-2]
+            total_energy = get_property(os.path.join('/home/misa/datasets/qm9', comp_name + '.xyz'), 'U0')
+            # energies of the free atoms in qm9
+            free_atoms = get_free_atom_data()
+            # free atom energy for every atom in compound
+            free_en = get_free_atom_energies(nuclei[:,0], free_atoms)
+            
+            atomisation_energies = calculate_atomisation_energies(atomic_energies, total_energy, free_en)
+            
+            # write atomic energies and alchemical potentials to file
+            store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies, atomisation_energies]).T
+            header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies\t atomisation_energies'
+            save_dir = os.path.join(comp_path, cube_set_names[idx]+'.txt')
+            np.savetxt(save_dir, store, delimiter='\t', header = header)
 
 def get_free_atom_energies(nuc, e_free):
     """
