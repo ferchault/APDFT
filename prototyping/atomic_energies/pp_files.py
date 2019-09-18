@@ -17,13 +17,13 @@ import qml
 def scale_ZV(zv_line, lamb):
     zv=float(zv_line.strip('ZV ='))
     new_zv = zv*lamb
-    new_zv_line = '  ZV = %f\n' %new_zv
+    new_zv_line = '  ZV = {}\n'.format(new_zv)
     return(new_zv_line)
     
 def scale_coeffs(coeffs_line, lamb):
     parts = np.array([float(_) for _ in coeffs_line.split('#')[0].strip().split()])
     parts[1:] *= lamb
-    formatstring = '%4d' + (len(parts)-1)*' %15.9f' + '   #C  C1 C2\n'
+    formatstring = '%4d' + (len(parts)-1)*' %20.15f' + '   #C  C1 C2\n'
     return(formatstring % (*parts,))
 
 def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='_SG_LDA'):
@@ -49,10 +49,10 @@ def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/softwar
         with open(path_file, 'w') as f:
             f.writelines(pp_file)
 
-# load compound date
-compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-# define parameters
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/fractional_charge/dsgdb9nsd_014656/lambda_0p2'
-lamb = 0.2
-# write pp-files to directory
-write_pp_files_compound(compound, lamb, calc_dir)
+## load compound date
+#compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_005349.xyz')
+## define parameters
+#calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/dsgdb9nsd_005349/box20/ve38/'
+#lamb = 1
+## write pp-files to directory
+#write_pp_files_compound(compound, lamb, calc_dir)
