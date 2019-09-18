@@ -139,3 +139,15 @@ def test_pyscf_input():
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
 	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
+
+def test_pyscf_nan():
+	lines = ['TOTAL_ENERGY 42']
+	assert (PyscfCalculator._read_value(None, 'TOTAL_ENERGY', False, lines) == np.array(42.))
+
+	lines = ['TOTAL_ENERGY nan']
+	with pytest.raises(ValueError):
+		PyscfCalculator._read_value(None, 'TOTAL_ENERGY', False, lines)
+
+def test_pyscf_array_read():
+	lines = ['ELECTRONIC_EPN 0 10', 'ELECTRONIC_EPN 1 11']
+	assert (np.allclose(PyscfCalculator._read_value(None, 'ELECTRONIC_EPN', True, lines)[:, 1], np.array((10, 11))))

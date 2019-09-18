@@ -6,6 +6,7 @@ import os
 import jinja2 as j
 import numpy as np
 from apdft import log
+import functools
 
 
 class PyscfCalculator(apc.Calculator):
@@ -23,7 +24,9 @@ class PyscfCalculator(apc.Calculator):
     def _format_basis(nuclear_numbers, basisset):
         basis = {}
         for nuclear_number in set(nuclear_numbers):
-            basis[nuclear_number] = bse.get_basis(basisset, int(nuclear_number), fmt="nwchem")
+            basis[nuclear_number] = bse.get_basis(
+                basisset, int(nuclear_number), fmt="nwchem"
+            )
         return str(basis)
 
     @staticmethod
@@ -48,15 +51,25 @@ class PyscfCalculator(apc.Calculator):
         return template.render(**env)
 
     @staticmethod
-    def _read_value(folder, label, multiple):
-        lines = open("%s/run.log" % folder).readlines()
+    @functools.lru_cache(maxsize=10)
+    def _cached_log_read(folder):
+        return open("%s/run.log" % folder).readlines()
+
+    @staticmethod
+    def _read_value(folder, label, multiple, lines=None):
+        if lines is None:
+            lines = PyscfCalculator._cached_log_read(folder)
         res = []
         for line in lines:
             parts = line.strip().split()
             if parts[0] == label:
                 res.append([float(_) for _ in parts[1:]])
+                # check for nan / inf values
+                if not np.isfinite(res[-1]).all():
+                    raise ValueError("Invalid value in log file.")
                 if not multiple:
                     return np.array(res[0])
+
         return np.array(res)
 
     @staticmethod
