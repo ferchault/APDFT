@@ -53,7 +53,7 @@ def mode_energies(conf, modeshort=None):
 
     # call APDFT library
     derivatives = ap.APDFT(
-        2,
+        conf.apdft_maxorder,
         nuclear_numbers,
         coordinates,
         ".",

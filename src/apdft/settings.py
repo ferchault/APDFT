@@ -96,6 +96,7 @@ class Configuration:
                 3,
                 "Restricts target molecules to have at most this change in nuclear charge per atom",
             ),
+            Option("apdft", "maxorder", int, 2, "Maximum alchemical expansion order"),
             Option(
                 "apdft",
                 "maxcharge",
