@@ -144,7 +144,6 @@ class APDFT(object):
                 if type(part) == int:
                     included.append(part)
                 else:
-                    print(self._nuclear_numbers == bse.lut.element_Z_from_sym(part))
                     included += list(
                         np.where(
                             self._nuclear_numbers == bse.lut.element_Z_from_sym(part)
