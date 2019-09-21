@@ -572,7 +572,9 @@ class APDFT(object):
             deltaZ = target - self._nuclear_numbers
 
             alphas = self.get_epn_coefficients(deltaZ)
-            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ), epn_matrix))
+            # alphas_included = alphas[self._include_atoms]
+            deltaZ_included = deltaZ[self._include_atoms]
+            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ_included), epn_matrix))
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             energies[targetidx] = deltaE + refenergy
 
