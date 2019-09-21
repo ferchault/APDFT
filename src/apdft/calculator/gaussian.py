@@ -78,7 +78,13 @@ class GaussianCalculator(calculator.Calculator):
         )
 
     def get_input(
-        self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
+        self,
+        coordinates,
+        nuclear_numbers,
+        nuclear_charges,
+        grid,
+        iscomparison=False,
+        includeonly=None,
     ):
         basedir = os.path.dirname(os.path.abspath(__file__))
         with open("%s/templates/gaussian.txt" % basedir) as fh:

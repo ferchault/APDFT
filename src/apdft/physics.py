@@ -192,7 +192,11 @@ class APDFT(object):
                         len(self._nuclear_numbers), order, combination, direction
                     )
                     inputfile = self._calculator.get_input(
-                        self._coordinates, self._nuclear_numbers, charges, None
+                        self._coordinates,
+                        self._nuclear_numbers,
+                        charges,
+                        None,
+                        includeonly=self._include_atoms,
                     )
                     with open("%s/run.inp" % path, "w") as fh:
                         fh.write(inputfile)

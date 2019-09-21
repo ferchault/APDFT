@@ -34,7 +34,13 @@ class PyscfCalculator(apc.Calculator):
         return ",".join([str(_) for _ in values])
 
     def get_input(
-        self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
+        self,
+        coordinates,
+        nuclear_numbers,
+        nuclear_charges,
+        grid,
+        iscomparison=False,
+        includeonly=None,
     ):
         basedir = os.path.dirname(os.path.abspath(__file__))
         with open("%s/templates/pyscf.py" % basedir) as fh:
@@ -43,11 +49,16 @@ class PyscfCalculator(apc.Calculator):
         env = {}
         env["atoms"] = PyscfCalculator._format_coordinates(nuclear_numbers, coordinates)
         env["basisset"] = PyscfCalculator._format_basis(nuclear_numbers, self._basisset)
-        env["includeonly"] = PyscfCalculator._format_list(range(len(nuclear_numbers)))
-        env["deltaZ"] = PyscfCalculator._format_list(
-            np.array(nuclear_charges) - np.array(nuclear_numbers)
-        )
         env["method"] = self._methods[self._method]
+
+        if includeonly is None:
+            includeonly = range(len(nuclear_numbers))
+        env["includeonly"] = PyscfCalculator._format_list(includeonly)
+
+        deltaZ = np.array(nuclear_charges) - np.array(nuclear_numbers)
+        deltaZ = deltaZ[includeonly]
+        env["deltaZ"] = PyscfCalculator._format_list(deltaZ)
+
         return template.render(**env)
 
     @staticmethod

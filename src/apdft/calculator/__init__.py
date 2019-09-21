@@ -11,7 +11,13 @@ class CalculatorInterface(object):
     """ All the functions that need to be implemented for a new code to be supported in APDFT. """
 
     def get_input(
-        self, coordinates, nuclear_numbers, nuclear_charges, grid, iscomparison=False
+        self,
+        coordinates,
+        nuclear_numbers,
+        nuclear_charges,
+        grid,
+        iscomparison=False,
+        includeonly=None,
     ):
         """ Generates the calculation input file for the external code. 
         
@@ -23,6 +29,7 @@ class CalculatorInterface(object):
             nuclear_charges:	A N array of the effective nuclear charges :math:`q_i`. [e]
             grid:               Deprecated.
             iscomparison:       Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.
+            includeonly:        A N' array of 0-based atom indices to be included in the evaluation.
         Returns:
             File contents as string.
         """
