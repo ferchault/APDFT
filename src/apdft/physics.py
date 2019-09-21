@@ -635,7 +635,7 @@ class APDFT(object):
             result_dipoles["reference_dipole_x"] = comparison_dipoles[:, 0]
             result_dipoles["reference_dipole_y"] = comparison_dipoles[:, 1]
             result_dipoles["reference_dipole_z"] = comparison_dipoles[:, 2]
-        pd.DataFrame(result_energies).to_csv("energies.csv")
-        pd.DataFrame(result_dipoles).to_csv("dipoles.csv")
+        pd.DataFrame(result_energies).to_csv("energies.csv", index=False)
+        pd.DataFrame(result_dipoles).to_csv("dipoles.csv", index=False)
 
         return targets, energies, comparison_energies
