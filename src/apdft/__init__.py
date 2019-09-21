@@ -32,7 +32,7 @@ def _setup_logging():
 
     structlog.configure(
         processors=[
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M"),
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M", utc=False),
             structlog.processors.StackInfoRenderer(),
             count_log_level_usage,
             structlog.processors.format_exc_info,
