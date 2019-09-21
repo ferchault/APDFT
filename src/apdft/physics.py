@@ -433,20 +433,24 @@ class APDFT(object):
         pos += 1
 
         # order 1
-        for site in self._include_atoms:
-            coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
-            coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
-            pos += 2
+        if 1 in self._orders:
+            for site in self._include_atoms:
+                coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
+                coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
+                pos += 2
 
         # order 2
-        for site_i in self._include_atoms:
-            for site_j in self._include_atoms:
-                if site_j <= site_i:
-                    continue
+        if 2 in self._orders:
+            for site_i in self._include_atoms:
+                for site_j in self._include_atoms:
+                    if site_j <= site_i:
+                        continue
 
-                coeff[pos, :] = get_epn(folders[pos], 2, "up", [site_i, site_j])
-                coeff[pos + 1, :] = get_epn(folders[pos + 1], 2, "dn", [site_i, site_j])
-                pos += 2
+                    coeff[pos, :] = get_epn(folders[pos], 2, "up", [site_i, site_j])
+                    coeff[pos + 1, :] = get_epn(
+                        folders[pos + 1], 2, "dn", [site_i, site_j]
+                    )
+                    pos += 2
 
         return coeff
 
