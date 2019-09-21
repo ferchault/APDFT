@@ -526,22 +526,26 @@
         <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-0/site-all-cc/&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">)</span>
 
         <span class="c1"># order 1</span>
-        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-            <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">))</span>
-            <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">))</span>
+        <span class="k">if</span> <span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">))</span>
+                <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-1/site-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site</span><span class="p">))</span>
 
         <span class="c1"># order 2</span>
-        <span class="k">for</span> <span class="n">site_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">site_j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">site_j</span> <span class="o">&lt;=</span> <span class="n">site_i</span><span class="p">:</span>
-                    <span class="k">continue</span>
+        <span class="k">if</span> <span class="mi">2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">site_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">site_j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">site_j</span> <span class="o">&lt;=</span> <span class="n">site_i</span><span class="p">:</span>
+                        <span class="k">continue</span>
 
-                <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-up/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">)</span>
-                <span class="p">)</span>
+                    <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-up/&quot;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">folders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/QM/order-2/site-</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">-dn/&quot;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basepath</span><span class="p">,</span> <span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">)</span>
+                    <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">folders</span></div>
 
@@ -567,6 +571,12 @@
                     <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
                     <span class="n">calulation</span><span class="o">=</span><span class="n">folder</span><span class="p">,</span>
                 <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+                <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                    <span class="s2">&quot;Calculation is missing a result file.&quot;</span><span class="p">,</span>
+                    <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
+                    <span class="n">calculation</span><span class="o">=</span><span class="n">folder</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">return</span> <span class="n">res</span>
 
         <span class="c1"># order 0</span>
@@ -577,20 +587,24 @@
         <span class="n">pos</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="c1"># order 1</span>
-        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-            <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">])</span>
-            <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;dn&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">])</span>
-            <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">])</span>
+                <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;dn&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site</span><span class="p">])</span>
+                <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
 
         <span class="c1"># order 2</span>
-        <span class="k">for</span> <span class="n">site_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">site_j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">site_j</span> <span class="o">&lt;=</span> <span class="n">site_i</span><span class="p">:</span>
-                    <span class="k">continue</span>
+        <span class="k">if</span> <span class="mi">2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orders</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">site_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">site_j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">site_j</span> <span class="o">&lt;=</span> <span class="n">site_i</span><span class="p">:</span>
+                        <span class="k">continue</span>
 
-                <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">])</span>
-                <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;dn&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">])</span>
-                <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
+                    <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span><span class="n">folders</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">])</span>
+                    <span class="n">coeff</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">get_epn</span><span class="p">(</span>
+                        <span class="n">folders</span><span class="p">[</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;dn&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">site_i</span><span class="p">,</span> <span class="n">site_j</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">pos</span> <span class="o">+=</span> <span class="mi">2</span>
 
         <span class="k">return</span> <span class="n">coeff</span></div>
 
