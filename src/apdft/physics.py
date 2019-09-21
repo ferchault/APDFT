@@ -494,12 +494,15 @@ class APDFT(object):
             )
 
         # filter for included atoms
+        ignore_atoms = list(
+            set(range(len(self._nuclear_numbers))) - set(self._include_atoms)
+        )
         if len(self._include_atoms) != len(self._nuclear_numbers):
             res = [
                 _
                 for _ in res
-                if [_[idx] for idx in self._include_atoms]
-                == [self._nuclear_numbers[idx] for idx in self._include_atoms]
+                if [_[idx] for idx in ignore_atoms]
+                == [self._nuclear_numbers[idx] for idx in ignore_atoms]
             ]
         return res
 
@@ -572,7 +575,6 @@ class APDFT(object):
             deltaZ = target - self._nuclear_numbers
 
             alphas = self.get_epn_coefficients(deltaZ)
-            # alphas_included = alphas[self._include_atoms]
             deltaZ_included = deltaZ[self._include_atoms]
             deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ_included), epn_matrix))
             deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc

@@ -170,3 +170,13 @@ def test_folder_respect_order_settings():
 	assert (len(d.get_folder_order()) == 1 + 3*2)
 	d = ap.APDFT(2, [1, 2, 3], np.zeros((3, 3)), '.', MockCalculator('method', 'basis_set'))
 	assert (len(d.get_folder_order()) == 1 + 3*2 + 3*2)
+
+def test_target_enumeration_limited_atom_selection():
+	d = ap.APDFT(0, [1, 2], np.zeros((2, 3)), '.', MockCalculator('method', 'basis_set'), 1, 1)
+	expected = set([(0, 2), (1, 1), (1, 2), (1, 3), (2, 2)])
+	actual = set([tuple(_) for _ in d.enumerate_all_targets()])
+	assert (actual == expected)
+	d = ap.APDFT(0, [1, 2], np.zeros((2, 3)), '.', MockCalculator('method', 'basis_set'), 1, 1, [0])
+	expected = set([(0, 2), (1, 2), (2, 2)])
+	actual = set([tuple(_) for _ in d.enumerate_all_targets()])
+	assert (actual == expected)
