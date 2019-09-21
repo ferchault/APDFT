@@ -162,3 +162,11 @@ def test_restricted_atom_set():
 	targets = set([tuple(_) for _ in d.enumerate_all_targets()])
 	expected = set([(2, 2)])
 	assert targets == expected
+
+def test_folder_respect_order_settings():
+	d = ap.APDFT(0, [1, 2, 3], np.zeros((3, 3)), '.', MockCalculator('method', 'basis_set'))
+	assert (len(d.get_folder_order()) == 1)
+	d = ap.APDFT(1, [1, 2, 3], np.zeros((3, 3)), '.', MockCalculator('method', 'basis_set'))
+	assert (len(d.get_folder_order()) == 1 + 3*2)
+	d = ap.APDFT(2, [1, 2, 3], np.zeros((3, 3)), '.', MockCalculator('method', 'basis_set'))
+	assert (len(d.get_folder_order()) == 1 + 3*2 + 3*2)

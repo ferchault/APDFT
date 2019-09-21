@@ -372,22 +372,26 @@ class APDFT(object):
         folders.append("%s/QM/order-0/site-all-cc/" % self._basepath)
 
         # order 1
-        for site in self._include_atoms:
-            folders.append("%s/QM/order-1/site-%d-up/" % (self._basepath, site))
-            folders.append("%s/QM/order-1/site-%d-dn/" % (self._basepath, site))
+        if 1 in self._orders:
+            for site in self._include_atoms:
+                folders.append("%s/QM/order-1/site-%d-up/" % (self._basepath, site))
+                folders.append("%s/QM/order-1/site-%d-dn/" % (self._basepath, site))
 
         # order 2
-        for site_i in self._include_atoms:
-            for site_j in self._include_atoms:
-                if site_j <= site_i:
-                    continue
+        if 2 in self._orders:
+            for site_i in self._include_atoms:
+                for site_j in self._include_atoms:
+                    if site_j <= site_i:
+                        continue
 
-                folders.append(
-                    "%s/QM/order-2/site-%d-%d-up/" % (self._basepath, site_i, site_j)
-                )
-                folders.append(
-                    "%s/QM/order-2/site-%d-%d-dn/" % (self._basepath, site_i, site_j)
-                )
+                    folders.append(
+                        "%s/QM/order-2/site-%d-%d-up/"
+                        % (self._basepath, site_i, site_j)
+                    )
+                    folders.append(
+                        "%s/QM/order-2/site-%d-%d-dn/"
+                        % (self._basepath, site_i, site_j)
+                    )
 
         return folders
 
@@ -412,6 +416,12 @@ class APDFT(object):
                     "Calculation with incomplete results.",
                     level="error",
                     calulation=folder,
+                )
+            except FileNotFoundError:
+                apdft.log.log(
+                    "Calculation is missing a result file.",
+                    level="error",
+                    calculation=folder,
                 )
             return res
 
