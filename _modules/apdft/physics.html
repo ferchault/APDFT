@@ -648,12 +648,15 @@
             <span class="p">)</span>
 
         <span class="c1"># filter for included atoms</span>
+        <span class="n">ignore_atoms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">)))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">):</span>
             <span class="n">res</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">_</span>
                 <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">res</span>
-                <span class="k">if</span> <span class="p">[</span><span class="n">_</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">]</span>
-                <span class="o">==</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">]</span>
+                <span class="k">if</span> <span class="p">[</span><span class="n">_</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">ignore_atoms</span><span class="p">]</span>
+                <span class="o">==</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">ignore_atoms</span><span class="p">]</span>
             <span class="p">]</span>
         <span class="k">return</span> <span class="n">res</span></div>
 
@@ -726,7 +729,8 @@
             <span class="n">deltaZ</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span>
 
             <span class="n">alphas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_epn_coefficients</span><span class="p">(</span><span class="n">deltaZ</span><span class="p">)</span>
-            <span class="n">deltaE</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">deltaZ</span><span class="p">),</span> <span class="n">epn_matrix</span><span class="p">))</span>
+            <span class="n">deltaZ_included</span> <span class="o">=</span> <span class="n">deltaZ</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">]</span>
+            <span class="n">deltaE</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="n">deltaZ_included</span><span class="p">),</span> <span class="n">epn_matrix</span><span class="p">))</span>
             <span class="n">deltaE</span> <span class="o">+=</span> <span class="n">Coulomb</span><span class="o">.</span><span class="n">nuclei_nuclei</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span> <span class="o">-</span> <span class="n">own_nuc_nuc</span>
             <span class="n">energies</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">deltaE</span> <span class="o">+</span> <span class="n">refenergy</span>
 
