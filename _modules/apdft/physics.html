@@ -346,7 +346,11 @@
                         <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">),</span> <span class="n">order</span><span class="p">,</span> <span class="n">combination</span><span class="p">,</span> <span class="n">direction</span>
                     <span class="p">)</span>
                     <span class="n">inputfile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculator</span><span class="o">.</span><span class="n">get_input</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="kc">None</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_nuclear_numbers</span><span class="p">,</span>
+                        <span class="n">charges</span><span class="p">,</span>
+                        <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">includeonly</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_include_atoms</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/run.inp&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
                         <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">inputfile</span><span class="p">)</span>

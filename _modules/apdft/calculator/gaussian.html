@@ -234,7 +234,13 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="GaussianCalculator.get_input"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_input">[docs]</a>    <span class="k">def</span> <span class="nf">get_input</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="n">nuclear_numbers</span><span class="p">,</span>
+        <span class="n">nuclear_charges</span><span class="p">,</span>
+        <span class="n">grid</span><span class="p">,</span>
+        <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">includeonly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">basedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/templates/gaussian.txt&quot;</span> <span class="o">%</span> <span class="n">basedir</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>

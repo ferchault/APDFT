@@ -266,7 +266,7 @@
 
 <dl class="method">
 <dt id="apdft.calculator.CalculatorInterface.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -277,6 +277,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
 <li><p><strong>grid</strong> – Deprecated.</p></li>
 <li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+<li><p><strong>includeonly</strong> – A N’ array of 0-based atom indices to be included in the evaluation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -348,7 +349,7 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 
 <dl class="method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -359,6 +360,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
 <li><p><strong>grid</strong> – Deprecated.</p></li>
 <li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+<li><p><strong>includeonly</strong> – A N’ array of 0-based atom indices to be included in the evaluation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -412,7 +414,7 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 
 <dl class="method">
 <dt>
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -423,6 +425,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <li><p><strong>nuclear_charges</strong> – A N array of the effective nuclear charges <span class="math notranslate nohighlight">\(q_i\)</span>. [e]</p></li>
 <li><p><strong>grid</strong> – Deprecated.</p></li>
 <li><p><strong>iscomparison</strong> – Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</p></li>
+<li><p><strong>includeonly</strong> – A N’ array of 0-based atom indices to be included in the evaluation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

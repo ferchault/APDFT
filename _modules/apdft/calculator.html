@@ -165,7 +165,13 @@
     <span class="sd">&quot;&quot;&quot; All the functions that need to be implemented for a new code to be supported in APDFT. &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="CalculatorInterface.get_input"><a class="viewcode-back" href="../../apdft.html#apdft.calculator.CalculatorInterface.get_input">[docs]</a>    <span class="k">def</span> <span class="nf">get_input</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="n">nuclear_numbers</span><span class="p">,</span>
+        <span class="n">nuclear_charges</span><span class="p">,</span>
+        <span class="n">grid</span><span class="p">,</span>
+        <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">includeonly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Generates the calculation input file for the external code. </span>
 <span class="sd">        </span>
@@ -177,6 +183,7 @@
 <span class="sd">            nuclear_charges:	A N array of the effective nuclear charges :math:`q_i`. [e]</span>
 <span class="sd">            grid:               Deprecated.</span>
 <span class="sd">            iscomparison:       Boolean. If the input is meant for a comparison calculation, this might allow for shortcuts.</span>
+<span class="sd">            includeonly:        A N&#39; array of 0-based atom indices to be included in the evaluation.</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            File contents as string.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
