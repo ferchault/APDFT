@@ -10,6 +10,7 @@ import glob
 import os
 from parse import parse_log_file
 import pandas as pd
+import numpy as np
 
 def get_tree(path, depth):
     """
@@ -142,7 +143,7 @@ def unified_convergence_lambda(path, lam_ve, save=None):
     else:
         return(df)
                 
-def order_cubes(dirs):
+def order_cubes(dirs, ordering='old'):
     """
     for every directory
     rename and move cube-files for every lambda value in new subdirectory
@@ -162,9 +163,17 @@ def order_cubes(dirs):
         paths_cube_files = glob.glob(path + '/*/*/DENSITY.cube')
         #sort paths to ensure that the cube-files from the last run is selected if several cube-files exist
         paths_cube_files.sort()
-        cube_dict = {'ve_8':'', 've_15':'', 've_23':'', 've_30':'', 've_38':''}
+        keys = ['ve_'+str(el) for el in np.arange(39)]
+        items = ['']*len(keys)
+        cube_dict = dict(zip(keys, items))
+ #       cube_dict = {'ve_2':'', 've_4':'','ve_6':'', 've_8':'','ve_10':'', 've_12':'', 've_14':'', 've_15':'', 've_23':'', 've_30':'', 've_38':''}
         for pcf in paths_cube_files:
-            num_ve = pcf.split('/')[len(pcf.split('/'))-2]
+            
+            if ordering == 'new':
+                num_ve = pcf.split('/')[len(pcf.split('/'))-3]
+            else:
+                num_ve = pcf.split('/')[len(pcf.split('/'))-2]
+            
             cube_dict[num_ve] = pcf
     
         for num_ve, pcf in cube_dict.items():
