@@ -22,6 +22,15 @@ def entry_cli():
         apdft.log.log("Unknown mode %s" % mode, level="error")
 
     # emphasize warnings
+    warningcount = apdft.LOG_LEVEL_USAGE.get("warning", 0)
+    if warningcount > 0:
+        apdft.log.log(
+            "This run had warnings. The results might be incomplete at worst. In absence of errors, existing results are ok.",
+            warningcount=warningcount,
+            level="warning",
+        )
+
+    # highlight errors
     errorcount = apdft.LOG_LEVEL_USAGE.get("error", 0)
     returncode = 0
     if errorcount > 0:
