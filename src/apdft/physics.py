@@ -618,6 +618,8 @@ class APDFT(object):
                         calculation=path,
                         target=target,
                     )
+                    comparison_energies[targetidx] = np.nan
+                    comparison_dipoles[targetidx] = np.nan
                     continue
 
                 nd = apdft.physics.Dipoles.point_charges(
