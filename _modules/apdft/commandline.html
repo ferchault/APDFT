@@ -176,6 +176,15 @@
         <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Unknown mode </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">mode</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
 
     <span class="c1"># emphasize warnings</span>
+    <span class="n">warningcount</span> <span class="o">=</span> <span class="n">apdft</span><span class="o">.</span><span class="n">LOG_LEVEL_USAGE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">warningcount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="s2">&quot;This run had warnings. The results might be incomplete at worst. In absence of errors, existing results are ok.&quot;</span><span class="p">,</span>
+            <span class="n">warningcount</span><span class="o">=</span><span class="n">warningcount</span><span class="p">,</span>
+            <span class="n">level</span><span class="o">=</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># highlight errors</span>
     <span class="n">errorcount</span> <span class="o">=</span> <span class="n">apdft</span><span class="o">.</span><span class="n">LOG_LEVEL_USAGE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">returncode</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">errorcount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
