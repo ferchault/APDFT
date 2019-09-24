@@ -607,7 +607,18 @@ class APDFT(object):
             comparison_dipoles = np.zeros((len(targets), 3))
             for targetidx, target in enumerate(targets):
                 path = "QM/comparison-%s" % "-".join(map(str, target))
-                comparison_energies[targetidx] = self._calculator.get_total_energy(path)
+                try:
+                    comparison_energies[targetidx] = self._calculator.get_total_energy(
+                        path
+                    )
+                except FileNotFoundError:
+                    apdft.log.log(
+                        "Comparison calculation is missing. Predictions are unaffected. Will skip this comparison.",
+                        level="warning",
+                        calculation=path,
+                        target=target,
+                    )
+                    continue
 
                 nd = apdft.physics.Dipoles.point_charges(
                     [0, 0, 0], self._coordinates, target
