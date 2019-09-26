@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 import os
 import basis_set_exchange as bse
-import tempfile
 from apdft.calculator import MockCalculator
 from apdft.calculator.gaussian import GaussianCalculator
 from apdft.calculator.pyscf import PyscfCalculator
@@ -15,27 +14,12 @@ BASEPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 def test_local_execution():
 	method = 'CCSD'
 	basisset = 'STO-3G'
-	c = MockCalculator(method, basisset)
 	c2 = GaussianCalculator(method, basisset)
 	coordinates = np.array([[0., 0., 0.], [0., 0., 1.]])
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	inputfile = c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
-
-	#with tempfile.TemporaryDirectory() as tmpname:
-		#os.chdir(tmpname)
-		#with open('run.inp', 'w') as fh:
-		#	fh.write(inputfile)
-		#with open('run.sh', 'w') as fh:
-		#	fh.write(c.get_runfile(coordinates, nuclear_numbers, nuclear_charges, grid))
-		#os.chmod('run.sh', 0o777)
-
-		#c.execute('.')
-
-		#with open('run.log') as fh:
-		#	assert set(' '.join(fh.readlines()).strip().split()) == set(['run.inp', 'run.sh'])
-		#os.chdir('..')
+	c2.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 
 def test_gaussian_input():
 	method = 'CCSD'
@@ -138,7 +122,7 @@ def test_pyscf_input():
 	nuclear_numbers = np.array([1, 1])
 	nuclear_charges = np.array([0.95, 1.05])
 	grid = None
-	inputfile = c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
+	c.get_input(coordinates, nuclear_numbers, nuclear_charges, grid)
 
 def test_pyscf_nan():
 	lines = ['TOTAL_ENERGY 42']
