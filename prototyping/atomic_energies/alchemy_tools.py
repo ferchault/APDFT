@@ -8,13 +8,50 @@ Created on Thu Aug 15 16:21:09 2019
 import os
 import numpy as np
 import scipy
+import glob
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
 
 from parse_cube_files import CUBE
-from explore_qml_data import get_property, get_free_atom_data
+from explore_qml_data import get_property
+from explore_qml_data import get_free_atom_data
+from explore_qml_data import get_num_val_elec
 
+def load_cube_data(paths_cubes):
+    """
+    returns the data necessary to calculate the atomic energies from the cube-files
+    for different lambda values
+    
+    paths_cubes: paths to cubes files
+    densities: densities given in different cube files
+    lam_vals: lambda value for cube file, obtained by parsing filename
+    nuclei: charges and coordinates of the nuclei
+    gpts: the gridpoints where density values are given
+    """
+    
+    densities = []
+    lam_vals = []
+    nuclei = None # nuclear charges and their positions
+    gpts = None # gridpoints where density values are given
+    
+    
+    for idx, path in enumerate(paths_cubes):
+        cube = CUBE(path)
+        
+        densities.append(cube.data_scaled) # density
+        
+        fname = os.path.split(path)[1] # lambda value
+        fname = fname.split('.')[0]
+        total_ve = get_num_val_elec(cube.atoms[:, 0])
+        lam = float(fname[3:])/total_ve
+        lam_vals.append(lam)
+        
+        if idx==len(paths_cubes)-1:
+            nuclei = cube.atoms
+            gpts = cube.get_grid()
+    
+    return(lam_vals, densities, nuclei, gpts)
 
 def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     """
@@ -109,7 +146,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid):
         
 def atomic_energy_decomposition(cube_files, intgr_method='trapz', save_dir=None):
     """
-    returns cahrge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
+    returns charge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
    
     cube_files: list of tuples
     tuple[0] = path to cube file and tuple[1] = lambda value for cube-file
@@ -217,6 +254,45 @@ def write_atomisation_energies(dirs):
         header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies\t atomisation_energies'
         save_dir = os.path.join(comp_path, 'atomic_energies_cspline.txt')
         np.savetxt(save_dir, store, delimiter='\t', header = header)
+        
+def write_atomisation_energies_new(dirs):
+    """
+    return atomisation energies for compounds given in dirs
+    dirs: path to compounds
+    """
+    for comp_path in dirs:
+        # get lambda = 0
+        path_ueg = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/ueg/ueg.cube'
+        cube_files = [(path_ueg, 0.0)] # stores tuples of paths and lambda values
+        # get paths and almbda_values
+        paths = glob.glob(comp_path+'/*.cube')
+        paths.sort()
+        
+        for path in paths:
+            num_ve = float(path.split('/')[-1].split('.')[0].split('_')[1])/38.0
+            cube_files.append([path, num_ve])
+#        print('##############################')
+#        [print(el) for el in cube_files]
+        
+        # calculate atomic energies in LDA relative to UEG with pbc
+        nuclei, atomic_energies, alch_pots = atomic_energy_decomposition(cube_files, intgr_method='trapz')
+        
+        # total energy from B3LYP
+        comp_name = comp_path.split('/')[len(comp_path.split('/'))-2]
+        total_energy = get_property(os.path.join('/home/misa/datasets/qm9', comp_name + '.xyz'), 'U0')
+        # energies of the free atoms in qm9
+        free_atoms = get_free_atom_data()
+        # free atom energy for every atom in compound
+        free_en = get_free_atom_energies(nuclei[:,0], free_atoms)
+        
+        atomisation_energies = calculate_atomisation_energies(atomic_energies, total_energy, free_en)
+        
+        # write atomic energies and alchemical potentials to file
+        store = np.array([nuclei[:,0], nuclei[:,1], nuclei[:,2], nuclei[:,3], alch_pots, atomic_energies, atomisation_energies]).T
+        header = 'charge\t x_coord\t y_coord\t z_coord\t alchemical_potential\t atomic_energies\t atomisation_energies'
+        save_dir = os.path.join(comp_path, 'many_lambdas.txt')
+        np.savetxt(save_dir, store, delimiter='\t', header = header)
+        
         
 def test_impact_lambda(dirs):
     """
