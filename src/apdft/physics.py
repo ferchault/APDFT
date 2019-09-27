@@ -166,7 +166,6 @@ class APDFT(object):
             apdft.log.log(
                 "Input folder exists. Reusing existing data.", level="warning"
             )
-            return
 
         commands = []
 
@@ -186,7 +185,10 @@ class APDFT(object):
 
                 for direction in directions:
                     path = "QM/order-%d/site%s-%s" % (order, label, direction)
-                    os.makedirs(path, exist_ok=True)
+                    commands.append("( cd %s && bash run.sh )" % path)
+                    if os.path.isdir(path):
+                        continue
+                    os.makedirs(path)
 
                     charges = self._nuclear_numbers + self._calculate_delta_Z_vector(
                         len(self._nuclear_numbers), order, combination, direction
@@ -206,7 +208,7 @@ class APDFT(object):
                                 self._coordinates, self._nuclear_numbers, charges, None
                             )
                         )
-                    commands.append("( cd %s && bash run.sh )" % path)
+
         if explicit_reference:
             targets = self.enumerate_all_targets()
             apdft.log.log(
