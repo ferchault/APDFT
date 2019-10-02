@@ -142,6 +142,13 @@ class Configuration:
                 "inp.xyz",
                 "XYZ file of the reference molecule",
             ),
+            Option(
+                "apdft",
+                "targets",
+                str,
+                None,
+                "List of targets to be evaluated (one target per line, comma separated nuclear charges).",
+            ),
         ]
         self.__dict__["_options"] = {}
         for option in options:

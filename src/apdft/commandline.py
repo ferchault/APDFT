@@ -2,6 +2,9 @@
 import argparse
 import enum
 
+import numpy as np
+import basis_set_exchange as bse
+
 import apdft
 import apdft.settings as aconf
 import apdft.calculator as acalc
@@ -46,6 +49,45 @@ def entry_cli():
     return returncode
 
 
+def parse_target_list(lines):
+    """ Separates an explicit target list.
+
+    Accepted values: - for a missing atom, labels, nuclear charges. One target per line, comma separated."""
+    ret = []
+    for lidx, line in enumerate(lines):
+        res = []
+        for part in line.strip().split(","):
+            if part == "-":
+                res.append(0)
+                continue
+            try:
+                res.append(int(part))
+                continue
+            except:
+                pass
+            try:
+                res.append(bse.lut.element_Z_from_sym(part))
+            except:
+                apdft.log.log(
+                    "Unknown element label in target list. Skipping entry.",
+                    elementlabel=part,
+                    lineno=lidx + 1,
+                    level="warning",
+                )
+                break
+        if res == []:
+            continue
+        if ret != [] and len(ret[0]) != len(res):
+            apdft.log.log(
+                "Line with different number of atoms found. Skipping entry.",
+                lineno=lidx + 1,
+                level="warning",
+            )
+            continue
+        ret.append(res)
+    return np.array(ret)
+
+
 def mode_energies(conf, modeshort=None):
     # select QM code
     calculator_options = conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
@@ -60,6 +102,13 @@ def mode_energies(conf, modeshort=None):
         )
         return
 
+    # Parse optional targetlist
+    if conf.apdft_targets is not None:
+        with open(conf.apdft_targets) as fh:
+            targetlist = parse_target_list(fh.readlines())
+    else:
+        targetlist = None
+
     # call APDFT library
     derivatives = ap.APDFT(
         conf.apdft_maxorder,
@@ -70,6 +119,7 @@ def mode_energies(conf, modeshort=None):
         conf.apdft_maxcharge,
         conf.apdft_maxdz,
         conf.apdft_includeonly,
+        targetlist,
     )
 
     cost, coverage = derivatives.estimate_cost_and_coverage()

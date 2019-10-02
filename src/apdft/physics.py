@@ -125,6 +125,7 @@ class APDFT(object):
         max_charge=0,
         max_deltaz=3,
         include_atoms=None,
+        targetlist=None,
     ):
         if highest_order > 2:
             raise NotImplementedError()
@@ -136,6 +137,7 @@ class APDFT(object):
         self._calculator = calculator
         self._max_charge = max_charge
         self._max_deltaz = max_deltaz
+        self._targetlist = targetlist
         if include_atoms is None:
             self._include_atoms = list(range(len(self._nuclear_numbers)))
         else:
@@ -478,6 +480,11 @@ class APDFT(object):
 			self:		Class instance from which the total charge and number of sites is determined.
 		Returns:
 			A list of lists with the integer nuclear charges."""
+        # there might be a user-specified explicit list
+        if self._targetlist is not None:
+            return self._targetlist
+
+        # Generate targets
         if self._max_deltaz is None:
             around = None
             limit = None

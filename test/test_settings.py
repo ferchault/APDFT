@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import pytest
 
+import numpy as np
+
 import apdft.settings as s
 import apdft.commandline as acmd
 
@@ -96,3 +98,15 @@ def test_parse_element_range():
     args = ['energies', '--apdft_includeonly', '0,1,C']
     acmd.parse_into(parser, configuration=conf, cliargs=args)
     assert conf.apdft_includeonly == [0,1, 'C']
+
+def test_parse_target_list():
+    lines = "C,O\n5,9\n-,14".split('\n')
+    actual = acmd.parse_target_list(lines)
+    expected = np.array(((6, 8), (5, 9), (0, 14)))
+    assert np.allclose(actual, expected)
+
+def test_parse_target_list_invalid():
+    lines = "C,O\n14".split('\n')
+    actual = acmd.parse_target_list(lines)
+    expected = np.array(((6, 8)))
+    assert np.allclose(actual, expected)
