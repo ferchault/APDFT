@@ -453,7 +453,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 <span id="physics-related-functions"></span><h2>Physics-related functions<a class="headerlink" href="#module-apdft.physics" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="apdft.physics.APDFT">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">basepath</em>, <em class="sig-param">calculator</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">basepath</em>, <em class="sig-param">calculator</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em>, <em class="sig-param">targetlist=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implementation of alchemical perturbation density functional theory.</p>
 <p>Requires a working directory <cite>basepath</cite> which allows for storing the intermediate calculation results.</p>
 <dl class="method">
@@ -768,6 +768,13 @@ Only those partitions are listed where the L1 norm of the distance between parti
 <dd class="field-even"><p>Mode of operation, single optional argument, updated configuration.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="apdft.commandline.parse_target_list">
+<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">parse_target_list</code><span class="sig-paren">(</span><em class="sig-param">lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#parse_target_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.parse_target_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Separates an explicit target list.</p>
+<p>Accepted values: - for a missing atom, labels, nuclear charges. One target per line, comma separated.</p>
 </dd></dl>
 
 </div>

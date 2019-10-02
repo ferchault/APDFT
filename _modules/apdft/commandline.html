@@ -156,6 +156,9 @@
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">enum</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">basis_set_exchange</span> <span class="k">as</span> <span class="nn">bse</span>
+
 <span class="kn">import</span> <span class="nn">apdft</span>
 <span class="kn">import</span> <span class="nn">apdft.settings</span> <span class="k">as</span> <span class="nn">aconf</span>
 <span class="kn">import</span> <span class="nn">apdft.calculator</span> <span class="k">as</span> <span class="nn">acalc</span>
@@ -200,6 +203,45 @@
     <span class="k">return</span> <span class="n">returncode</span></div>
 
 
+<div class="viewcode-block" id="parse_target_list"><a class="viewcode-back" href="../../apdft.html#apdft.commandline.parse_target_list">[docs]</a><span class="k">def</span> <span class="nf">parse_target_list</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Separates an explicit target list.</span>
+
+<span class="sd">    Accepted values: - for a missing atom, labels, nuclear charges. One target per line, comma separated.&quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">lidx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">part</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">part</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bse</span><span class="o">.</span><span class="n">lut</span><span class="o">.</span><span class="n">element_Z_from_sym</span><span class="p">(</span><span class="n">part</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                    <span class="s2">&quot;Unknown element label in target list. Skipping entry.&quot;</span><span class="p">,</span>
+                    <span class="n">elementlabel</span><span class="o">=</span><span class="n">part</span><span class="p">,</span>
+                    <span class="n">lineno</span><span class="o">=</span><span class="n">lidx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">level</span><span class="o">=</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">ret</span> <span class="o">!=</span> <span class="p">[]</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="s2">&quot;Line with different number of atoms found. Skipping entry.&quot;</span><span class="p">,</span>
+                <span class="n">lineno</span><span class="o">=</span><span class="n">lidx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="mode_energies"><a class="viewcode-back" href="../../apdft.html#apdft.commandline.mode_energies">[docs]</a><span class="k">def</span> <span class="nf">mode_energies</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">modeshort</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># select QM code</span>
     <span class="n">calculator_options</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">apdft_method</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">apdft_basisset</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">debug_superimpose</span>
@@ -214,6 +256,13 @@
         <span class="p">)</span>
         <span class="k">return</span>
 
+    <span class="c1"># Parse optional targetlist</span>
+    <span class="k">if</span> <span class="n">conf</span><span class="o">.</span><span class="n">apdft_targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">apdft_targets</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">targetlist</span> <span class="o">=</span> <span class="n">parse_target_list</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">targetlist</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="c1"># call APDFT library</span>
     <span class="n">derivatives</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">APDFT</span><span class="p">(</span>
         <span class="n">conf</span><span class="o">.</span><span class="n">apdft_maxorder</span><span class="p">,</span>
@@ -224,6 +273,7 @@
         <span class="n">conf</span><span class="o">.</span><span class="n">apdft_maxcharge</span><span class="p">,</span>
         <span class="n">conf</span><span class="o">.</span><span class="n">apdft_maxdz</span><span class="p">,</span>
         <span class="n">conf</span><span class="o">.</span><span class="n">apdft_includeonly</span><span class="p">,</span>
+        <span class="n">targetlist</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">cost</span><span class="p">,</span> <span class="n">coverage</span> <span class="o">=</span> <span class="n">derivatives</span><span class="o">.</span><span class="n">estimate_cost_and_coverage</span><span class="p">()</span>
