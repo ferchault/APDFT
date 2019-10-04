@@ -123,6 +123,8 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,6]
         elif value == 'atomic':
             energies[start:length+start] = alchemy_data[idx][:,5]
+        elif value == 'alch_pot':
+            energies[start:length+start] = alchemy_data[idx][:,4]
         start += length 
     
     return(energies)
@@ -230,7 +232,7 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
     for idx in range(0, num_cross):
         
         # split data into training and validation set
-        global_idc_tr, global_idc_val = get_indices(len(reps), tr_set_size)
+        global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
         local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
         rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
         labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
@@ -240,7 +242,7 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
         labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
         
         if molecule:
-            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val[1]], labels_splitted_loc[1]).mean()
+            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val], labels_splitted_loc[1]).mean()
         else:
             error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
     
@@ -316,13 +318,14 @@ def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10):
         
     # find set of hyperparameters with minimum mean error
     mean_errors = opt_data.mean(axis=0)[:,2] # mean error for every set of hyper-paramters
+    std = opt_data.std(axis=0)[:,2]
     min_error = np.amin(mean_errors) # minimum mean error
     idx_opt = np.where(mean_errors==min_error) # idx of set of hyperparameters with lowest mean error
     opt_sigma = opt_data[0][idx_opt][0,0] # sigma value for minimum error
     opt_lambda = opt_data[0][idx_opt][0,1] # lambda value for minimum error
     
     
-    return(opt_sigma, opt_lambda, min_error)
+    return(opt_sigma, opt_lambda, min_error, std)
         
 
 def optimize_hypar(rep, labels, sigmas, lams):
@@ -458,6 +461,29 @@ def train_kernel(rep_tr, labels_tr, sigma, lam_val):
     reg_kernel = tr_kernel + np.identity(len(tr_kernel))*lam_val
     coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
     return(coeffs)
+
+def partition_idx_by_charge(alchemy_data, idx_list):
+    """
+    partitions the idx in idx_list into groups, every group contains the indices
+    with the same charge; for every unique nuclear charge a tuple (charge, list of idx where nuclear_charge == charge)
+    is created and the list of these tuples is returned
+    
+    alchemy_data: output from write_atomisation_energies in alchemy tools
+    idx_list: global indices (molecules) that shall be partitioned into groups with the same charge
+    """
+    
+    nuc_charges = []
+    for idx in range(len(alchemy_data)):
+        nuc_charges.extend(alchemy_data[idx][:,0])
+    nuc_charges = np.array(nuc_charges)
+    
+    unique_charges = list(set(nuc_charges))
+    unique_charges.sort()
+    
+    charges_partitioned = []
+    for charge in unique_charges:
+        charges_partitioned.append((charge, np.where(nuc_charges == charge)))
+    return(charges_partitioned)
 
 def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
     
