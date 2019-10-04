@@ -125,6 +125,8 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,5]
         elif value == 'alch_pot':
             energies[start:length+start] = alchemy_data[idx][:,4]
+        elif value == 'atomisation_global':
+            energies[idx] = alchemy_data[idx][:, 6].sum()
         start += length 
     
     return(energies)
@@ -289,14 +291,19 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
     
     return(error_crossval.mean(), error_crossval.std())
 
-def split_data(reps, labels, tr_set_size, molecule_size):
+
+def split_data(reps, labels, tr_set_size, molecule_size, local=True):
     # split data into training and validation set
     global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
-    local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
-    rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
-    labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
+    if local == True:
+        local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
+        rep_splitted = reps[local_idc_tr], reps[local_idc_val] # select the representations
+        labels_splitted = labels[local_idc_tr], labels[local_idc_val] # select the labels
+    else:
+        rep_splitted = reps[global_idc_tr], reps[global_idc_val]
+        labels_splitted = labels[global_idc_tr], labels[global_idc_val]
     
-    return(rep_splitted_loc, labels_splitted_loc)
+    return(rep_splitted, labels_splitted)
 
 #def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
 #    sigmas_opt = np.zeros(num_cross)
