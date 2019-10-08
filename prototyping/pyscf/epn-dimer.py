@@ -3,22 +3,26 @@ import pyscf.gto
 import pyscf.scf
 import pyscf.dft
 import numpy as np
+import matplotlib.pyplot as plt
 
-class ElectronicEPN(object):
-    def __init__(self, Z1, Z2, distance):
-        """ Build and cache a dimer (Z1, Z2) at `distance` bond length, given in angstrom. """
-        mol = pyscf.gto.Mole(atom='%d 0 0 0.; %d %f 0 0' % (Z1, Z2, distance), basis='6-31G', verbose=0)
+class Calculator(object):
+    def __init__(self, zs, poss, spin):
+        atomspec = ['%d %f 0 0' % _ for _ in zip(zs, poss)]
+        mol = pyscf.gto.Mole(atom=';'.join(atomspec), basis='6-31G', verbose=0)
+        mol.spin = spin
         mol.build()
-        calc = pyscf.scf.RHF(mol)
+        calc = pyscf.scf.UHF(mol)
         self._etot = calc.kernel()
         self._dm = calc.make_rdm1()
         self._mol = mol
-        
+    
     def epn(self, pos):
-        """ Electrostatic potential in a.u. at position `pos` given in bohr."""
+        """ Electrostatic potential from the electrons in a.u. at position `pos` given in bohr."""
         pos = np.array([pos,0,0])
         self._mol.set_rinv_orig_(pos)
-        return np.matmul(self._dm, self._mol.intor("int1e_rinv")).trace()
+        alpha = np.matmul(self._dm[0], self._mol.intor("int1e_rinv")).trace()
+        beta = np.matmul(self._dm[1], self._mol.intor("int1e_rinv")).trace()
+        return alpha+beta
     
     def epn_total(self, pos):
         """ Electrostatic potential from the nuclei in a.u. at position `pos` given in bohr."""
@@ -33,10 +37,11 @@ class ElectronicEPN(object):
     
     def density(self, pos):
         """ Electron density in a.u. at position `pos` given in bohr."""
-        pos = np.array([[pos,0,0]])
+        pos = np.array([[pos, 0,0]])
         ao_value = pyscf.dft.numint.eval_ao(self._mol, pos, deriv=0)
-        rho = pyscf.dft.numint.eval_rho(self._mol, ao_value, self._dm, xctype="LDA")
-        return rho[0]
+        rho_alpha = pyscf.dft.numint.eval_rho(self._mol, ao_value, self._dm[0], xctype="LDA")
+        rho_beta = pyscf.dft.numint.eval_rho(self._mol, ao_value, self._dm[1], xctype="LDA")
+        return rho_alpha[0] + rho_beta[0]
 
     def total_energy_with_NN(self):
         """ Total energy including N-N interactions in a.u."""
@@ -44,4 +49,35 @@ class ElectronicEPN(object):
     
     def electron_nuclear_interaction(self):
         """ Interaction energy between electrons and nuclei in a.u."""
-        return sum([self.epn(_[2]) for _ in self._mol.atom_coords()])
+        return sum([self.epn(_[0]) for _ in self._mol.atom_coords()])
+    
+    
+class ElectronicEPN(object):
+    def __init__(self, z1, z2, distance, mode=None):
+        """ Build and cache a dimer (Z1, Z2) at `distance` bond length, given in angstrom. """
+        self._calculator = Calculator((z1, z2), (0, distance), 0)
+        self._mode = mode
+        
+        spins = [0, 1, 0, 1, 0, 1, 2, 3, 2, 1, 0]
+        if self._mode == 'remove_free_atom_density':
+            self._atom1 = Calculator((z1,), (0,), spins[z1])
+            self._atom2 = Calculator((z2,), (distance,), spins[z2])
+    
+    def epn_total(self, pos):
+        if self._mode == 'remove_free_atom_density':
+            return self._calculator.epn_total(pos) - self._atom1.epn_total(pos) - self._atom2.epn_total(pos)
+        return self._calculator.epn_total(pos)
+    
+    def epn(self, pos):
+        if self._mode == 'remove_free_atom_density':
+            return self._calculator.epn(pos) - self._atom1.epn(pos) - self._atom2.epn(pos)
+        return self._calculator.epn(pos)
+    
+    def density(self, pos):
+        return self._calculator.density(pos)
+    
+    def total_energy_with_NN(self):
+        return self._calculator.total_energy_with_NN()
+
+    def electron_nuclear_interaction(self):
+        return self._calculator.electron_nuclear_interaction()
