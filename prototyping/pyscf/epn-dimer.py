@@ -20,6 +20,17 @@ class ElectronicEPN(object):
         self._mol.set_rinv_orig_(pos)
         return np.matmul(self._dm, self._mol.intor("int1e_rinv")).trace()
     
+    def epn_total(self, pos):
+        """ Electrostatic potential from the nuclei in a.u. at position `pos` given in bohr."""
+        pot = 0
+        for site in range(self._mol.natm):
+            ds = abs(self._mol.atom_coords()[site, 0] - pos)
+            if ds > 1e-4:
+                pot += self._mol.atom_charges()[site] / ds
+            else:
+                return np.nan
+        return self.epn(pos) - pot
+    
     def density(self, pos):
         """ Electron density in a.u. at position `pos` given in bohr."""
         pos = np.array([[pos,0,0]])
