@@ -71,7 +71,7 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
     
 def wrapper_global_representations(alchemy_data, molecule_size, rep_par='coulomb'):
     """
-    generates the local representations for every atom
+    generates the representations for all molecules
     returns a 2D numpy array where every row contains the representation for one atom
     
     alchemy_data: list every element contains the information about the atoms in one molecule
@@ -123,6 +123,10 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,6]
         elif value == 'atomic':
             energies[start:length+start] = alchemy_data[idx][:,5]
+        elif value == 'alch_pot':
+            energies[start:length+start] = alchemy_data[idx][:,4]
+        elif value == 'atomisation_global':
+            energies[idx] = alchemy_data[idx][:, 6].sum()
         start += length 
     
     return(energies)
@@ -210,6 +214,47 @@ def split_kernel(full_kernel, tr_indices, test_indices):
     
     return(tr_kernel, test_kernel)
 
+def crossvalidate_new(reps, labels, molecule_size, tr_set_size, sigma, lam_val, local=True, molecule=False, num_cross=10):
+    """
+    calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
+    
+    reps: representations of training and validation data
+    labels: labels of training and validation data
+    molecule_size: the number of atoms for every representation
+    tr_set_size: the size of the training set
+    sigma: the kernel width
+    lam_val: the regularizer
+    num_cross: the number of cross-validations
+    
+    error_crossval: the mean error for every cross-validation run
+    """
+    
+    error_crossval = np.zeros(num_cross)
+    
+    for idx in range(0, num_cross):
+        
+        # split data into training and validation set
+        idc_tr, idc_val = get_indices(len(molecule_size), tr_set_size)
+        
+        if local == True:
+            local_idc_tr, local_idc_val = get_local_idx(idc_tr, molecule_size), get_local_idx(idc_val, molecule_size)
+            rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
+            labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
+        else:
+            rep_splitted_loc = reps[idc_tr], reps[idc_val] # select the representations
+            labels_splitted_loc = labels[idc_tr], labels[idc_val] # select the labels
+        
+        # calculate error
+        coeffs = train_kernel(rep_splitted_loc[0], labels_splitted_loc[0], sigma, lam_val)
+        labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
+        
+        if molecule:
+            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[idc_val], labels_splitted_loc[1]).mean()
+        else:
+            error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
+    
+    return(error_crossval.mean(), error_crossval.std())
+
 def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, molecule=False, num_cross=10):
     """
     calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
@@ -230,7 +275,7 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
     for idx in range(0, num_cross):
         
         # split data into training and validation set
-        global_idc_tr, global_idc_val = get_indices(len(reps), tr_set_size)
+        global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
         local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
         rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
         labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
@@ -240,20 +285,25 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
         labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
         
         if molecule:
-            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val[1]], labels_splitted_loc[1]).mean()
+            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val], labels_splitted_loc[1]).mean()
         else:
             error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
     
     return(error_crossval.mean(), error_crossval.std())
 
-def split_data(reps, labels, tr_set_size, molecule_size):
+
+def split_data(reps, labels, tr_set_size, molecule_size, local=True):
     # split data into training and validation set
     global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
-    local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
-    rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
-    labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
+    if local == True:
+        local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
+        rep_splitted = reps[local_idc_tr], reps[local_idc_val] # select the representations
+        labels_splitted = labels[local_idc_tr], labels[local_idc_val] # select the labels
+    else:
+        rep_splitted = reps[global_idc_tr], reps[global_idc_val]
+        labels_splitted = labels[global_idc_tr], labels[global_idc_val]
     
-    return(rep_splitted_loc, labels_splitted_loc)
+    return(rep_splitted, labels_splitted)
 
 #def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
 #    sigmas_opt = np.zeros(num_cross)
@@ -316,13 +366,14 @@ def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10):
         
     # find set of hyperparameters with minimum mean error
     mean_errors = opt_data.mean(axis=0)[:,2] # mean error for every set of hyper-paramters
+    std = opt_data.std(axis=0)[:,2]
     min_error = np.amin(mean_errors) # minimum mean error
     idx_opt = np.where(mean_errors==min_error) # idx of set of hyperparameters with lowest mean error
     opt_sigma = opt_data[0][idx_opt][0,0] # sigma value for minimum error
     opt_lambda = opt_data[0][idx_opt][0,1] # lambda value for minimum error
     
     
-    return(opt_sigma, opt_lambda, min_error)
+    return(opt_sigma, opt_lambda, min_error, std)
         
 
 def optimize_hypar(rep, labels, sigmas, lams):
@@ -458,6 +509,29 @@ def train_kernel(rep_tr, labels_tr, sigma, lam_val):
     reg_kernel = tr_kernel + np.identity(len(tr_kernel))*lam_val
     coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
     return(coeffs)
+
+def partition_idx_by_charge(alchemy_data, idx_list):
+    """
+    partitions the idx in idx_list into groups, every group contains the indices
+    with the same charge; for every unique nuclear charge a tuple (charge, list of idx where nuclear_charge == charge)
+    is created and the list of these tuples is returned
+    
+    alchemy_data: output from write_atomisation_energies in alchemy tools
+    idx_list: global indices (molecules) that shall be partitioned into groups with the same charge
+    """
+    
+    nuc_charges = []
+    for idx in range(len(alchemy_data)):
+        nuc_charges.extend(alchemy_data[idx][:,0])
+    nuc_charges = np.array(nuc_charges)
+    
+    unique_charges = list(set(nuc_charges))
+    unique_charges.sort()
+    
+    charges_partitioned = []
+    for charge in unique_charges:
+        charges_partitioned.append((charge, np.where(nuc_charges == charge)))
+    return(charges_partitioned)
 
 def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
     
