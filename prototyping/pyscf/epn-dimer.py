@@ -91,8 +91,8 @@ class ElectronicEPN(object):
     
     def epn(self, pos):
         """ The true electrostatic potential at `pos`."""
-        #if self._mode == 'remove_free_atom_density':
-        #    return self._calculator.epn(pos) - self._atom1.epn(pos) - self._atom2.epn(pos)
+        if self._mode == 'remove_free_atom_density':
+            return self._calculator.epn(pos) - self._atom1.epn(pos) - self._atom2.epn(pos)
         return self._calculator.epn(pos)
     
     def epd(self, pos):
