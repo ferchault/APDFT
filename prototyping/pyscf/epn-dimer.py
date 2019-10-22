@@ -103,6 +103,9 @@ class ElectronicEPN(object):
         return self._atom1.radial_epn(pos) + self._atom2.radial_epn(pos)
 
     def density(self, pos):
+        """ The electron density at pos along the bond axis."""
+        if self._mode == 'remove_free_atom_density':
+            return self._calculator.density(pos) - self._atom1.density(pos) - self._atom2.density(pos)
         return self._calculator.density(pos)
     
     def total_energy_with_NN(self):
