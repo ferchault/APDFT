@@ -76,7 +76,7 @@ class Calculator(object):
 class ElectronicEPN(object):
     def __init__(self, z1, z2, distance, mode=None):
         """ Build and cache a dimer (Z1, Z2) at `distance` bond length, given in angstrom. """
-        self._calculator = Calculator((z1, z2), (0, distance), 0)
+        self._calculator = Calculator((z1, z2), (0, distance), (z1 + z2) % 2)
         self._mode = mode
         
         spins = [0, 1, 0, 1, 0, 1, 2, 3, 2, 1, 0]
@@ -85,6 +85,7 @@ class ElectronicEPN(object):
             self._atom2 = Calculator((z2,), (distance,), spins[z2])
         
     def epn_total(self, pos):
+        """ Total EPN (including nuclei) at pos."""
         if self._mode == 'remove_free_atom_density':
             return self._calculator.epn_total(pos) - self._atom1.epn_total(pos) - self._atom2.epn_total(pos)
         return self._calculator.epn_total(pos)
