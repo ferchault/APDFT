@@ -21,7 +21,7 @@ class Calculator(object):
     
     def epn(self, pos):
         """ Electrostatic potential from the electrons in a.u. at position `pos` given in bohr."""
-        pos = np.array([pos,0,0])
+        pos = np.array(pos)
         self._mol.set_rinv_orig_(pos)
         alpha = np.matmul(self._dm[0], self._mol.intor("int1e_rinv")).trace()
         beta = np.matmul(self._dm[1], self._mol.intor("int1e_rinv")).trace()
@@ -31,7 +31,7 @@ class Calculator(object):
         """ Electrostatic potential from the nuclei in a.u. at position `pos` given in bohr."""
         pot = 0
         for site in range(self._mol.natm):
-            ds = abs(self._mol.atom_coords()[site, 0] - pos)
+            ds = np.linalg.norm(self._mol.atom_coords()[site] - pos)
             if ds > 1e-4:
                 pot += self._mol.atom_charges()[site] / ds
             else:
@@ -40,11 +40,13 @@ class Calculator(object):
     
     def density(self, pos):
         """ Electron density in a.u. at position `pos` given in bohr."""
-        pos = np.array([[pos, 0,0]])
+        pos = np.array(pos)
+        assert len(pos.shape) == 2, 'Coordinates need to be Nx3 array.'
+        assert pos.shape[1] == 3, 'Coordinates need to be in in 3 dim.'
         ao_value = pyscf.dft.numint.eval_ao(self._mol, pos, deriv=0)
         rho_alpha = pyscf.dft.numint.eval_rho(self._mol, ao_value, self._dm[0], xctype="LDA")
         rho_beta = pyscf.dft.numint.eval_rho(self._mol, ao_value, self._dm[1], xctype="LDA")
-        return rho_alpha[0] + rho_beta[0]
+        return rho_alpha + rho_beta
 
     def total_energy_with_NN(self):
         """ Total energy including N-N interactions in a.u."""
@@ -52,7 +54,7 @@ class Calculator(object):
     
     def electron_nuclear_interaction(self):
         """ Interaction energy between electrons and nuclei in a.u."""
-        return sum([self.epn(_[0]) for _ in self._mol.atom_coords()])
+        return sum([self.epn(_) for _ in self._mol.atom_coords()])
     
     def density3d(self, coordinates):
         ao_value = pyscf.dft.numint.eval_ao(self._mol, coordinates, deriv=0)
@@ -65,7 +67,7 @@ class Calculator(object):
         epns = []
         dr = self._grid_ds[1] - self._grid_ds[0]
         for d in self._grid_ds:
-            pts = self._grid_scheme.points * d + np.array([[pos, 0,0]])
+            pts = self._grid_scheme.points * d + np.array(pos)
             rho = self.density3d(pts)
             epn = sum(rho * self._grid_scheme.weights / d)
             epn *= 4*np.pi * d**2 * dr
@@ -114,4 +116,8 @@ class ElectronicEPN(object):
 
     def electron_nuclear_interaction(self):
         return self._calculator.electron_nuclear_interaction()
-    
+
+if __name__ == '__main__':
+    e = ElectronicEPN(6, 8, 2, 'remove_free_atom_density')
+    print (e.density([[0, 1, 2], [1, 2, 3]])) 
+    print (e.density([[0, 1, 2]])) 
