@@ -74,6 +74,12 @@ class Calculator(object):
             epns.append(epn)
         
         return np.array(epns)
+
+    def get_adaptive_grid(self):
+        grid = pyscf.dft.gen_grid.Grids(self._mol)
+        grid.level = 3
+        grid.build()
+        return grid.coords
     
 class ElectronicEPN(object):
     def __init__(self, z1, z2, distance, mode=None):
@@ -117,7 +123,11 @@ class ElectronicEPN(object):
     def electron_nuclear_interaction(self):
         return self._calculator.electron_nuclear_interaction()
 
+    def get_adaptive_grid(self):
+        return self._calculator.get_adaptive_grid()
+
 if __name__ == '__main__':
     e = ElectronicEPN(6, 8, 2, 'remove_free_atom_density')
     print (e.density([[0, 1, 2], [1, 2, 3]])) 
     print (e.density([[0, 1, 2]])) 
+    print (e.get_adaptive_grid().shape)
