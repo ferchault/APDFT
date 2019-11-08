@@ -80,40 +80,6 @@ def integrate_lambda_density(density_arrays, lam_vals, method='trapz'):
     
     return(averaged_density)
     
-def distance_MIC2(pos_nuc, meshgrid, h_matrix):
-    """
-    calculates the distance between the position of the nucleus and the nearest image of a gridpoint
-    works so far only for cubic symmetry
-    
-    pos_nuc: position of nucleus
-    meshgrid: meshgrid containing x,y,z components of every gridpoint
-    h_matrix: needed for calculation of MIC distance
-    :return: distance between pos_nuc and every gridpoint
-    :rtype: numpy array of shape meshgrid.shape
-    """
-    
-    hinv = np.linalg.inv(h_matrix)
-    a_t = np.dot(hinv, pos_nuc)
-    
-    # calculate product of h_matrix and grid componentwise
-    b_t_x = hinv[0][0]*meshgrid[0]
-    b_t_y = hinv[1][1]*meshgrid[1]
-    b_t_z = +hinv[2][2]*meshgrid[2]
-    
-    t_12_x = b_t_x - a_t[0]
-    t_12_y = b_t_y - a_t[1]
-    t_12_z = b_t_z - a_t[2]
-    
-    t_12_x -= np.round(t_12_x)
-    t_12_y -= np.round(t_12_y)
-    t_12_z -= np.round(t_12_z)
-    
-    x = np.power(h_matrix[0][0]*t_12_x, 2)
-    y = np.power(h_matrix[1][1]*t_12_y, 2)
-    z = np.power(h_matrix[2][2]*t_12_z, 2)
-    
-    return(np.sqrt(x+y+z))
-    
 def reshape_densities(density_arrays):
     """
     takes a list of densities where each density is represented on a 3D grid;
@@ -162,7 +128,7 @@ def calculate_alchemical_potential(density, meshgrid, pos_nuc):
     # density already scaled
     return(-(density.flatten()/dist_gpt_nuc).sum())
     
-def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
+def calculate_atomic_energies(density, nuclei, meshgrid):
     """
     returns the atomic energies of the compound
     nuclei: charge and coordinates of nuclei in compound
@@ -172,9 +138,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
     atomic_energies = np.empty(nuclei.shape[0])
     alch_pots = np.empty(nuclei.shape[0])
     for idx, nuc in enumerate(nuclei):
-        distance_nuc_grid = distance_MIC2(nuc[1:4], meshgrid, h_matrix)
-        alch_pot = -(density/distance_nuc_grid).sum()
-#        alch_pot = calculate_alchemical_potential(density, meshgrid, nuc[1:4])
+        alch_pot = calculate_alchemical_potential(density, meshgrid, nuc[1:4])
         alch_pots[idx] = alch_pot
         atomic_energies[idx] = nuc[0]*alch_pot
     
@@ -199,8 +163,6 @@ def atomic_energy_decomposition(cube_files, intgr_method='trapz', save_dir=None)
     lam_vals = [] # lambda values of the densities
     nuclei = None # charge and positions of nuclei
     gpts = None # grid points where the density is given
-    h_matrix = np.zeros((3,3))
-    
     for idx, file in enumerate(cube_files):
         cube_obj = CUBE(file[0])
         cube_obj.scale()
@@ -210,7 +172,6 @@ def atomic_energy_decomposition(cube_files, intgr_method='trapz', save_dir=None)
         if idx == len(cube_files)-1: # read these values only from one cube file because they are always the same
             nuclei = np.array(cube_obj.atoms)
             gpts = cube_obj.get_grid()
-            h_matrix = [cube_obj.X*cube_obj.NX, cube_obj.Y*cube_obj.NY, cube_obj.Z*cube_obj.NZ]
             
     
     # integrate density with respect to lambda
@@ -218,7 +179,7 @@ def atomic_energy_decomposition(cube_files, intgr_method='trapz', save_dir=None)
     av_dens = integrate_lambda_density(scaled_densities, lam_vals, method=intgr_method)
     
     # calculate alchemical potentials and atomic energies
-    atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts, h_matrix)
+    atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts)
     
     if save_dir:
         # write atomic energies and alchemical potentials to file
