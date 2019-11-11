@@ -103,7 +103,7 @@ def mode_energies(conf, modeshort=None):
         return
 
     # Parse optional targetlist
-    if conf.apdft_targets is not None:
+    if len(conf.apdft_targets) != 0:
         with open(conf.apdft_targets) as fh:
             targetlist = parse_target_list(fh.readlines())
     else:
