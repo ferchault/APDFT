@@ -311,13 +311,17 @@ class APDFT(object):
         if comparison_energies is None:
             for target, energy in zip(targets, energies):
                 targetname = APDFT._get_target_name(target)
+                kwargs = dict()
+                for order in self._orders:
+                    kwargs["order%d" % order] = energy[order]
                 apdft.log.log(
                     "Energy calculated",
                     level="RESULT",
-                    value=energy,
+                    value=energy[-1],
                     kind="total_energy",
                     target=target,
                     targetname=targetname,
+                    **kwargs
                 )
         else:
             for target, energy, comparison in zip(
@@ -339,13 +343,17 @@ class APDFT(object):
         if comparison_dipoles is None:
             for target, dipole in zip(targets, dipoles):
                 targetname = APDFT._get_target_name(target)
+                kwargs = dict()
+                for order in self._orders:
+                    kwargs["order%d" % order] = list(dipole[:, order])
                 apdft.log.log(
                     "Dipole calculated",
                     level="RESULT",
                     kind="total_dipole",
-                    value=list(dipole),
+                    value=list(dipole[:, -1]),
                     target=target,
                     targetname=targetname,
+                    **kwargs
                 )
         else:
             for target, dipole, comparison in zip(targets, dipoles, comparison_dipoles):
@@ -435,10 +443,12 @@ class APDFT(object):
 
         # order 0
         pos = 0
+        slices = []
 
         # order 0
         coeff[pos, :] = get_epn(folders[pos], 0, "up", 0)
         pos += 1
+        slices.append((0, pos))
 
         # order 1
         if 1 in self._orders:
@@ -446,6 +456,7 @@ class APDFT(object):
                 coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
                 coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
                 pos += 2
+        slices.append((slices[-1][1], pos))
 
         # order 2
         if 2 in self._orders:
@@ -459,8 +470,9 @@ class APDFT(object):
                         folders[pos + 1], 2, "dn", [site_i, site_j]
                     )
                     pos += 2
+        slices.append((slices[-1][1], pos))
 
-        return coeff
+        return coeff, [slice(a, b) for a, b in slices]
 
     def get_linear_density_coefficients(self, deltaZ):
         """ Obtains the finite difference coefficients for a property linear in the density. 
@@ -568,15 +580,14 @@ class APDFT(object):
         targets = self.enumerate_all_targets()
         own_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
 
-        energies = np.zeros(len(targets))
-        dipoles = np.zeros((len(targets), 3))
-        natoms = len(self._coordinates)
+        energies = np.zeros((len(targets), len(self._orders)))
+        dipoles = np.zeros((len(targets), 3, len(self._orders)))
 
         # get base information
         refenergy = self.get_energy_from_reference(
             self._nuclear_numbers, is_reference_molecule=True
         )
-        epn_matrix = self.get_epn_matrix()
+        epn_matrix, orderslices = self.get_epn_matrix()
         dipole_matrix = self.get_linear_density_matrix("ELECTRONIC_DIPOLE")
 
         # get target predictions
@@ -585,17 +596,28 @@ class APDFT(object):
 
             alphas = self.get_epn_coefficients(deltaZ)
             deltaZ_included = deltaZ[self._include_atoms]
-            deltaE = -np.sum(np.multiply(np.outer(alphas, deltaZ_included), epn_matrix))
-            deltaE += Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
-            energies[targetidx] = deltaE + refenergy
 
+            # energies
+            contributions = -np.multiply(np.outer(alphas, deltaZ_included), epn_matrix)
+            deltaEnn = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
+            for order in sorted(self._orders):
+                energies[targetidx, order] = np.sum(contributions[orderslices[order]])
+                energies[targetidx, order] += np.sum(energies[targetidx, :order])
+            energies[targetidx, :] += deltaEnn + refenergy
+
+            # dipoles
             if dipole_matrix is not None:
                 betas = self.get_linear_density_coefficients(deltaZ)
                 nuc_dipole = Dipoles.point_charges(
                     self._coordinates.mean(axis=0), self._coordinates, target
                 )
-                ed = np.multiply(dipole_matrix, betas[:, np.newaxis]).sum(axis=0)
-                dipoles[targetidx] = ed + nuc_dipole
+                ed = np.multiply(dipole_matrix, betas[:, np.newaxis])  # .sum(axis=0)
+                for order in sorted(self._orders):
+                    dipoles[targetidx, :, order] = ed[orderslices[order]].sum(axis=0)
+                    dipoles[targetidx, :, order] += np.sum(
+                        dipoles[targetidx, :, :order]
+                    )
+                dipoles[targetidx] += nuc_dipole[:, np.newaxis]
 
         # return results
         return targets, energies, dipoles
@@ -645,13 +667,20 @@ class APDFT(object):
 
         # persist results to disk
         targetnames = [APDFT._get_target_name(_) for _ in targets]
-        result_energies = {"targets": targetnames, "total_energy": energies}
+        result_energies = {"targets": targetnames, "total_energy": energies[:, -1]}
+        for order in self._orders:
+            result_energies["total_energy_order%d" % order] = energies[:, order]
         result_dipoles = {
             "targets": targetnames,
-            "dipole_moment_x": dipoles[:, 0],
-            "dipole_moment_y": dipoles[:, 1],
-            "dipole_moment_z": dipoles[:, 2],
+            "dipole_moment_x": dipoles[:, 0, -1],
+            "dipole_moment_y": dipoles[:, 1, -1],
+            "dipole_moment_z": dipoles[:, 2, -1],
         }
+        for order in self._orders:
+            for didx, dim in enumerate("xyz"):
+                result_dipoles["dipole_moment_%s_order%d" % (dim, order)] = dipoles[
+                    :, didx, order
+                ]
         if explicit_reference:
             result_energies["reference_energy"] = comparison_energies
             result_dipoles["reference_dipole_x"] = comparison_dipoles[:, 0]
