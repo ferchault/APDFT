@@ -7,8 +7,6 @@ import pyscf.scf
 import pyscf.dft
 import pyscf.lib
 from pyscf.data import nist
-import matplotlib.pyplot as plt
-import basis_set_exchange as bse
 
 angstrom = 1 / 0.52917721067
 
