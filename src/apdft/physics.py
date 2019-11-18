@@ -256,7 +256,7 @@ class APDFT(object):
         # build alphas
         N = len(self._include_atoms)
         nvals = {0: 1, 1: N * 2, 2: N * (N - 1)}
-        alphas = np.zeros(sum([nvals[_] for _ in self._orders]))
+        alphas = np.zeros((sum([nvals[_] for _ in self._orders]), len(self._orders)))
 
         # test input
         if N != len(deltaZ):
@@ -264,14 +264,14 @@ class APDFT(object):
 
         # order 0
         if 0 in self._orders:
-            alphas[0] = 1
+            alphas[0, 0] = 1
 
         # order 1
         if 1 in self._orders:
             prefactor = 1 / (2 * self._delta) / np.math.factorial(1 + shift)
             for siteidx in range(N):
-                alphas[1 + siteidx * 2] += prefactor * deltaZ[siteidx]
-                alphas[1 + siteidx * 2 + 1] -= prefactor * deltaZ[siteidx]
+                alphas[1 + siteidx * 2, 1] += prefactor * deltaZ[siteidx]
+                alphas[1 + siteidx * 2 + 1, 1] -= prefactor * deltaZ[siteidx]
 
         # order 2
         if 2 in self._orders:
@@ -287,21 +287,21 @@ class APDFT(object):
                             2 + shift
                         )
                         prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
-                        alphas[pos] += prefactor
-                        alphas[pos + 1] += prefactor
-                        alphas[0] += 2 * prefactor
-                        alphas[1 + siteidx_i * 2] -= prefactor
-                        alphas[1 + siteidx_i * 2 + 1] -= prefactor
-                        alphas[1 + siteidx_j * 2] -= prefactor
-                        alphas[1 + siteidx_j * 2 + 1] -= prefactor
+                        alphas[pos, 2] += prefactor
+                        alphas[pos + 1, 2] += prefactor
+                        alphas[0, 2] += 2 * prefactor
+                        alphas[1 + siteidx_i * 2, 2] -= prefactor
+                        alphas[1 + siteidx_i * 2 + 1, 2] -= prefactor
+                        alphas[1 + siteidx_j * 2, 2] -= prefactor
+                        alphas[1 + siteidx_j * 2 + 1, 2] -= prefactor
                     if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
                         prefactor = (1 / (self._delta ** 2)) / np.math.factorial(
                             2 + shift
                         )
                         prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
-                        alphas[0] -= 2 * prefactor
-                        alphas[1 + siteidx_i * 2] += prefactor
-                        alphas[1 + siteidx_j * 2 + 1] += prefactor
+                        alphas[0, 2] -= 2 * prefactor
+                        alphas[1 + siteidx_i * 2, 2] += prefactor
+                        alphas[1 + siteidx_j * 2 + 1, 2] += prefactor
 
         return alphas
 
@@ -435,12 +435,10 @@ class APDFT(object):
 
         # order 0
         pos = 0
-        slices = []
 
         # order 0
         coeff[pos, :] = get_epn(folders[pos], 0, "up", 0)
         pos += 1
-        slices.append(pos)
 
         # order 1
         if 1 in self._orders:
@@ -448,7 +446,6 @@ class APDFT(object):
                 coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
                 coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
                 pos += 2
-            slices.append(pos-1)
 
         # order 2
         if 2 in self._orders:
@@ -462,9 +459,8 @@ class APDFT(object):
                         folders[pos + 1], 2, "dn", [site_i, site_j]
                     )
                     pos += 2
-            slices.append(pos-1)
 
-        return coeff, slices
+        return coeff
 
     def get_linear_density_coefficients(self, deltaZ):
         """ Obtains the finite difference coefficients for a property linear in the density. 
@@ -591,7 +587,7 @@ class APDFT(object):
         refenergy = self.get_energy_from_reference(
             self._nuclear_numbers, is_reference_molecule=True
         )
-        epn_matrix, orderslices = self.get_epn_matrix()
+        epn_matrix = self.get_epn_matrix()
         dipole_matrix = self.get_linear_density_matrix("ELECTRONIC_DIPOLE")
 
         # get target predictions
@@ -602,10 +598,11 @@ class APDFT(object):
             alphas = self.get_epn_coefficients(deltaZ_included)
 
             # energies
-            contributions = -np.multiply(np.outer(alphas, deltaZ_included), epn_matrix).sum(axis=1)
             deltaEnn = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             for order in sorted(self._orders):
-                energies[targetidx, order] = np.sum(contributions[:orderslices[order]])
+                contributions = -np.multiply(np.outer(alphas[:, order], deltaZ_included), epn_matrix).sum()
+                energies[targetidx, order] = contributions
+                energies[targetidx, order] += np.sum(energies[targetidx, :order])
             energies[targetidx, :] += deltaEnn + refenergy
 
             # dipoles
@@ -614,9 +611,9 @@ class APDFT(object):
                 nuc_dipole = Dipoles.point_charges(
                     self._coordinates.mean(axis=0), self._coordinates, target
                 )
-                ed = np.multiply(dipole_matrix, betas[:, np.newaxis])  # .sum(axis=0)
                 for order in sorted(self._orders):
-                    dipoles[targetidx, :, order] = ed[orderslices[order]].sum(axis=0)
+                    ed = np.multiply(dipole_matrix, betas[:, order, np.newaxis]).sum(axis=0)
+                    dipoles[targetidx, :, order] = ed
                     dipoles[targetidx, :, order] += np.sum(
                         dipoles[targetidx, :, :order]
                     )
