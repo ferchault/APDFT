@@ -12,7 +12,7 @@ import numpy as np
 import qml.kernels
 import qml.math
 
-def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/finished_abs'):
+def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/atomic_energies_mic'):
     """
     returns paths to files from file with all directories
     """
@@ -127,7 +127,10 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,4]
         elif value == 'atomisation_global':
             energies[idx] = alchemy_data[idx][:, 6].sum()
-        start += length 
+        else:
+            raise Exception( "Unkown label")
+        start += length
+
     
     return(energies)
         
@@ -339,7 +342,7 @@ def split_data(reps, labels, tr_set_size, molecule_size, local=True):
 #    return(statistics_atomic, statistics_molecule)
         
 
-def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10):
+def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10, local=True):
     """
     returns the sigma, lambda values that yield the minimum mean error for a num_cv-fold cross-validation, as well as the mean error
     for these sigma, lambda-values
@@ -358,7 +361,7 @@ def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10):
     opt_data = np.zeros((num_cv, len(sigmas)*len(lams), 3))
     
     for idx in range(0, num_cv):
-        reps_splitted, labels_splitted = split_data(reps, labels, tr_set_size, molecule_size)
+        reps_splitted, labels_splitted = split_data(reps, labels, tr_set_size, molecule_size, local=True)
         
         # optimize hyperparameters via grid search
         results = optimize_hypar(reps_splitted, labels_splitted, sigmas, lams)
