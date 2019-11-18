@@ -308,36 +308,24 @@ class APDFT(object):
         return self._get_stencil_coefficients(deltaZ, 1)
 
     def _print_energies(self, targets, energies, comparison_energies):
-        if comparison_energies is None:
-            for target, energy in zip(targets, energies):
-                targetname = APDFT._get_target_name(target)
-                kwargs = dict()
-                for order in self._orders:
-                    kwargs["order%d" % order] = energy[order]
-                apdft.log.log(
-                    "Energy calculated",
-                    level="RESULT",
-                    value=energy[-1],
-                    kind="total_energy",
-                    target=target,
-                    targetname=targetname,
-                    **kwargs
-                )
-        else:
-            for target, energy, comparison in zip(
-                targets, energies, comparison_energies
-            ):
-                targetname = APDFT._get_target_name(target)
-                apdft.log.log(
-                    "Energy calculated",
-                    level="RESULT",
-                    value=energy,
-                    kind="total_energy",
-                    target=target,
-                    targetname=targetname,
-                    reference=comparison,
-                    error=energy - comparison,
-                )
+        for position in range(len(targets)):
+            targetname = APDFT._get_target_name(targets[position])
+            kwargs = dict()
+            for order in self._orders:
+                kwargs["order%d" % order] = energies[position][order]
+            if comparison_energies is not None:
+                kwargs["reference"] = comparison_energies[position]
+                kwargs["error"] = energies[position][-1] - kwargs["reference"]
+
+            apdft.log.log(
+                "Energy calculated",
+                level="RESULT",
+                value=energies[position][-1],
+                kind="total_energy",
+                target=targets[position],
+                targetname=targetname,
+                **kwargs
+            )
 
     def _print_dipoles(self, targets, dipoles, comparison_dipoles):
         if comparison_dipoles is None:
