@@ -258,6 +258,10 @@ class APDFT(object):
         nvals = {0: 1, 1: N * 2, 2: N * (N - 1)}
         alphas = np.zeros(sum([nvals[_] for _ in self._orders]))
 
+        # test input
+        if N != len(deltaZ):
+            raise ValueError('Mismatch of array lengths: %d dZ values for %d nuclei.' % (len(deltaZ), N))
+
         # order 0
         if 0 in self._orders:
             alphas[0] = 1
@@ -436,7 +440,7 @@ class APDFT(object):
         # order 0
         coeff[pos, :] = get_epn(folders[pos], 0, "up", 0)
         pos += 1
-        slices.append((0, pos))
+        slices.append(pos)
 
         # order 1
         if 1 in self._orders:
@@ -444,7 +448,7 @@ class APDFT(object):
                 coeff[pos, :] = get_epn(folders[pos], 1, "up", [site])
                 coeff[pos + 1, :] = get_epn(folders[pos + 1], 1, "dn", [site])
                 pos += 2
-        slices.append((slices[-1][1], pos))
+            slices.append(pos-1)
 
         # order 2
         if 2 in self._orders:
@@ -458,9 +462,9 @@ class APDFT(object):
                         folders[pos + 1], 2, "dn", [site_i, site_j]
                     )
                     pos += 2
-        slices.append((slices[-1][1], pos))
+            slices.append(pos-1)
 
-        return coeff, [slice(a, b) for a, b in slices]
+        return coeff, slices
 
     def get_linear_density_coefficients(self, deltaZ):
         """ Obtains the finite difference coefficients for a property linear in the density. 
@@ -594,20 +598,19 @@ class APDFT(object):
         for targetidx, target in enumerate(targets):
             deltaZ = target - self._nuclear_numbers
 
-            alphas = self.get_epn_coefficients(deltaZ)
             deltaZ_included = deltaZ[self._include_atoms]
+            alphas = self.get_epn_coefficients(deltaZ_included)
 
             # energies
-            contributions = -np.multiply(np.outer(alphas, deltaZ_included), epn_matrix)
+            contributions = -np.multiply(np.outer(alphas, deltaZ_included), epn_matrix).sum(axis=1)
             deltaEnn = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             for order in sorted(self._orders):
-                energies[targetidx, order] = np.sum(contributions[orderslices[order]])
-                energies[targetidx, order] += np.sum(energies[targetidx, :order])
+                energies[targetidx, order] = np.sum(contributions[:orderslices[order]])
             energies[targetidx, :] += deltaEnn + refenergy
 
             # dipoles
             if dipole_matrix is not None:
-                betas = self.get_linear_density_coefficients(deltaZ)
+                betas = self.get_linear_density_coefficients(deltaZ_included)
                 nuc_dipole = Dipoles.point_charges(
                     self._coordinates.mean(axis=0), self._coordinates, target
                 )
