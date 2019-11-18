@@ -96,6 +96,8 @@ class PyscfCalculator(apc.Calculator):
     @staticmethod
     def get_epn(folder, coordinates, includeatoms, nuclear_charges):
         epns = PyscfCalculator._read_value(folder, "ELECTRONIC_EPN", True)
+        if len(epns.flatten()) == 0:
+            raise ValueError("Incomplete calculation.")
 
         # check that all included sites are in fact present
         included_results = epns[:, 0].astype(np.int)
@@ -110,4 +112,7 @@ class PyscfCalculator(apc.Calculator):
 
     @staticmethod
     def get_electronic_dipole(folder):
-        return PyscfCalculator._read_value(folder, "ELECTRONIC_DIPOLE", True)[0]
+        dipoles = PyscfCalculator._read_value(folder, "ELECTRONIC_DIPOLE", True)
+        if len(dipoles.flatten()) == 0:
+            raise ValueError("Incomplete calculation.")
+        return dipoles[0]

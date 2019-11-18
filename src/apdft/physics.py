@@ -572,8 +572,20 @@ class APDFT(object):
             return None
 
         folders = self.get_folder_order()
-        results = [function(folder) for folder in folders]
-        return np.array(results)
+        results = []
+        for folder in folders:
+            try:
+                results.append(function(folder))
+            except ValueError:
+                apdft.log.log(
+                    "Calculation with incomplete results.",
+                    level="error",
+                    calulation=folder,
+                )
+
+        # Only meaningful if all calculations are present.
+        if len(results) == len(folders):
+            return np.array(results)
 
     def predict_all_targets(self):
         # assert one order of targets
