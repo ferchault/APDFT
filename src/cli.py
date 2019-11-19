@@ -1,6 +1,15 @@
 #!/usr/bin/env python
-import apdft.commandline as acmd
 import sys
+import cProfile
+import pstats
 
 if __name__ == "__main__":
-    sys.exit(acmd.entry_cli())
+    pr = cProfile.Profile()
+    pr.enable()
+    import apdft.commandline as acmd
+    ret = acmd.entry_cli()
+    pr.disable()
+    stats = pstats.Stats(pr)
+    stats.sort_stats('cumulative')
+    stats.print_stats(30)
+    sys.exit(ret)
