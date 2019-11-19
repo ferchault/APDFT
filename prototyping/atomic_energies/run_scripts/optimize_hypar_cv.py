@@ -4,18 +4,17 @@
 Created on Thu Sep 19 15:43:49 2019
 
 @author: misa
-"""
 
-import qml
-import numpy as np
+performs hyperparameter optimization, the labels can be specified in pl
+"""
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
-import alchemy_tools as alch
+
 import qml_interface as qi
 
 base='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/'
-pl = ['alch_pot_mic', 'atomic_mic', 'atomisation_mic']
+pl = ['alch_pot', 'atomic', 'atomisation']
 tr_set = 512
 num_cv = 10
 results = []
@@ -37,7 +36,7 @@ for p in pl:
 file = '/home/misa/APDFT/prototyping/atomic_energies/results/analyse_learning/optimized_hyperpar_'
 
 for idx,el in enumerate(results):
-    with open(file+pl[idx]+'.txt', 'w') as f:
+    with open(file+pl[idx]+'_mic.txt', 'w') as f:
         f.write('optimized hyperparameters for label: {}; training set size: {}; number of crossvalidations: {}\n'.format(pl[idx], tr_set, num_cv))
         f.write('opt_sigma \t opt_lambda \t mean_error \t std\n')
         f.write('{}\t{}\t{}\t{}'.format(el[0], el[1], el[2], el[3]))
