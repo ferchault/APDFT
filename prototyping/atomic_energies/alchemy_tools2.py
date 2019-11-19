@@ -119,6 +119,33 @@ def check_shapes(density_arrays):
         assert prev_shape == density.shape, "Densities have not the same shape!"
         prev_shape = density.shape
             
+def nuclear_repulsion(charges, positions):
+    """
+    decomposition of the nuclear repulsion in atomic contributions
+    
+    charges: charges of the nuclei
+    type charges: numpy array
+    positions: positions of the nuclei
+    type: numpy array
+    return: nuclear repulsion decomposed into atomic contributions
+    type: numpy array
+    """
+    
+    atomic_nuc_rep = np.zeros(len(charges))
+    
+    for i, val_i in enumerate(charges):
+        rep_tmp = 0.0
+        
+        # sum up repulsion term
+        for j, val_j in enumerate(charges):
+            if j != i:
+                rep_tmp += val_j/(np.linalg.norm(positions[i]-positions[j]))
+    
+        atomic_nuc_rep[i] = rep_tmp*val_i/2
+        
+    return(atomic_nuc_rep)
+    
+        
 def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
     """
     performs intgegration over electron density with minimum image convention
