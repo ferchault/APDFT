@@ -260,7 +260,10 @@ class APDFT(object):
 
         # test input
         if N != len(deltaZ):
-            raise ValueError('Mismatch of array lengths: %d dZ values for %d nuclei.' % (len(deltaZ), N))
+            raise ValueError(
+                "Mismatch of array lengths: %d dZ values for %d nuclei."
+                % (len(deltaZ), N)
+            )
 
         # order 0
         if 0 in self._orders:
@@ -600,9 +603,12 @@ class APDFT(object):
             # energies
             deltaEnn = Coulomb.nuclei_nuclei(self._coordinates, target) - own_nuc_nuc
             for order in sorted(self._orders):
-                contributions = -np.multiply(np.outer(alphas[:, order], deltaZ_included), epn_matrix).sum()
+                contributions = -np.multiply(
+                    np.outer(alphas[:, order], deltaZ_included), epn_matrix
+                ).sum()
                 energies[targetidx, order] = contributions
-                energies[targetidx, order] += np.sum(energies[targetidx, :order])
+                if order > 0:
+                    energies[targetidx, order] += energies[targetidx, order - 1]
             energies[targetidx, :] += deltaEnn + refenergy
 
             # dipoles
@@ -612,7 +618,9 @@ class APDFT(object):
                     self._coordinates.mean(axis=0), self._coordinates, target
                 )
                 for order in sorted(self._orders):
-                    ed = np.multiply(dipole_matrix, betas[:, order, np.newaxis]).sum(axis=0)
+                    ed = np.multiply(dipole_matrix, betas[:, order, np.newaxis]).sum(
+                        axis=0
+                    )
                     dipoles[targetidx, :, order] = ed
                     dipoles[targetidx, :, order] += np.sum(
                         dipoles[targetidx, :, :order]
