@@ -660,6 +660,16 @@ class APDFT(object):
                     comparison_energies[targetidx] = np.nan
                     comparison_dipoles[targetidx] = np.nan
                     continue
+                except ValueError:
+                    apdft.log.log(
+                        "Comparison calculation is damaged. Predictions are unaffected. Will skip this comparison.",
+                        level="warning",
+                        calculation=path,
+                        target=target,
+                    )
+                    comparison_energies[targetidx] = np.nan
+                    comparison_dipoles[targetidx] = np.nan
+                    continue                    
 
                 nd = apdft.physics.Dipoles.point_charges(
                     [0, 0, 0], self._coordinates, target
