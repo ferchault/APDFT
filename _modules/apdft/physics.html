@@ -814,6 +814,16 @@
                     <span class="n">comparison_energies</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
                     <span class="n">comparison_dipoles</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
                     <span class="k">continue</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">apdft</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="s2">&quot;Comparison calculation is damaged. Predictions are unaffected. Will skip this comparison.&quot;</span><span class="p">,</span>
+                        <span class="n">level</span><span class="o">=</span><span class="s2">&quot;warning&quot;</span><span class="p">,</span>
+                        <span class="n">calculation</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">comparison_energies</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">comparison_dipoles</span><span class="p">[</span><span class="n">targetidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="k">continue</span>                    
 
                 <span class="n">nd</span> <span class="o">=</span> <span class="n">apdft</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Dipoles</span><span class="o">.</span><span class="n">point_charges</span><span class="p">(</span>
                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates</span><span class="p">,</span> <span class="n">target</span>
