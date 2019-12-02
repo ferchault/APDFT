@@ -1,0 +1,341 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>apdft.calculator.mrcc &mdash; APDFT  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> APDFT
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../about.html">APDFT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../features.html">Features and supported software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../features.html#adding-support-for-additional-software-packages">Adding support for additional software packages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apdft.html">Implementation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">APDFT</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../apdft.html">apdft</a> &raquo;</li>
+        
+          <li><a href="../calculator.html">apdft.calculator</a> &raquo;</li>
+        
+      <li>apdft.calculator.mrcc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for apdft.calculator.mrcc</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">basis_set_exchange</span> <span class="k">as</span> <span class="nn">bse</span>
+<span class="kn">import</span> <span class="nn">jinja2</span> <span class="k">as</span> <span class="nn">j</span>
+
+<span class="kn">from</span> <span class="nn">apdft</span> <span class="kn">import</span> <span class="n">calculator</span>
+<span class="kn">from</span> <span class="nn">apdft</span> <span class="kn">import</span> <span class="n">log</span>
+<span class="kn">import</span> <span class="nn">apdft.physics</span> <span class="k">as</span> <span class="nn">physics</span>
+<span class="kn">from</span> <span class="nn">apdft.calculator.gaussian</span> <span class="kn">import</span> <span class="n">GaussianCalculator</span>
+
+
+<div class="viewcode-block" id="MrccCalculator"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator">[docs]</a><span class="k">class</span> <span class="nc">MrccCalculator</span><span class="p">(</span><span class="n">calculator</span><span class="o">.</span><span class="n">Calculator</span><span class="p">):</span>
+    <span class="n">_methods</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;CCSDT&quot;</span><span class="p">:</span> <span class="s2">&quot;ccsdt&quot;</span><span class="p">,</span> <span class="s2">&quot;CCSD&quot;</span><span class="p">:</span> <span class="s2">&quot;ccsd&quot;</span><span class="p">,</span> <span class="s2">&quot;HF&quot;</span><span class="p">:</span> <span class="s2">&quot;RHF&quot;</span><span class="p">}</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_parse_densityfile</span><span class="p">(</span><span class="n">densityfile</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns all relevant data from a MRCC density file.</span>
+
+<span class="sd">		Columns 0-2: x, y, z coordinates in bohr</span>
+<span class="sd">		Column 3: weights</span>
+<span class="sd">		Column 4: density&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">densityfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="s2">&quot;i4&quot;</span><span class="p">)</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">_</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">ccdensity</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">ccdensity</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MrccCalculator.density_on_grid"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.density_on_grid">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">density_on_grid</span><span class="p">(</span><span class="n">densityfile</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+        <span class="n">ccdensity</span> <span class="o">=</span> <span class="n">MrccCalculator</span><span class="o">.</span><span class="n">_parse_densityfile</span><span class="p">(</span><span class="n">densityfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">ccdensity</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="n">physics</span><span class="o">.</span><span class="n">angstrom</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to combine different grids.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ccdensity</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_grid"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_grid">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_grid</span><span class="p">(</span><span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">outputfolder</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Obtains the integration grid from one of the MRCC output files.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Grid coordinates [Angstrom], grid weights.&quot;&quot;&quot;</span>
+        <span class="n">ccdensity</span> <span class="o">=</span> <span class="n">MrccCalculator</span><span class="o">.</span><span class="n">_parse_densityfile</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/DENSITY&quot;</span> <span class="o">%</span> <span class="n">outputfolder</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ccdensity</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="n">physics</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">ccdensity</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_format_charges</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">coord</span><span class="p">,</span> <span class="n">Z_ref</span><span class="p">,</span> <span class="n">Z_tar</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%f</span><span class="s2"> </span><span class="si">%f</span><span class="s2"> </span><span class="si">%f</span><span class="s2"> </span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="p">(</span><span class="n">Z_tar</span> <span class="o">-</span> <span class="n">Z_ref</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MrccCalculator.get_input"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_input">[docs]</a>    <span class="k">def</span> <span class="nf">get_input</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coordinates</span><span class="p">,</span>
+        <span class="n">nuclear_numbers</span><span class="p">,</span>
+        <span class="n">nuclear_charges</span><span class="p">,</span>
+        <span class="n">grid</span><span class="p">,</span>
+        <span class="n">iscomparison</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">includeonly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">basedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/templates/mrcc.txt&quot;</span> <span class="o">%</span> <span class="n">basedir</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="n">env_coord</span> <span class="o">=</span> <span class="n">GaussianCalculator</span><span class="o">.</span><span class="n">_format_coordinates</span><span class="p">(</span><span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">env_basis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_basisset</span>
+        <span class="n">env_numatoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nuclear_numbers</span><span class="p">)</span>
+        <span class="n">env_charged</span> <span class="o">=</span> <span class="n">MrccCalculator</span><span class="o">.</span><span class="n">_format_charges</span><span class="p">(</span>
+            <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+            <span class="n">coordinates</span><span class="o">=</span><span class="n">env_coord</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_methods</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">],</span>
+            <span class="n">basisset</span><span class="o">=</span><span class="n">env_basis</span><span class="p">,</span>
+            <span class="n">numatoms</span><span class="o">=</span><span class="n">env_numatoms</span><span class="p">,</span>
+            <span class="n">charges</span><span class="o">=</span><span class="n">env_charged</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_runfile"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_runfile">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_runfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">nuclear_numbers</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+        <span class="n">basedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/templates/mrcc-run.sh&quot;</span> <span class="o">%</span> <span class="n">basedir</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_density_on_grid"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_density_on_grid">[docs]</a>    <span class="k">def</span> <span class="nf">get_density_on_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MrccCalculator</span><span class="o">.</span><span class="n">density_on_grid</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/DENSITY&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_total_energy"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_total_energy">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_total_energy</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the total energy in Hartree.&quot;&quot;&quot;</span>
+        <span class="n">logfile</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/run.log&quot;</span> <span class="o">%</span> <span class="n">folder</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">logfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">readlines</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;Total CCSD energy [au]:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">break</span>
+                <span class="k">if</span> <span class="s2">&quot;***FINAL KOHN-SHAM ENERGY:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">break</span>
+        <span class="k">if</span> <span class="n">energy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="s2">&quot;Unable to read energy from log file.&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;error&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">energy</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_electronic_dipole"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_electronic_dipole</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">gridcoords</span><span class="p">,</span> <span class="n">gridweights</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MrccCalculator.get_epn"><a class="viewcode-back" href="../../../apdft.html#apdft.calculator.mrcc.MrccCalculator.get_epn">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_epn</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">includeatoms</span><span class="p">,</span> <span class="n">nuclear_charges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculates the EPN from a MRCC density file.</span>
+
+<span class="sd">        MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders.</span>
+<span class="sd">            </span>
+<span class="sd">        Args:</span>
+<span class="sd">            folder:         String, the path to the calculation.</span>
+<span class="sd">            coordiantes:    Nuclear coordinates</span>
+<span class="sd">            includeatoms:   List of zero-based indices of the atoms to include in APDFT</span>
+<span class="sd">            nuclear_charges: Float, list of nuclear charges for this particular calculation.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Numpy array of EPN in Hartree.&quot;&quot;&quot;</span>
+
+        <span class="n">components</span> <span class="o">=</span> <span class="n">MrccCalculator</span><span class="o">.</span><span class="n">_parse_densityfile</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/DENSITY&quot;</span> <span class="o">%</span> <span class="n">folder</span><span class="p">)</span>
+        <span class="n">gridpos</span><span class="p">,</span> <span class="n">gridweights</span><span class="p">,</span> <span class="n">density</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">components</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span>
+            <span class="n">components</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">],</span>
+            <span class="n">components</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">epns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">atomidx</span> <span class="ow">in</span> <span class="n">includeatoms</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+                <span class="n">gridpos</span> <span class="o">-</span> <span class="n">coordinates</span><span class="p">[</span><span class="n">atomidx</span><span class="p">]</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">epns</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">gridweights</span> <span class="o">*</span> <span class="n">density</span> <span class="o">/</span> <span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">epns</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Guido Falk von Rudorff
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

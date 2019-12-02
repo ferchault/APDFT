@@ -110,7 +110,7 @@ Gaussian
 MRCC
 ^^^^
 
-.. automodule:: apdft.calculator.gaussian
+.. automodule:: apdft.calculator.mrcc
     :members:
     :undoc-members:
     :show-inheritance:

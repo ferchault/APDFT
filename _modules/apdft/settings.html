@@ -164,20 +164,20 @@
     <span class="n">G09</span> <span class="o">=</span> <span class="s2">&quot;G09&quot;</span>
     <span class="n">PYSCF</span> <span class="o">=</span> <span class="s2">&quot;PYSCF&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
 
 <div class="viewcode-block" id="CodeEnum.get_calculator_class"><a class="viewcode-back" href="../../apdft.html#apdft.settings.CodeEnum.get_calculator_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_calculator_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">MRCC</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">apdft.calculator.mrcc</span> <span class="k">import</span> <span class="n">MrccCalculator</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.mrcc</span> <span class="kn">import</span> <span class="n">MrccCalculator</span>
 
             <span class="k">return</span> <span class="n">MrccCalculator</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">G09</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">apdft.calculator.gaussian</span> <span class="k">import</span> <span class="n">GaussianCalculator</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.gaussian</span> <span class="kn">import</span> <span class="n">GaussianCalculator</span>
 
             <span class="k">return</span> <span class="n">GaussianCalculator</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">PYSCF</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">apdft.calculator.pyscf</span> <span class="k">import</span> <span class="n">PyscfCalculator</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.pyscf</span> <span class="kn">import</span> <span class="n">PyscfCalculator</span>
 
             <span class="k">return</span> <span class="n">PyscfCalculator</span></div></div>
 
@@ -212,7 +212,7 @@
 <div class="viewcode-block" id="Option"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Option">[docs]</a><span class="k">class</span> <span class="nc">Option</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; Represents a single configuration option. &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">validator</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">validator</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_category</span> <span class="o">=</span> <span class="n">category</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_description</span> <span class="o">=</span> <span class="n">description</span>
@@ -240,7 +240,7 @@
 <span class="sd">    </span>
 <span class="sd">    Settings are referred to as category.variablename. &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">options</span> <span class="o">=</span> <span class="p">[</span>
             <span class="c1"># Section apdft: relevant for all invocations</span>
             <span class="n">Option</span><span class="p">(</span>
@@ -308,15 +308,15 @@
         <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">option</span><span class="o">.</span><span class="n">get_attribute_name</span><span class="p">()]</span> <span class="o">=</span> <span class="n">option</span>
 
-    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Read access to configuration options.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Write access to configuration options.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s2">&quot;_options&quot;</span><span class="p">][</span><span class="n">attribute</span><span class="p">]</span>
 
 <div class="viewcode-block" id="Configuration.list_options"><a class="viewcode-back" href="../../apdft.html#apdft.settings.Configuration.list_options">[docs]</a>    <span class="k">def</span> <span class="nf">list_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

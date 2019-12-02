@@ -93,7 +93,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#ionic-forces">Ionic Forces</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.calculator">Calculators</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">Gaussian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.gaussian">MRCC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-apdft.calculator.mrcc">MRCC</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-apdft.physics">Physics-related functions</a></li>
@@ -383,20 +383,32 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dd></dl>
 
 </div>
-<div class="section" id="module-apdft.calculator.gaussian">
-<span id="mrcc"></span><h3>MRCC<a class="headerlink" href="#module-apdft.calculator.gaussian" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="module-apdft.calculator.mrcc">
+<span id="mrcc"></span><h3>MRCC<a class="headerlink" href="#module-apdft.calculator.mrcc" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
-<dt>
-<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.gaussian.</code><code class="sig-name descname">GaussianCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator"><span class="viewcode-link">[source]</span></a></dt>
+<dt id="apdft.calculator.mrcc.MrccCalculator">
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.mrcc.</code><code class="sig-name descname">MrccCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
-<p>Performs the QM calculations for APDFT with the help of Gaussian.</p>
-<p>General Idea:
-Gaussian supports both fractional nuclar charges (via the undocumented <cite>Massage</cite> keyword) and the evaluation of the electrostatic potential at the nucleus (via the <cite>Prop</cite> keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian.</p>
 <dl class="method">
-<dt>
-<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Extracts the EPN from a Gaussian log file.</p>
-<p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where <span class="math notranslate nohighlight">\(\int \rho / |\mathbf{r}-\mathbf{R}_I|\)</span> is positive.</p>
+<dt id="apdft.calculator.mrcc.MrccCalculator.density_on_grid">
+<em class="property">static </em><code class="sig-name descname">density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">densityfile</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.density_on_grid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_density_on_grid">
+<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole">
+<em class="property">static </em><code class="sig-name descname">get_electronic_dipole</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridcoords</em>, <em class="sig-param">gridweights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_electronic_dipole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_epn">
+<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the EPN from a MRCC density file.</p>
+<p>MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -413,8 +425,19 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 </dd></dl>
 
 <dl class="method">
-<dt>
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a></dt>
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_grid">
+<em class="property">static </em><code class="sig-name descname">get_grid</code><span class="sig-paren">(</span><em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">outputfolder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtains the integration grid from one of the MRCC output files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Grid coordinates [Angstrom], grid weights.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_input">
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -435,13 +458,13 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dd></dl>
 
 <dl class="method">
-<dt>
-<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_runfile"><span class="viewcode-link">[source]</span></a></dt>
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_runfile">
+<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt>
-<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a></dt>
+<dt id="apdft.calculator.mrcc.MrccCalculator.get_total_energy">
+<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_total_energy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the total energy in Hartree.</p>
 </dd></dl>
 

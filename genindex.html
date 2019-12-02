@@ -187,7 +187,9 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="apdft.html#module-apdft.calculator.gaussian">apdft.calculator.gaussian (module)</a>, <a href="apdft.html#module-apdft.calculator.gaussian">[1]</a>
+      <li><a href="apdft.html#module-apdft.calculator.gaussian">apdft.calculator.gaussian (module)</a>
+</li>
+      <li><a href="apdft.html#module-apdft.calculator.mrcc">apdft.calculator.mrcc (module)</a>
 </li>
       <li><a href="apdft.html#module-apdft.commandline">apdft.commandline (module)</a>
 </li>
@@ -241,6 +243,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.density_on_grid">density_on_grid() (apdft.calculator.mrcc.MrccCalculator static method)</a>
+</li>
       <li><a href="apdft.html#apdft.physics.Dipoles">Dipoles (class in apdft.physics)</a>
 </li>
   </ul></td>
@@ -275,15 +279,21 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apdft.html#apdft.settings.CodeEnum.G09">G09 (apdft.settings.CodeEnum attribute)</a>
 </li>
-      <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator">GaussianCalculator (class in apdft.calculator.gaussian)</a>, <a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator">[1]</a>
+      <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator">GaussianCalculator (class in apdft.calculator.gaussian)</a>
 </li>
       <li><a href="apdft.html#apdft.settings.Option.get_attribute_name">get_attribute_name() (apdft.settings.Option method)</a>
 </li>
       <li><a href="apdft.html#apdft.settings.CodeEnum.get_calculator_class">get_calculator_class() (apdft.settings.CodeEnum method)</a>
 </li>
       <li><a href="apdft.html#apdft.calculator.Calculator.get_density_on_grid">get_density_on_grid() (apdft.calculator.Calculator method)</a>
+
+      <ul>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_density_on_grid">(apdft.calculator.mrcc.MrccCalculator method)</a>
 </li>
+      </ul></li>
       <li><a href="apdft.html#apdft.settings.Option.get_description">get_description() (apdft.settings.Option method)</a>
+</li>
+      <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole">get_electronic_dipole() (apdft.calculator.mrcc.MrccCalculator static method)</a>
 </li>
       <li><a href="apdft.html#apdft.get_element_number">get_element_number() (in module apdft)</a>
 </li>
@@ -292,7 +302,9 @@
       <li><a href="apdft.html#apdft.calculator.CalculatorInterface.get_epn">get_epn() (apdft.calculator.CalculatorInterface method)</a>
 
       <ul>
-        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_epn">(apdft.calculator.gaussian.GaussianCalculator static method)</a>, <a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_epn">[1]</a>
+        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_epn">(apdft.calculator.gaussian.GaussianCalculator static method)</a>
+</li>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_epn">(apdft.calculator.mrcc.MrccCalculator static method)</a>
 </li>
       </ul></li>
       <li><a href="apdft.html#apdft.physics.APDFT.get_epn_coefficients">get_epn_coefficients() (apdft.physics.APDFT method)</a>
@@ -301,14 +313,20 @@
 </li>
       <li><a href="apdft.html#apdft.physics.APDFT.get_folder_order">get_folder_order() (apdft.physics.APDFT method)</a>
 </li>
+      <li><a href="apdft.html#apdft.calculator.Calculator.get_grid">get_grid() (apdft.calculator.Calculator static method)</a>
+
+      <ul>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_grid">(apdft.calculator.mrcc.MrccCalculator static method)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="apdft.html#apdft.calculator.Calculator.get_grid">get_grid() (apdft.calculator.Calculator static method)</a>
-</li>
       <li><a href="apdft.html#apdft.calculator.CalculatorInterface.get_input">get_input() (apdft.calculator.CalculatorInterface method)</a>
 
       <ul>
-        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_input">(apdft.calculator.gaussian.GaussianCalculator method)</a>, <a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_input">[1]</a>
+        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_input">(apdft.calculator.gaussian.GaussianCalculator method)</a>
+</li>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_input">(apdft.calculator.mrcc.MrccCalculator method)</a>
 </li>
       </ul></li>
       <li><a href="apdft.html#apdft.physics.APDFT.get_linear_density_coefficients">get_linear_density_coefficients() (apdft.physics.APDFT method)</a>
@@ -324,15 +342,19 @@
       <li><a href="apdft.html#apdft.calculator.CalculatorInterface.get_runfile">get_runfile() (apdft.calculator.CalculatorInterface method)</a>
 
       <ul>
-        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_runfile">(apdft.calculator.gaussian.GaussianCalculator class method)</a>, <a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_runfile">[1]</a>
+        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_runfile">(apdft.calculator.gaussian.GaussianCalculator class method)</a>
 </li>
         <li><a href="apdft.html#apdft.calculator.MockCalculator.get_runfile">(apdft.calculator.MockCalculator class method)</a>
+</li>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_runfile">(apdft.calculator.mrcc.MrccCalculator class method)</a>
 </li>
       </ul></li>
       <li><a href="apdft.html#apdft.calculator.CalculatorInterface.get_total_energy">get_total_energy() (apdft.calculator.CalculatorInterface static method)</a>
 
       <ul>
-        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_total_energy">(apdft.calculator.gaussian.GaussianCalculator static method)</a>, <a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_total_energy">[1]</a>
+        <li><a href="apdft.html#apdft.calculator.gaussian.GaussianCalculator.get_total_energy">(apdft.calculator.gaussian.GaussianCalculator static method)</a>
+</li>
+        <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator.get_total_energy">(apdft.calculator.mrcc.MrccCalculator static method)</a>
 </li>
       </ul></li>
       <li><a href="apdft.html#apdft.settings.Option.get_validator">get_validator() (apdft.settings.Option method)</a>
@@ -371,11 +393,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apdft.html#apdft.calculator.MockCalculator">MockCalculator (class in apdft.calculator)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apdft.html#apdft.commandline.mode_energies">mode_energies() (in module apdft.commandline)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apdft.html#apdft.settings.CodeEnum.MRCC">MRCC (apdft.settings.CodeEnum attribute)</a>
+</li>
+      <li><a href="apdft.html#apdft.calculator.mrcc.MrccCalculator">MrccCalculator (class in apdft.calculator.mrcc)</a>
 </li>
   </ul></td>
 </tr></table>
