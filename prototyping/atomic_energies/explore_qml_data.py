@@ -111,17 +111,25 @@ def max_dist_distribution(compounds):
 ###                                show molecules
 ###############################################################################
 
-def show(compound):
+def show(compound, viewer='Avogadro'):
     """
     compound: compound of qm9 in qml format
     shows molecular geometry in Avogadro
     """
     com = Atoms(positions=compound.coordinates, symbols=compound.atomtypes)
-    view(com, viewer='Avogadro')
+    view(com, viewer=viewer)
     
 ###############################################################################
 ###                                other
 ###############################################################################
+
+def shift2center(coordinates_initial, centroid_final):
+    """
+    shifts set of coordinates so that centroid is at centroid_final
+    """
+    centroid_initial = np.mean(coordinates_initial, axis=0)
+    shift = centroid_final - centroid_initial
+    return(coordinates_initial+shift)
 
 def get_num_val_elec(nuclear_charges):
     """
@@ -163,6 +171,33 @@ def get_free_atom_data(path='/home/misa/datasets/atomref_qm9.txt'):
         free_atoms[symbol] = energy
 
     return(free_atoms)
+    
+def get_free_atom_energies(nuc, e_free):
+    """
+    returns np.array with energy of the free atoms for every element of nuc
+    
+    nuc: list of nuclear charges
+    e_free: energy of free atoms used in qm9 as dict {element_symbol:energy}
+    """
+    
+    energy_free_atom = np.zeros(len(nuc))
+    
+    for idx, n in enumerate(nuc):
+        
+        if int(n)==1:
+            energy_free_atom[idx] = e_free['H']
+        elif int(n) == 6:
+            energy_free_atom[idx] = e_free['C']
+        elif int(n) == 7:
+            energy_free_atom[idx] = e_free['N']
+        elif int(n) == 8:
+            energy_free_atom[idx] = e_free['O']
+        elif int(n) == 9:
+            energy_free_atom[idx] = e_free['F']
+        else:
+            raise Exception("Element not in qm9")
+            
+    return(energy_free_atom)
 
 def get_property(path, prop):
     """
@@ -179,6 +214,11 @@ def get_property(path, prop):
     f.close()
     if prop == 'U0':
         return(float(props.split('\t')[11]))
+    elif prop == 'atomisation_energy':
+        total_en = float(props.split('\t')[11])
+        energy_free_atoms = get_free_atom_energies(qml.Compound(path).nuclear_charges, get_free_atom_data()).sum()
+        atomisation_energy = total_en - energy_free_atoms
+        return(atomisation_energy)
     else:
         raise Exception("Unknown Property")
 
