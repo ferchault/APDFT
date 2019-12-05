@@ -293,6 +293,40 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
             error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
     
     return(error_crossval.mean(), error_crossval.std())
+    
+def crossvalidate_per_atom(reps, labels, molecule_size, tr_set_size, sigma, lam_val, num_cross=10):
+    """
+    calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
+    this function can be used to generate learning curves, where the input are arbitrary individual atoms and 
+    not the atoms that belong to a specific molecule
+    
+    reps: representations of training and validation data
+    labels: labels of training and validation data
+    molecule_size: the number of atoms for every representation
+    tr_set_size: the size of the training set
+    sigma: the kernel width
+    lam_val: the regularizer
+    num_cross: the number of cross-validations
+    
+    error_crossval: the mean error for every cross-validation run
+    """
+    
+    error_crossval = np.zeros(num_cross)
+    
+    for idx in range(0, num_cross):
+        
+        # split data into training and validation set
+        local_idc_tr, local_idc_val = get_indices(molecule_size.sum(), tr_set_size)
+        rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
+        labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
+        
+        # calculate error
+        coeffs = train_kernel(rep_splitted_loc[0], labels_splitted_loc[0], sigma, lam_val)
+        labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
+        
+        error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
+    
+    return(error_crossval.mean(), error_crossval.std())
 
 
 def split_data(reps, labels, tr_set_size, molecule_size, local=True):
