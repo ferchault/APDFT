@@ -342,7 +342,7 @@ def split_data(reps, labels, tr_set_size, molecule_size, local=True):
 #    return(statistics_atomic, statistics_molecule)
         
 
-def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10, local=True):
+def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, sigmas = np.logspace(-1, 4, 12).tolist(), lams = np.logspace(-15, 0, 16).tolist(), num_cv=10, local=True):
     """
     returns the sigma, lambda values that yield the minimum mean error for a num_cv-fold cross-validation, as well as the mean error
     for these sigma, lambda-values
@@ -353,9 +353,6 @@ def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10, local
     molecule_size: number of atoms in each molecule
     num_cv: number of sets for cross-validation
     """
-    
-    sigmas = np.logspace(-1, 4, 12).tolist()
-    lams = np.logspace(-15, 0, 16).tolist()
     
     # storage of output of optimization
     opt_data = np.zeros((num_cv, len(sigmas)*len(lams), 3))
@@ -376,7 +373,7 @@ def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, num_cv=10, local
     opt_lambda = opt_data[0][idx_opt][0,1] # lambda value for minimum error
     
     
-    return(opt_sigma, opt_lambda, min_error, std)
+    return(opt_sigma, opt_lambda, min_error, std[idx_opt][0])
         
 
 def optimize_hypar(rep, labels, sigmas, lams):
