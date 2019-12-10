@@ -129,6 +129,16 @@ class Vasp_CHG(object):
         """
         projected_density = np.sum(self.charge_density, axis=axes)
         return(projected_density)
+    
+    def save_projection(self, fname, pr_axes):
+        """
+        writes projection of density to file
+        
+        fname: path to the file where projected density is stored
+        pr_axes: axes over which is integrated to generate projection
+        """
+        np.savetxt(fname, self.project(pr_axes))
+        
         
     def get_grid(self):
         """
