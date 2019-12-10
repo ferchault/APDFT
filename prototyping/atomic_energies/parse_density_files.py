@@ -8,14 +8,7 @@ get density on grid from cube files
 """
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-import scipy.spatial as scs
-import scipy.integrate
-from scipy.interpolate import CubicSpline
-import scipy.spatial.transform as sst
-import functools
-import copy
 from ase.units import Bohr
 
 from ase.calculators.vasp.vasp import VaspChargeDensity
