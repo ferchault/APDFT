@@ -1,6 +1,11 @@
+[![DOI](https://zenodo.org/badge/180519723.svg)](https://zenodo.org/badge/latestdoi/180519723) 
 [![Build Status](https://travis-ci.org/ferchault/APDFT.svg?branch=master)](https://travis-ci.org/ferchault/APDFT)
+
 [![codecov](https://codecov.io/gh/ferchault/APDFT/branch/master/graph/badge.svg)](https://codecov.io/gh/ferchault/APDFT)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/226cde0cdc074ed290bfd1aa84a3bd87)](https://www.codacy.com/app/ferchault/APDFT)
+
+
+
 
 [Documentation](https://ferchault.github.io/APDFT/)
 
