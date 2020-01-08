@@ -188,11 +188,15 @@ def profile_first_order(delta,approx_zero,number_of_sigma,PP_filename):
         whole_cube_file = 2.0 * ueg + 2.0 * dct['s11']
     except:
         return [0,1]
-    whole_cube_file = weight_ueg_approx_zero * ueg  
+    whole_cube_file = 1.0 * ueg  
+    #whole_cube_file = weight_ueg_approx_zero * ueg  
 
     for num in range(number_of_sigma):
         whole_cube_file +=  \
-        weight_ueg_one * dct['s{}1'.format(num)] + weight_ueg_two * dct['s{}2'.format(num)] + (0.5) * (weight_1order_approx_zero * ueg + weight_1order_one * dct['s{}1'.format(num)] + weight_1order_two * dct['s{}2'.format(num)])/(delta_1[num])*(sigma[num])
+        (0.5) * (weight_1order_approx_zero * ueg + weight_1order_one * dct['s{}1'.format(num)] + weight_1order_two * dct['s{}2'.format(num)])/(delta_1[num])*(sigma[num])
+
+#        whole_cube_file +=  \
+#        weight_ueg_one * dct['s{}1'.format(num)] + weight_ueg_two * dct['s{}2'.format(num)] + (0.5) * (weight_1order_approx_zero * ueg + weight_1order_one * dct['s{}1'.format(num)] + weight_1order_two * dct['s{}2'.format(num)])/(delta_1[num])*(sigma[num])
 
     headcontent = []
     with open('./ueg/%s/result.txt.cube' %(approx_zero), "r") as f:
@@ -200,7 +204,7 @@ def profile_first_order(delta,approx_zero,number_of_sigma,PP_filename):
             headcontent.append(f.readline())
         head="".join(headcontent)[:-1]    
     np.savetxt('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero), whole_cube_file, header=head, delimiter=' ', comments='')    
-    return get_profile('whole_cube_file.txt')
+    return get_profile('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero))
 
 number_of_sigma = 4
 PP_filename = "H_SG_LDA"
