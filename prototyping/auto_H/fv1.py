@@ -63,13 +63,13 @@ def generate_input(delta,case,ueg_point,point,no_of_sig,PP_filename,delta_i,appr
         with open(PP_filename+'_ueg_at_zero_point_{}'.format(approx_zero),"w") as f:
             f.write(tmp)
 
-        if os.path.isfile('./ueg/{}/'.format(approx_zero)+PP_filename):
+        if False: #os.path.isfile('./ueg/{}/'.format(approx_zero)+PP_filename):
             pass
         else:
             print("ueg PP file at %s do not exist, created." % (approx_zero))
             src = './ueg/{}/'.format(approx_zero)
             os.makedirs(src, exist_ok = True)
-            shutil.copy2('run.inp',src)
+            shutil.copy('run.inp',src)
             shutil.copy2('sub.job',src)
             shutil.copy2('RESTART.1',src)
             shutil.copy2('LATEST',src)
@@ -114,13 +114,13 @@ def generate_input(delta,case,ueg_point,point,no_of_sig,PP_filename,delta_i,appr
         with open(PP_filename+'_{}_at_{}_ueg_at_{}_point_{}_sigma_{}'.format(case,delta,approx_zero,delta_i,no_of_sig,approx_zero), 'w') as f:
             f.write(tmp)
 
-        if os.path.isfile('./{}/delta_{}/ueg_{}/{}/sigma_{}/'.format(case,delta,approx_zero,delta_i,no_of_sig)+PP_filename):
+        if False : #os.path.isfile('./{}/delta_{}/ueg_{}/{}/sigma_{}/'.format(case,delta,approx_zero,delta_i,no_of_sig)+PP_filename):
             pass
         else:
             print("{} PP file of delta {} at No. {} with No. {} sigma and ueg at {} do not exist, created.".format(case,delta,delta_i,no_of_sig, approx_zero))
             src = './{}/delta_{}/ueg_{}/{}/sigma_{}/'.format(case,delta,approx_zero,delta_i,no_of_sig)
             os.makedirs(src, exist_ok = True)
-            shutil.copy2('run.inp',src)
+            shutil.copy('run.inp',src)
             shutil.copy2('RESTART.1',src)
             shutil.copy2('sub.job',src)
             shutil.copy2('LATEST',src)
@@ -205,13 +205,23 @@ def profile_first_order(delta,approx_zero,number_of_sigma,PP_filename):
         head="".join(headcontent)[:-1]    
     np.savetxt('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero), whole_cube_file, header=head, delimiter=' ', comments='')    
     return get_profile('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero))
+#    try:
+#        with open('./ueg/%s/result.txt.cube' %(approx_zero), "r") as f:
+#            for i in range(7): 
+#                headcontent.append(f.readline())
+#            head="".join(headcontent)[:-1]    
+#        np.savetxt('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero), whole_cube_file, header=head, delimiter=' ', comments='')    
+#        return get_profile('whole_cube_file_delta_{}_approx_zero_{}.txt'.format(delta,approx_zero))
+#    except:
+#        a = [0.0 , 1.0 ]
+#        return a
 
 number_of_sigma = 4
 PP_filename = "H_SG_LDA"
 fig, ax = plt.subplots(1,1)
-for approx_zero in (0.001, 0.01):
-    for delta in (0.03, 0.05, 0.1):   
-        plt.plot(profile_first_order(delta,approx_zero,number_of_sigma,PP_filename),label = "approx_zero is %f, delta is %f"  % (approx_zero, delta) )
+delta = 0.03
+approx_zero = 0.01
+plt.plot(profile_first_order(delta,approx_zero,number_of_sigma,PP_filename),label = "approx_zero is %f, delta is %f"  % (approx_zero, delta) )
 plt.title("Plots of different approx_zero and delta. " )
 ax.set_xlabel(r'Cell coordinate $x_0$ (Ang)')
 ax.set_ylabel(r'$\rho (x_0)$')
