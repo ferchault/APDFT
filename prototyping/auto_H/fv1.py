@@ -1,3 +1,4 @@
+# this code is for calculating 1 order approximation of the density.
 import finitediff
 from finitediff import get_weights
 import plotdensity as pl
