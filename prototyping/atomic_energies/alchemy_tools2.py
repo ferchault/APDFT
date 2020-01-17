@@ -13,7 +13,7 @@ import glob
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
 
-from parse_cube_files import CUBE
+from parse_density_files import CUBE
 from explore_qml_data import get_property
 from explore_qml_data import get_free_atom_data
 from explore_qml_data import get_num_val_elec
@@ -158,6 +158,9 @@ def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
     """
         
     # calculate atomic energies for every atom in compound
+    atomic_energies_with_repulsion = np.empty(nuclei.shape[0])
+    atomic_energies_with_repulsion = nuclear_repulsion(nuclei[:,0], nuclei[:, 1:4])
+    
     atomic_energies = np.empty(nuclei.shape[0])
     alch_pots = np.empty(nuclei.shape[0])
     for idx, nuc in enumerate(nuclei):
@@ -165,8 +168,10 @@ def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
         alch_pot = -(density/distance_nuc_grid).sum() # integrate over position of electron density
         alch_pots[idx] = alch_pot
         atomic_energies[idx] = nuc[0]*alch_pot
+        atomic_energies_with_repulsion[idx] += atomic_energies[idx]
+        
     
-    return(atomic_energies, alch_pots)
+    return(atomic_energies_with_repulsion, atomic_energies, alch_pots)
         
 def atomic_energy_decomposition(lam_vals, scaled_densities, nuclei, gpts, h_matrix, intgr_method='trapz'):
     """
@@ -190,9 +195,9 @@ def atomic_energy_decomposition(lam_vals, scaled_densities, nuclei, gpts, h_matr
     av_dens = integrate_lambda_density(scaled_densities, lam_vals, method=intgr_method)
     
     # calculate alchemical potentials and atomic energies by integrating over r
-    atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts, h_matrix)
+    atomic_energies_with_repulsion, atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts, h_matrix)
     
-    return(nuclei, atomic_energies, alch_pots)
+    return(nuclei, atomic_energies_with_repulsion, atomic_energies, alch_pots)
     
 def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
     """
