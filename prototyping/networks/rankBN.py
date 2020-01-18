@@ -8,6 +8,7 @@ import cProfile
 import pstats
 
 from basis_set_exchange import lut
+import MDAnalysis
 import networkx as nx 
 import numpy as np 
 import qml
@@ -36,12 +37,14 @@ class Ranker(object):
 			coordinates.append([float(_) for _ in parts[1:4]])
 		return np.array(nuclear_numbers), np.array(coordinates)
 
-	def __init__(self, nuclear_charges, coordinates, filename, explain=False):
+	def __init__(self, nuclear_charges, coordinates, filename, mol2file, explain=False):
 		self._coordinates = coordinates
 		self._nuclear_charges = np.array(nuclear_charges).astype(np.int)
 		self._includeonly = np.where(self._nuclear_charges == 6)[0]
 		self._explain = explain
 		self._c = qml.Compound(filename)
+		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
+		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
 
 	def rank(self):
 		graphs = {}
@@ -64,14 +67,28 @@ class Ranker(object):
 
 			# remove spatial duplicates
 			self._purge_graph_for_duplicates(graph)
+			components = list(nx.connected.connected_components(graph))
 			if self._explain:
-				ncomponents = len(list(nx.connected.connected_components(graph)))
+				ncomponents = len(components)
 				print ("Found %d molecules in %d connected components." % (len(graph.nodes), ncomponents))
 
-			graphs[tuple(stoichiometry)] = graph
+			# sort molecules
+			outgraph = nx.Graph()
+			last = 'lowest'
+			outgraph.add_node(last)
 
-	def export(self):
-		pass
+			components.sort(key=self._mean_bond_energy)
+			for component in components:
+				molecules = [_ for _ in component]
+				molecules.sort(key=self._getNN)
+				
+				for molecule in molecules:
+					outgraph.add_edge(last, molecule)
+					last = molecule
+
+			outgraph.add_edge(last, 'highest')
+
+			graphs[tuple(stoichiometry)] = outgraph
 
 	def _find_stochiometries(self):
 		""" Builds a list of all possible BN-doped stoichiometries, for carbon atoms only."""
@@ -220,6 +237,36 @@ class Ranker(object):
 		r2 = qml.fchl.generate_representation(self._c.coordinates, charges, self._c.natoms)
 		return qml.fchl.get_global_kernels(np.array([r1]), np.array([r2]), np.array([2])).flatten()[0]
 
+	def _mean_bond_energy(self, component):
+		def bond_energy(molecule):
+			energy = 0
+			charges = self._nuclear_charges.copy()
+			charges[self._includeonly] = molecule
+			for bond in self._bonds:
+				z1, z2 = charges[bond[0]], charges[bond[1]]
+				if z2 > z1:
+					z1, z2 = z2, z1
+				energy += self._bondenergies[(z1, z2)]
+			return energy
+
+		energies = [bond_energy(_) for _ in component]
+		return sum(energies) / len(energies)
+
+	def _getNN(self, molecule):
+		def nuclei_nuclei(coordinates, charges):
+			angstrom = 1 / 0.52917721067
+			natoms = len(coordinates)
+			ret = 0.0
+			for i in range(natoms):
+				for j in range(i + 1, natoms):
+					d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
+					ret += charges[i] * charges[j] / d
+			return ret
+    
+		charges = self._c.nuclear_charges.copy()
+		charges[self._includeonly] = molecule
+		return nuclei_nuclei(self._c.coordinates, charges)
+
 class TestRanker(unittest.TestCase):
 	def test_find_stoichiometries(self):
 		r = Ranker((6,6,6,6), np.zeros((4,3)))
@@ -240,6 +287,7 @@ if __name__ == '__main__':
 
 	# run analysis
 	fn = sys.argv[1]
+	mol2file = sys.argv[2]
 
 	# setup profiling
 	pr = cProfile.Profile()
@@ -247,9 +295,8 @@ if __name__ == '__main__':
 
 	# do work
 	nuclear_charges, coordinates = Ranker.read_xyz(fn)
-	r = Ranker(nuclear_charges, coordinates, fn, explain=True)
+	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
 	r.rank()
-	#r.export(fn + '.ranked')
 
 	# print profiling
 	pr.disable()
