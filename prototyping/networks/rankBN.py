@@ -64,6 +64,9 @@ class Ranker(object):
 
 			# remove spatial duplicates
 			self._purge_graph_for_duplicates(graph)
+			if self._explain:
+				ncomponents = len(list(nx.connected.connected_components(graph)))
+				print ("Found %d molecules in %d connected components." % (len(graph.nodes), ncomponents))
 
 			graphs[tuple(stoichiometry)] = graph
 
