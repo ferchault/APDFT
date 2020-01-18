@@ -4,6 +4,8 @@
 import itertools as it
 import sys
 import unittest
+import cProfile
+import pstats
 
 from basis_set_exchange import lut
 import networkx as nx 
@@ -236,7 +238,18 @@ if __name__ == '__main__':
 	# run analysis
 	fn = sys.argv[1]
 
+	# setup profiling
+	pr = cProfile.Profile()
+	pr.enable()
+
+	# do work
 	nuclear_charges, coordinates = Ranker.read_xyz(fn)
 	r = Ranker(nuclear_charges, coordinates, fn, explain=True)
 	r.rank()
 	#r.export(fn + '.ranked')
+
+	# print profiling
+	pr.disable()
+	stats = pstats.Stats(pr)
+	stats.sort_stats('cumulative')
+	stats.print_stats(30)
