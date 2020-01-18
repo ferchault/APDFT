@@ -12,6 +12,7 @@ import MDAnalysis
 import networkx as nx 
 import numpy as np 
 import qml
+import tqdm
 
 class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
@@ -61,7 +62,7 @@ class Ranker(object):
 				print ("Found %d permutations." % len(graph.nodes))
 
 			# find possible relations
-			for origin in graph.nodes:
+			for origin in tqdm.tqdm(list(graph.nodes)):
 				for opposite in self._find_opposites(origin, graph.nodes):
 					graph.add_edge(origin, opposite)
 
@@ -210,7 +211,7 @@ class Ranker(object):
 		removed = []
 		for component in nx.connected.connected_components(graph):
 			kept = []
-			for node in component:
+			for node in tqdm.tqdm(list(component)):
 				if len(kept) == 0:
 					kept.append(node)
 					continue
