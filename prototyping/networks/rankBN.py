@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """ Ranks all possible BN-dopings of a molecule."""
 
-import numpy as np 
-import networkx as nx 
-from basis_set_exchange import lut
+import itertools as it
 import sys
 import unittest
+
+from basis_set_exchange import lut
+import networkx as nx 
+import numpy as np 
+import qml
 
 class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
@@ -27,18 +30,40 @@ class Ranker(object):
 			try:
 				nuclear_numbers.append(int(parts[0]))
 			except:
-				nuclear_numbers.append(get_element_number(parts[0]))
+				nuclear_numbers.append(lut.element_Z_from_sym(parts[0]))
 			coordinates.append([float(_) for _ in parts[1:4]])
 		return np.array(nuclear_numbers), np.array(coordinates)
 
-	def __init__(self, nuclear_charges, coordinates):
-		self._graph = nx.Graph()
+	def __init__(self, nuclear_charges, coordinates, filename, explain=False):
 		self._coordinates = coordinates
 		self._nuclear_charges = np.array(nuclear_charges).astype(np.int)
 		self._includeonly = np.where(self._nuclear_charges == 6)[0]
+		self._explain = explain
+		self._c = qml.Compound(filename)
 
 	def rank(self):
-		pass
+		graphs = {}
+		for stoichiometry in self._find_stochiometries():
+			if self._explain:
+				print ("Working on stoichiometry: %s" % stoichiometry)
+
+			graph = nx.Graph()
+
+			# build all possible permutations as molecules
+			for target in it.permutations(tuple(stoichiometry)):
+				graph.add_node(tuple(target))
+			if self._explain:
+				print ("Found %d permutations." % len(graph.nodes))
+
+			# find possible relations
+			for origin in graph.nodes:
+				for opposite in self._find_opposites(origin, graph.nodes):
+					graph.add_edge(origin, opposite)
+
+			# remove spatial duplicates
+			self._purge_graph_for_duplicates(graph)
+
+			graphs[tuple(stoichiometry)] = graph
 
 	def export(self):
 		pass
@@ -59,6 +84,136 @@ class Ranker(object):
 		stoichiometries.sort(key=lambda _: len([__ for __ in _ if __ == 6]))
 		return stoichiometries
 
+	def _find_opposites(self, origin, candidates):
+		""" Tests a list of candidates whether they could be opposites to a given origin."""
+		origin = np.array(origin)
+    
+		found = []
+		for opposite in candidates:
+			reference = (np.array(opposite) + origin) / 2
+			common_ground = self._identify_equivalent_sites(reference)
+			if self._check_common_ground(origin, opposite, reference, common_ground):
+				found.append(tuple(opposite))
+		return found
+
+	def _identify_equivalent_sites(self, reference):
+		""" Lists all sites that are sufficiently similar in atomic environment."""
+		similarities, relevant = self._get_site_similarity(reference)
+		groups = []
+		placed = []
+		for i, j, dist in similarities:
+			if dist > 3:
+				continue
+			for gidx, group in enumerate(groups):
+				if i in group:
+					if j not in group:
+						groups[gidx].append(j)
+						placed.append(j)
+					break
+				if j in group:
+					if i not in group:
+						groups[gidx].append(i)
+						placed.append(i)
+					break
+			else:
+				groups.append([i,j])
+				placed += [i, j]
+		for isolated in set(relevant) - set(placed):
+			groups.append([isolated])
+		return groups
+
+	def _get_site_similarity(self, nuclear_charges):
+		""" Returns i, j, distance."""
+		charges = self._c.nuclear_charges.copy().astype(np.float)
+		charges[self._includeonly] = nuclear_charges
+		atoms = np.where(self._c.nuclear_charges == 6)[0]
+		a = qml.representations.generate_coulomb_matrix(charges, self._c.coordinates, size=self._c.natoms, sorting='unsorted')
+		s = np.zeros((self._c.natoms, self._c.natoms))
+		s[np.tril_indices(self._c.natoms)] = a
+		d = np.diag(s)
+		s += s.T
+		s[np.diag_indices(self._c.natoms)] = d
+		sorted_elements = [np.sort(_) for _ in s[atoms]]
+		ret = []
+		for i in range(len(atoms)):
+			for j in range(i+1, len(atoms)):
+				dist = np.linalg.norm(sorted_elements[i] - sorted_elements[j])
+				ret.append([atoms[i], atoms[j], dist])
+		return ret, atoms
+
+	def _check_common_ground(self, target, opposite, reference, common_ground):
+		deltaZ = opposite - target
+
+		# matching deltaZ
+		values, counts = np.unique(deltaZ, return_counts=True)
+		counts = dict(zip(values, counts))
+
+		for value in values:
+			if value == 0:
+				continue
+			if -value not in counts:
+				return False
+			if counts[-value] != counts[value]:
+				return False
+
+		# ignore id operation
+		if max(np.abs(deltaZ)) == 0:
+			return False
+
+		# all changing atoms need to be in the same group
+		assigned = []
+		for value in values:
+			if value <= 0:
+				continue
+			    
+			changed_pos = np.where(deltaZ == value)[0]
+			changed_neg = np.where(deltaZ == -value)[0]
+			for changed in changed_pos:
+				for group in common_ground:
+					if changed in group:
+						break
+				else:
+					raise ValueError("should not happen")
+				partners = set(changed_neg).intersection(set(group)) - set(assigned)
+				if len(partners) == 0:
+					return False
+				assigned.append(next(iter(partners)))
+				assigned.append(changed)
+		return True
+
+	def _purge_graph_for_duplicates(self, graph):
+		# make connected components smaller
+		removed = []
+		for component in nx.connected.connected_components(graph):
+			kept = []
+			for node in component:
+				if len(kept) == 0:
+					kept.append(node)
+					continue
+
+				for k in kept:
+					sim = self._get_molecule_similarity(k, node)
+					if sim > 0.99999:
+						removed.append((node, k))
+						break
+				else:
+					kept.append(node)
+		for node, kept in removed:
+			# transfer all connections from node to kept
+			for neighbor in graph.neighbors(node):
+				graph.add_edge(neighbor, kept)
+
+			# delete node
+			graph.remove_node(node)		
+
+	def _get_molecule_similarity(self, c1, c2):
+		charges = self._c.nuclear_charges.copy()
+		charges[self._includeonly] = c1
+		r1 = qml.fchl.generate_representation(self._c.coordinates, charges, self._c.natoms)
+		charges = self._c.nuclear_charges.copy()
+		charges[self._includeonly] = c2
+		r2 = qml.fchl.generate_representation(self._c.coordinates, charges, self._c.natoms)
+		return qml.fchl.get_global_kernels(np.array([r1]), np.array([r2]), np.array([2])).flatten()[0]
 
 class TestRanker(unittest.TestCase):
 	def test_find_stoichiometries(self):
@@ -76,12 +231,12 @@ class TestRanker(unittest.TestCase):
 
 if __name__ == '__main__':
 	# self-test
-	unittest.main(exit=False, verbosity=0)
+	#unittest.main(exit=False, verbosity=0)
 
 	# run analysis
 	fn = sys.argv[1]
 
 	nuclear_charges, coordinates = Ranker.read_xyz(fn)
-	r = Ranker(nuclear_charges, coordinates, explain=True)
+	r = Ranker(nuclear_charges, coordinates, fn, explain=True)
 	r.rank()
-	r.export(fn + '.ranked')
+	#r.export(fn + '.ranked')
