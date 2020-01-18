@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python -u
 """ Ranks all possible BN-dopings of a molecule."""
 
 import itertools as it
@@ -48,7 +48,7 @@ class Ranker(object):
 
 	def rank(self):
 		graphs = {}
-		for stoichiometry in self._find_stochiometries():
+		for stoichiometry in self._rank_stoichiometries(self._find_stochiometries()):
 			if self._explain:
 				print ("Working on stoichiometry: %s" % stoichiometry)
 
@@ -83,6 +83,8 @@ class Ranker(object):
 				molecules.sort(key=self._getNN)
 				
 				for molecule in molecules:
+					if self._explain:
+						print ('Found: %s' % str(molecule))
 					outgraph.add_edge(last, molecule)
 					last = molecule
 
