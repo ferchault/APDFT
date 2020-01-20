@@ -8,6 +8,7 @@ import cProfile
 import pstats
 
 from basis_set_exchange import lut
+import scipy.spatial.distance as ssd
 import MDAnalysis
 import networkx as nx 
 import igraph as ig
@@ -50,6 +51,7 @@ class Ranker(object):
 		self._c = qml.Compound(filename)
 		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
+		self._prepare_esp_representation()
 		self._prepare_molecule_comparison()
 
 	def rank(self):
@@ -128,11 +130,11 @@ class Ranker(object):
 
 	def _identify_equivalent_sites(self, reference):
 		""" Lists all sites that are sufficiently similar in atomic environment."""
-		similarities, relevant = self._get_site_similarity(reference)
+		similarities = self._get_site_similarity(reference)
 		groups = []
 		placed = []
-		for i, j, dist in similarities:
-			if dist > 3:
+		for i, j, dist in zip(*similarities):
+			if dist > 0.01:
 				continue
 			for gidx, group in enumerate(groups):
 				if i in group:
@@ -148,28 +150,29 @@ class Ranker(object):
 			else:
 				groups.append([i,j])
 				placed += [i, j]
-		for isolated in set(relevant) - set(placed):
+		for isolated in set(self._includeonly) - set(placed):
 			groups.append([isolated])
 		return groups
 
 	def _get_site_similarity(self, nuclear_charges):
 		""" Returns i, j, distance."""
-		charges = self._c.nuclear_charges.copy().astype(np.float)
-		charges[self._includeonly] = nuclear_charges
-		atoms = np.where(self._c.nuclear_charges == 6)[0]
-		a = qml.representations.generate_coulomb_matrix(charges, self._c.coordinates, size=self._c.natoms, sorting='unsorted')
-		s = np.zeros((self._c.natoms, self._c.natoms))
-		s[np.tril_indices(self._c.natoms)] = a
-		d = np.diag(s)
-		s += s.T
-		s[np.diag_indices(self._c.natoms)] = d
-		sorted_elements = [np.sort(_) for _ in s[atoms]]
-		ret = []
-		for i in range(len(atoms)):
-			for j in range(i+1, len(atoms)):
-				dist = np.linalg.norm(sorted_elements[i] - sorted_elements[j])
-				ret.append([atoms[i], atoms[j], dist])
-		return ret, atoms
+		esps = self._get_esp_representation(nuclear_charges)
+
+		atomi, atomj = np.triu_indices(self._nmodifiedatoms)
+		return self._includeonly[atomi], self._includeonly[atomj], np.abs(esps[atomi] - esps[atomj])
+
+	def _prepare_esp_representation(self):
+		d = ssd.squareform(ssd.pdist(self._c.coordinates))[:self._nmodifiedatoms, :]
+		d[np.diag_indices(self._nmodifiedatoms)] = 1e100
+		self._esp_distance_cache = 1/d
+		self._esp_cache = np.zeros((self._nmodifiedatoms, self._c.natoms))
+
+	def _get_esp_representation(self, nuclear_charges):
+		charges = self._c.nuclear_charges.copy()
+		charges[:self._nmodifiedatoms] = nuclear_charges
+		D = np.outer(nuclear_charges, charges, out=self._esp_cache)
+		D *= self._esp_distance_cache
+		return np.sum(D, axis=1)
 
 	def _check_common_ground(self, target, opposite, reference, common_ground):
 		deltaZ = opposite - target
@@ -238,10 +241,10 @@ class Ranker(object):
 
 	def _prepare_molecule_comparison(self):
 		# find equivalent sites
-		similarities, _ = self._get_site_similarity(np.zeros(self._nmodifiedatoms) + 6)
+		similarities = self._get_site_similarity(np.zeros(self._nmodifiedatoms) + 6)
 		g = ig.Graph(self._nmodifiedatoms)
 
-		for a, b, distance in similarities:
+		for a, b, distance in zip(*similarities):
 			if distance < 1:
 				g.add_edge(a, b)
 
