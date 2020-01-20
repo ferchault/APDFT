@@ -10,6 +10,7 @@ import pstats
 from basis_set_exchange import lut
 import MDAnalysis
 import networkx as nx 
+import igraph as ig
 import numpy as np 
 import qml
 import tqdm
@@ -42,11 +43,14 @@ class Ranker(object):
 		self._coordinates = coordinates
 		self._nuclear_charges = np.array(nuclear_charges).astype(np.int)
 		self._includeonly = np.where(self._nuclear_charges == 6)[0]
+		self._nmodifiedatoms = len(self._includeonly)
+		self._natoms = len(self._nuclear_charges)
 		self._explain = explain
 		self._molecule_similarity_threshold = 0.99999
 		self._c = qml.Compound(filename)
 		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
+		self._prepare_molecule_comparison()
 
 	def rank(self):
 		graphs = {}
@@ -232,14 +236,34 @@ class Ranker(object):
 			# delete node
 			graph.remove_node(node)		
 
+	def _prepare_molecule_comparison(self):
+		# find equivalent sites
+		similarities, _ = self._get_site_similarity(np.zeros(self._nmodifiedatoms) + 6)
+		g = ig.Graph(self._nmodifiedatoms)
+
+		for a, b, distance in similarities:
+			if distance < 1:
+				g.add_edge(a, b)
+
+		self._molecule_comparison_groups = [_ for _ in g.components()]
+
+		# initialize graph
+		self._molecule_comparison_graph = ig.Graph(self._natoms + len(self._molecule_comparison_groups))
+		for a, b in self._bonds:
+			self._molecule_comparison_graph.add_edge(a, b)
+		for gidx, group in enumerate(self._molecule_comparison_groups):
+			for site in group:
+				self._molecule_comparison_graph.add_edge(self._natoms + gidx, site)
+
 	def _molecules_similar(self, c1, c2):
-		charges = self._c.nuclear_charges.copy()
-		charges[self._includeonly] = c1
-		r1 = qml.fchl.generate_representation(self._c.coordinates, charges, self._c.natoms)
-		charges = self._c.nuclear_charges.copy()
-		charges[self._includeonly] = c2
-		r2 = qml.fchl.generate_representation(self._c.coordinates, charges, self._c.natoms)
-		return qml.fchl.get_global_kernels(np.array([r1]), np.array([r2]), np.array([2])).flatten()[0] > self._molecule_similarity_threshold
+		graph = self._molecule_comparison_graph
+
+		charges1 = np.append(self._c.nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+		charges1[self._includeonly] = c1
+		charges2 = np.append(self._c.nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+		charges2[self._includeonly] = c2
+
+		return graph.isomorphic_vf2(graph, color1=charges1, color2=charges2)
 
 	def _mean_bond_energy(self, component):
 		def bond_energy(molecule):
