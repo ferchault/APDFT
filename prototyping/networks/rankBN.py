@@ -253,7 +253,7 @@ class Ranker(object):
 			return energy
 
 		energies = [bond_energy(_) for _ in component]
-		return sum(energies) / len(energies)
+		return -sum(energies) / len(energies)
 
 	def _getNN(self, molecule):
 		def nuclei_nuclei(coordinates, charges):
