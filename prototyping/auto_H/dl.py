@@ -70,11 +70,19 @@ def generate_input(case,ueg_point,point,no_of_sig,PP_filename,approx_zero):
             print("PP file at lambda %s do not exist, created." % (approx_zero))
             src = './lambda/{}/'.format(approx_zero)
             os.makedirs(src, exist_ok = True)
-            shutil.copy('run.inp',src)
             shutil.copy('sub.job',src)
-            shutil.copy('RESTART.1',src)
-            shutil.copy('LATEST',src)
             shutil.copy('./'+PP_filename+'_at_lambda_{}'.format(approx_zero), src+PP_filename)
+            run_file = 'run.inp'
+            restart_file = 'RESTART.1'
+            latest_file = 'LATEST'
+            if approx_zero >= 0.5 :
+                shutil.copy('big_run.inp',src+run_file)
+                shutil.copy('big_RESTART.1',src+restart_file)
+                shutil.copy('big_LATEST',src+latest_file)
+            else:
+                shutil.copy('small_run.inp',src+run_file)
+                shutil.copy('small_RESTART.1',src+restart_file)
+                shutil.copy('small_LATEST',src+latest_file)
 
 def has_output(case,no_of_sig,approx_zero):
     if case == "ueg":
@@ -122,7 +130,7 @@ def profile_first_order(approx_zero,number_of_sigma,PP_filename):
             for i in range(7): 
                 headcontent.append(f.readline())
             head="".join(headcontent)[:-1]    
-        np.savetxt('whole_cube_file_lambda_{}.txt'.format(approx_zero), whole_cube_file, header=head, delimiter=' ', comments='')    
+        np.savetxt('whole_cube_file_lambda_{}.txt'.format(approx_zero), whole_cube_file, header=head, delimiter=' ', comments='') 
         return get_profile('whole_cube_file_lambda_{}.txt'.format(approx_zero))
     else:
         return_null = [0.0, 1.0]
@@ -130,17 +138,19 @@ def profile_first_order(approx_zero,number_of_sigma,PP_filename):
 
 def save_E(approx_zero):
     generate_file_or_calc = Path('./lambda/{}/out.log'.format(approx_zero))
-    total_E = [] 
     if generate_file_or_calc.is_file():
-        with open('./lambda/%s/result.txt.cube' %(approx_zero), "r") as f:
-            for line in enumerate(f):
-                if line.split()[0] == "(K+E1+L+N+X)":
-                    total_E = approx_zero, line.split()[4] 
+        with open('./lambda/%s/out.log' %(approx_zero), "r") as f:
+            total_E = []
+            for line in f:
+                if len(line.split()) > 4 and line.split()[0] == '(K+E1+L+N+X)':
+                    total_E = np.array([np.float(approx_zero),np.float(line.split()[4])])
     else:
         print ("out.log file at lambda {} is missing. Please generate it.".format(approx_zero))
+        return
 
-    with open('total_energy.txt', 'a') as f:
-        np.savetxt(f,total_E)
+    with open('total_energy.dat', 'a') as f:
+        np.savetxt(f,total_E, fmt='%2.9f', newline=' ')
+        f.write('\n')
 
 number_of_sigma = 4
 PP_filename = "H_SG_LDA"
@@ -148,5 +158,6 @@ fig, ax = plt.subplots(1,1)
 approx_zero = 0.0
 Number_of_lambda = 10
 for approx_zero in np.arange(0.0,1.0+1.0/Number_of_lambda,1.0/Number_of_lambda):   
+    approx_zero = np.around(approx_zero,5)
     plt.plot(profile_first_order(approx_zero,number_of_sigma,PP_filename),label = "lambda is {}".format(approx_zero))
     save_E(approx_zero)
