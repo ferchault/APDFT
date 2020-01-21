@@ -131,12 +131,12 @@ class Ranker(object):
 
 	def _identify_equivalent_sites(self, reference):
 		""" Lists all sites that are sufficiently similar in atomic environment."""
-		similarities = self._get_site_similarity(reference)
+		atomi, atomj, dists = self._get_site_similarity(reference)
 		groups = []
 		placed = []
-		for i, j, dist in zip(*similarities):
-			if dist > 0.01:
-				continue
+
+		mask = dists < 0.01
+		for i, j, dist in zip(atomi[mask], atomj[mask], dists[mask]):
 			for gidx, group in enumerate(groups):
 				if i in group:
 					if j not in group:
@@ -156,7 +156,7 @@ class Ranker(object):
 		return groups
 
 	def _prepare_site_similarity(self):
-		indices = np.triu_indices(self._nmodifiedatoms)
+		indices = np.triu_indices(self._nmodifiedatoms, 1)
 		self._cache_site_similarity_indices = indices
 		self._cache_site_similarity_included_i = self._includeonly[indices[0]]
 		self._cache_site_similarity_included_j = self._includeonly[indices[1]]
