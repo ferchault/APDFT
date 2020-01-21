@@ -4,8 +4,6 @@
 import itertools as it
 import sys
 import unittest
-import cProfile
-import pstats
 
 from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
@@ -51,6 +49,9 @@ class Ranker(object):
 		self._c = qml.Compound(filename)
 		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
+		
+		# caching
+		self._prepare_site_similarity()
 		self._prepare_esp_representation()
 		self._prepare_molecule_comparison()
 
@@ -154,12 +155,18 @@ class Ranker(object):
 			groups.append([isolated])
 		return groups
 
+	def _prepare_site_similarity(self):
+		indices = np.triu_indices(self._nmodifiedatoms)
+		self._cache_site_similarity_indices = indices
+		self._cache_site_similarity_included_i = self._includeonly[indices[0]]
+		self._cache_site_similarity_included_j = self._includeonly[indices[1]]
+
 	def _get_site_similarity(self, nuclear_charges):
 		""" Returns i, j, distance."""
 		esps = self._get_esp_representation(nuclear_charges)
-
-		atomi, atomj = np.triu_indices(self._nmodifiedatoms)
-		return self._includeonly[atomi], self._includeonly[atomj], np.abs(esps[atomi] - esps[atomj])
+		
+		atomi, atomj = self._cache_site_similarity_indices
+		return self._cache_site_similarity_included_i, self._cache_site_similarity_included_j, np.abs(esps[atomi] - esps[atomj])
 
 	def _prepare_esp_representation(self):
 		d = ssd.squareform(ssd.pdist(self._c.coordinates))[:self._nmodifiedatoms, :]
@@ -320,17 +327,9 @@ if __name__ == '__main__':
 	fn = sys.argv[1]
 	mol2file = sys.argv[2]
 
-	# setup profiling
-	pr = cProfile.Profile()
-	pr.enable()
-
 	# do work
-	nuclear_charges, coordinates = Ranker.read_xyz(fn)
-	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
-	r.rank()
-
-	# print profiling
-	pr.disable()
-	stats = pstats.Stats(pr)
-	stats.sort_stats('cumulative')
-	stats.print_stats(30)
+	def work():
+		nuclear_charges, coordinates = Ranker.read_xyz(fn)
+		r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
+		r.rank()
+	work()
