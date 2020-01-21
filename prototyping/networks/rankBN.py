@@ -18,7 +18,7 @@ class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
 
 	@staticmethod
-	def read_xyz(filename):
+	def read_xyz(fn):
 		""" Extracts nuclear charges and coordinates from an xyz file."""
 		with open(fn) as fh:
 			lines = fh.readlines()
@@ -319,17 +319,15 @@ class TestRanker(unittest.TestCase):
 		self.assertTrue(np.allclose(np.array(expected), np.array(actual)))
 
 
+def do_main(fn, mol2file):
+	nuclear_charges, coordinates = Ranker.read_xyz(fn)
+	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
+	r.rank()
+
 if __name__ == '__main__':
 	# self-test
 	#unittest.main(exit=False, verbosity=0)
 
-	# run analysis
 	fn = sys.argv[1]
 	mol2file = sys.argv[2]
-
-	# do work
-	def work():
-		nuclear_charges, coordinates = Ranker.read_xyz(fn)
-		r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
-		r.rank()
-	work()
+	do_main(fn, mol2file)
