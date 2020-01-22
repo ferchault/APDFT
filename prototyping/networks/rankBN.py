@@ -18,6 +18,7 @@ import qml
 # Ideas:
 # - ranking based on nodal structure
 # - ranking based on distance argument
+# - precompute results of partition
 
 @numba.jit(nopython=True)
 def _do_partition(total, maxelements, maxdz):
@@ -168,18 +169,6 @@ class Ranker(object):
 		stoichiometries.sort(key=lambda _: len([__ for __ in _ if __ == 6]))
 		return stoichiometries
 
-	def _find_opposites(self, origin, candidates):
-		""" Tests a list of candidates whether they could be opposites to a given origin."""
-		origin = np.array(origin)
-    
-		found = []
-		for opposite in candidates:
-			reference = (np.array(opposite) + origin) / 2
-			common_ground = self._identify_equivalent_sites(reference)
-			if self._check_common_ground(origin, opposite, reference, common_ground):
-				found.append(tuple(opposite))
-		return found
-
 	def _identify_equivalent_sites(self, reference):
 		""" Lists all sites that are sufficiently similar in atomic environment."""
 		atomi, atomj, dists = self._get_site_similarity(reference)
@@ -268,31 +257,6 @@ class Ranker(object):
 				assigned.append(next(iter(partners)))
 				assigned.append(changed)
 		return True
-
-	def _purge_graph_for_duplicates(self, graph):
-		# make connected components smaller
-		removed = []
-		for component in nx.connected.connected_components(graph):
-			kept = []
-			for node in component:
-				if len(kept) == 0:
-					kept.append(node)
-					continue
-
-				for k in kept:
-					sim = self._molecules_similar(k, node)
-					if sim :
-						removed.append((node, k))
-						break
-				else:
-					kept.append(node)
-		for node, kept in removed:
-			# transfer all connections from node to kept
-			for neighbor in graph.neighbors(node):
-				graph.add_edge(neighbor, kept)
-
-			# delete node
-			graph.remove_node(node)		
 
 	def _prepare_molecule_comparison(self):
 		# find equivalent sites
