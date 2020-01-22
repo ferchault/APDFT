@@ -9,14 +9,13 @@ from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
 import MDAnalysis
 import networkx as nx 
+import math
 import igraph as ig
 import numpy as np 
 import numba
 import qml
-import tqdm
 
 # Ideas:
-# - pre-group clusters and skip comparisons once one connection between clusters is made
 # - ranking based on nodal structure
 # - ranking based on distance argument
 
@@ -93,45 +92,61 @@ class Ranker(object):
 			if self._explain:
 				print ("Working on stoichiometry: %s" % stoichiometry)
 
-			graph = nx.Graph()
-
-			# build all possible permutations as molecules
-			for target in self._find_possible_permutations(stoichiometry):
-				graph.add_node(tuple(target))
+			# build clusters of molecules
+			self._molecules, npermutations = self._identify_molecules(stoichiometry)
+			nmolecules = len(self._molecules)
 			if self._explain:
-				print ("Found %d permutations." % len(graph.nodes))
+				print ("Found %d molecules from %d permutations." % (nmolecules, npermutations))
 
-			# find possible relations
-			for origin in tqdm.tqdm(list(graph.nodes)):
-				for opposite in self._find_opposites(origin, graph.nodes):
-					graph.add_edge(origin, opposite)
+			# connect molecules
+			graph = ig.Graph(nmolecules)
+			for mol_i in range(nmolecules):
+				for mol_j in range(mol_i, nmolecules):
+					# short-circuit if other relations already exist
+					if not math.isinf(graph.shortest_paths(mol_i, mol_j)[0][0]):
+						continue
 
-			# remove spatial duplicates
-			self._purge_graph_for_duplicates(graph)
-			components = list(nx.connected.connected_components(graph))
-			if self._explain:
-				ncomponents = len(components)
-				print ("Found %d molecules in %d connected components." % (len(graph.nodes), ncomponents))
+					for origin in self._molecules[mol_i]:
+						for opposite in self._molecules[mol_j]:
+							reference = (np.array(opposite) + origin) / 2
+							common_ground = self._identify_equivalent_sites(reference)
+							if self._check_common_ground(origin, opposite, reference, common_ground):
+								graph.add_edge(mol_i, mol_j)
+								break
+						else:
+							continue
+						break
+
+			# rank components
+			mean_bond_energies = []
+			components = []
+			for component in graph.components():
+				components.append(component)
+				mean_bond_energies.append(self._mean_bond_energy(component))
 
 			# sort molecules
-			outgraph = nx.Graph()
-			last = 'lowest'
-			outgraph.add_node(last)
-
-			components.sort(key=self._mean_bond_energy)
-			for component in components:
-				molecules = [_ for _ in component]
-				molecules.sort(key=self._getNN)
+			for component_id in np.argsort(mean_bond_energies):
+				molecules = [self._molecules[_][0] for _ in components[component_id]]
+				NN_energies = [self._getNN(_) for _ in molecules]
 				
-				for molecule in molecules:
+				for mol_id in np.argsort(NN_energies):
 					if self._explain:
-						print ('Found: %s' % str(molecule))
-					outgraph.add_edge(last, molecule)
-					last = molecule
+						print ('Found: %s' % str(molecules[mol_id]))
 
-			outgraph.add_edge(last, 'highest')
+	def _identify_molecules(self, stoichiometry):
+		permutations = self._find_possible_permutations(stoichiometry)
+		molecules = []
 
-			graphs[tuple(stoichiometry)] = outgraph
+		npermutations = 0
+		for permutation in permutations:
+			npermutations += 1
+			for midx, molecule in enumerate(molecules):
+				if self._molecules_similar(molecule[0], permutation):
+					molecules[midx].append(permutation)
+					break
+			else:
+				molecules.append([permutation])
+		return molecules, npermutations
 
 	def _find_possible_permutations(self, stoichiometry):
 		BNcount = len([_ for _ in stoichiometry if _ == 5])
@@ -218,7 +233,7 @@ class Ranker(object):
 		return np.sum(D, axis=1)
 
 	def _check_common_ground(self, target, opposite, reference, common_ground):
-		deltaZ = opposite - target
+		deltaZ = [a-b for a,b in zip(opposite, target)]
 
 		# matching deltaZ
 		changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
@@ -259,7 +274,7 @@ class Ranker(object):
 		removed = []
 		for component in nx.connected.connected_components(graph):
 			kept = []
-			for node in tqdm.tqdm(list(component)):
+			for node in component:
 				if len(kept) == 0:
 					kept.append(node)
 					continue
@@ -320,7 +335,7 @@ class Ranker(object):
 				energy += self._bondenergies[(z1, z2)]
 			return energy
 
-		energies = [bond_energy(_) for _ in component]
+		energies = [bond_energy(self._molecules[molid][0]) for molid in component]
 		return -sum(energies) / len(energies)
 
 	def _getNN(self, molecule):
