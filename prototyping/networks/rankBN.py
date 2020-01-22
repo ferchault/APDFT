@@ -11,8 +11,35 @@ import MDAnalysis
 import networkx as nx 
 import igraph as ig
 import numpy as np 
+import numba
 import qml
 import tqdm
+
+@numba.jit(nopython=True)
+def _do_partition(total, maxelements, maxdz):
+	if maxelements == 1:
+		if total not in (5, 6, 7):
+			var = [1]
+			return [var[0:0]]
+		else:
+			return [[total]]
+	res = []
+
+	# get range to cover
+	first = max(5, 6 - maxdz)
+	last = min(7, 6 + maxdz)
+	for x in range(first, last + 1):
+		limit = maxdz - abs(x - 6)
+		if maxelements - 1 < limit:
+			continue
+		for p in _do_partition(total - x, maxelements - 1, limit):
+			if len(p) != 0:
+				res.append([x] + p)
+	return res
+
+def partition(maxelements, BNcount):
+	total = maxelements * 6
+	return _do_partition(total, maxelements, BNcount*2)
 
 class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
@@ -64,7 +91,7 @@ class Ranker(object):
 			graph = nx.Graph()
 
 			# build all possible permutations as molecules
-			for target in it.permutations(tuple(stoichiometry)):
+			for target in self._find_possible_permutations(stoichiometry):
 				graph.add_node(tuple(target))
 			if self._explain:
 				print ("Found %d permutations." % len(graph.nodes))
@@ -100,6 +127,10 @@ class Ranker(object):
 			outgraph.add_edge(last, 'highest')
 
 			graphs[tuple(stoichiometry)] = outgraph
+
+	def _find_possible_permutations(self, stoichiometry):
+		BNcount = len([_ for _ in stoichiometry if _ == 5])
+		return partition(self._nmodifiedatoms, BNcount)
 
 	def _find_stochiometries(self):
 		""" Builds a list of all possible BN-doped stoichiometries, for carbon atoms only."""
