@@ -16,7 +16,6 @@ import numba
 # - ranking based on nodal structure
 # - ranking based on distance argument
 # - precompute results of partition
-# - cache getNN
 
 @numba.jit(nopython=True)
 def _do_partition(total, maxelements, maxdz):
@@ -80,6 +79,7 @@ class Ranker(object):
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
 		
 		# caching
+		self._prepare_getNN()
 		self._prepare_site_similarity()
 		self._prepare_esp_representation()
 		self._prepare_molecule_comparison()
@@ -299,20 +299,19 @@ class Ranker(object):
 		energies = [bond_energy(self._molecules[molid][0]) for molid in component]
 		return -sum(energies) / len(energies)
 
-	def _getNN(self, molecule):
-		def nuclei_nuclei(coordinates, charges):
-			angstrom = 1 / 0.52917721067
-			natoms = len(coordinates)
-			ret = 0.0
-			for i in range(natoms):
-				for j in range(i + 1, natoms):
-					d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
-					ret += charges[i] * charges[j] / d
-			return ret
-    
-		charges = self._nuclear_charges.copy()
-		charges[self._includeonly] = molecule
-		return nuclei_nuclei(self._coordinates, charges)
+	def _prepare_getNN(self):
+		angstrom = 1 / 0.52917721067
+		d = ssd.squareform(ssd.pdist(self._coordinates)) * angstrom
+		d[np.diag_indices(self._nmodifiedatoms)] = 1e100
+		self._cache_NN_distance = 1/d
+		self._cache_NN_charges = self._nuclear_charges.copy()
+		self._cache_NN_D = np.zeros((self._natoms, self._natoms))
+
+	def _getNN(self, molecule):    
+		self._cache_NN_charges[self._includeonly] = molecule
+		D = np.outer(self._cache_NN_charges, self._cache_NN_charges, out=self._cache_NN_D)
+		D *= self._cache_NN_distance
+		return 0.5*np.sum(D)
 
 class TestRanker(unittest.TestCase):
 	def test_find_stoichiometries(self):
