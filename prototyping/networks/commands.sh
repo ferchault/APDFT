@@ -2,7 +2,7 @@
 profile() {
 	python -m cProfile -o program.prof rankBN.py ../../test/benzene.xyz benzene.mol2
 	ROOT="$(grep -n "def do_main" rankBN.py  | sed 's/:.*/:do_main/;s/^/rankBN:/')"
-	gprof2dot -f pstats program.prof --colour-nodes-by-selftime --root="$ROOT" | dot -Tpng -o profile.png
+	gprof2dot -f pstats program.prof --colour-nodes-by-selftime --root="$ROOT" | dot -Tsvg -o profile.svg
 }
 
 timeit() {
