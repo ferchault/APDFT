@@ -1,24 +1,22 @@
 #!/usr/bin/env python -u
 """ Ranks all possible BN-dopings of a molecule."""
 
-import itertools as it
 import sys
 import unittest
 
 from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
 import MDAnalysis
-import networkx as nx 
 import math
 import igraph as ig
 import numpy as np 
 import numba
-import qml
 
 # Ideas:
 # - ranking based on nodal structure
 # - ranking based on distance argument
 # - precompute results of partition
+# - cache getNN
 
 @numba.jit(nopython=True)
 def _do_partition(total, maxelements, maxdz):
@@ -78,7 +76,6 @@ class Ranker(object):
 		self._natoms = len(self._nuclear_charges)
 		self._explain = explain
 		self._molecule_similarity_threshold = 0.99999
-		self._c = qml.Compound(filename)
 		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
 		
@@ -209,13 +206,13 @@ class Ranker(object):
 		return self._cache_site_similarity_included_i, self._cache_site_similarity_included_j, np.abs(esps[atomi] - esps[atomj])
 
 	def _prepare_esp_representation(self):
-		d = ssd.squareform(ssd.pdist(self._c.coordinates))[:self._nmodifiedatoms, :]
+		d = ssd.squareform(ssd.pdist(self._coordinates))[:self._nmodifiedatoms, :]
 		d[np.diag_indices(self._nmodifiedatoms)] = 1e100
 		self._esp_distance_cache = 1/d
-		self._esp_cache = np.zeros((self._nmodifiedatoms, self._c.natoms))
+		self._esp_cache = np.zeros((self._nmodifiedatoms, self._natoms))
 
 	def _get_esp_representation(self, nuclear_charges):
-		charges = self._c.nuclear_charges.copy()
+		charges = self._nuclear_charges.copy()
 		charges[:self._nmodifiedatoms] = nuclear_charges
 		D = np.outer(nuclear_charges, charges, out=self._esp_cache)
 		D *= self._esp_distance_cache
@@ -280,9 +277,9 @@ class Ranker(object):
 	def _molecules_similar(self, c1, c2):
 		graph = self._molecule_comparison_graph
 
-		charges1 = np.append(self._c.nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+		charges1 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
 		charges1[self._includeonly] = c1
-		charges2 = np.append(self._c.nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+		charges2 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
 		charges2[self._includeonly] = c2
 
 		return graph.isomorphic_vf2(graph, color1=charges1, color2=charges2)
@@ -313,9 +310,9 @@ class Ranker(object):
 					ret += charges[i] * charges[j] / d
 			return ret
     
-		charges = self._c.nuclear_charges.copy()
+		charges = self._nuclear_charges.copy()
 		charges[self._includeonly] = molecule
-		return nuclei_nuclei(self._c.coordinates, charges)
+		return nuclei_nuclei(self._coordinates, charges)
 
 class TestRanker(unittest.TestCase):
 	def test_find_stoichiometries(self):
