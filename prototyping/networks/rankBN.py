@@ -302,7 +302,7 @@ class Ranker(object):
 	def _prepare_getNN(self):
 		angstrom = 1 / 0.52917721067
 		d = ssd.squareform(ssd.pdist(self._coordinates)) * angstrom
-		d[np.diag_indices(self._nmodifiedatoms)] = 1e100
+		d[np.diag_indices(self._natoms)] = 1e100
 		self._cache_NN_distance = 1/d
 		self._cache_NN_charges = self._nuclear_charges.copy()
 		self._cache_NN_D = np.zeros((self._natoms, self._natoms))
