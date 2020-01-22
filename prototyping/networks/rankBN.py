@@ -15,6 +15,11 @@ import numba
 import qml
 import tqdm
 
+# Ideas:
+# - pre-group clusters and skip comparisons once one connection between clusters is made
+# - ranking based on nodal structure
+# - ranking based on distance argument
+
 @numba.jit(nopython=True)
 def _do_partition(total, maxelements, maxdz):
 	if maxelements == 1:
@@ -216,26 +221,23 @@ class Ranker(object):
 		deltaZ = opposite - target
 
 		# matching deltaZ
-		values, counts = np.unique(deltaZ, return_counts=True)
-		counts = dict(zip(values, counts))
+		changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
 
-		for value in values:
-			if value == 0:
-				continue
-			if -value not in counts:
-				return False
-			if counts[-value] != counts[value]:
-				return False
+		# ensure matching counts
+		if max(changes - changes[::-1]) != 0:
+			return False
 
-		# ignore id operation
-		if max(np.abs(deltaZ)) == 0:
+		# ignore identity operation
+		if changes[2] == self._nmodifiedatoms:
 			return False
 
 		# all changing atoms need to be in the same group
 		assigned = []
-		for value in values:
-			if value <= 0:
+		for changepos in (3, 4):
+			if changes[changepos] == 0:
 				continue
+
+			value = changepos - 2
 			    
 			changed_pos = np.where(deltaZ == value)[0]
 			changed_neg = np.where(deltaZ == -value)[0]
