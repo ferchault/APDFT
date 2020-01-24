@@ -7,10 +7,11 @@ Created on Mon Aug 26 11:37:43 2019
 """
 
 import qml
-import qml.distance
+#import qml.distance
 import numpy as np
 import qml.kernels
 import qml.math
+import qml.fchl
 
 def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/atomic_energies_mic'):
     """
@@ -38,7 +39,7 @@ def load_alchemy_data(paths):
     molecule_size = np.zeros(len(paths), dtype=np.intc)
     for idx, path in enumerate(paths):
         alch = np.loadtxt(path)
-        molecule_size[idx] = len(alch[:,0])
+        molecule_size[idx] = len(alch[:, 0])
         alchemy_data.append(alch)
     
     return(alchemy_data, molecule_size)
@@ -81,13 +82,19 @@ def wrapper_global_representations(alchemy_data, molecule_size, rep_par='coulomb
     full_matrix: 2D numpy array where every row contains the representation for one atom
     """
     max_size = np.amax(molecule_size)
-    size_U = int(max_size*(max_size + 1)/2) # number of elements in upper triangle of representation matrix
-    full_matrix = np.zeros( (len(alchemy_data), size_U) ) # matrix which contains the representations of all molecules
+    if rep_par == 'coulomb':
+        size_U = int(max_size*(max_size + 1)/2) # number of elements in upper triangle of representation matrix
+        full_matrix = np.zeros( (len(alchemy_data), size_U) ) # matrix which contains the representations of all molecules
+    elif rep_par == 'FCHL':
+        full_matrix = np.zeros( (len(alchemy_data), max_size, 5, max_size) )
     
     for idx, molecule in enumerate(alchemy_data):
         #generate representation of molecule
         if rep_par=='coulomb':
             rep = qml.representations.generate_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
+            full_matrix[idx] = rep
+        elif rep_par=='FCHL':
+            rep = qml.fchl.generate_representation(molecule[:,[1,2,3]], molecule[:,0], max_size=molecule_size[idx])
             full_matrix[idx] = rep
         
     return(full_matrix)
@@ -189,11 +196,11 @@ def select_sub_matrix(full_matrix, row_ind, col_ind):
     row_ind, col_ind: the indices of the rows and cols that will be chosen
     
     @out
-    2D numpy array with shape len(row_ind), len(col_ind), the elements have all combinations of 
-    row_ind and col_ind as their index 
+    2D numpy array with shape len(row_ind), len(col_ind), the elements have all combinations of
+    row_ind and col_ind as their index
     """
     tmp = full_matrix[row_ind]
-    sub_matrix = tmp[:, col_ind].copy()
+    sub_matrix = tmp[:, col_ind]#.copy()
     return(sub_matrix)
 
 def split_kernel(full_kernel, tr_indices, test_indices):
@@ -255,6 +262,8 @@ def crossvalidate_new(reps, labels, molecule_size, tr_set_size, sigma, lam_val, 
             error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[idc_val], labels_splitted_loc[1]).mean()
         else:
             error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
+#            error_crossval[idx] = (np.abs(labels_predicted - labels_splitted_loc[1])/np.abs(labels_splitted_loc[1])).mean()
+
     
     return(error_crossval.mean(), error_crossval.std())
 
@@ -289,9 +298,11 @@ def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, mole
         
         if molecule:
             error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val], labels_splitted_loc[1]).mean()
+
         else:
             error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
-    
+#            error_crossval[idx] = np.abs((labels_predicted - labels_splitted_loc[1])/labels_splitted_loc[1]).mean()
+
     return(error_crossval.mean(), error_crossval.std())
     
 def crossvalidate_per_atom(reps, labels, molecule_size, tr_set_size, sigma, lam_val, num_cross=10):
@@ -494,17 +505,22 @@ def calculate_error_atomisation_energy(atomic_energies, molecule_size, ref_atomi
     # sum up atomic energies
     atomisation_en_predicted = np.zeros(len(molecule_size))
     atomisation_en_ref = np.zeros(len(molecule_size))
+#    error_rel = np.zeros(len(molecule_size))
     
     start = 0
     for idx, size in enumerate(molecule_size):
         atomisation_en_predicted[idx] = atomic_energies[start:start+size].sum()
         atomisation_en_ref[idx] = ref_atomic_energies[start:start+size].sum()
         
+#        err_rel = np.abs(atomic_energies[start:start+size] - ref_atomic_energies[start:start+size])/np.abs(ref_atomic_energies[start:start+size])
+#        error_rel[idx] = err_rel.sum()
+        
         start += size
     
     # compare to correct values
     error = np.abs(atomisation_en_predicted - atomisation_en_ref)
     
+#    error = error_rel
     return(error)
     
 def shift_by_mean_energy(reps, labels):

@@ -7,6 +7,7 @@ Created on Fri Jan 17 15:33:00 2020
 """
 import qml.fchl
 import numpy as np
+import qml_interface as qmi
 
 def string_mult(a,b):
     product = np.empty((a.shape[0], b.shape[0]), dtype='object')
@@ -44,3 +45,57 @@ def generate_fchl_atomic_kernel(reps, molecule_size, sigma):
             
             
     return(atomic_kernel)
+    
+    # pick random sub matrix from kernel for training
+#class Data_Splitter(object):
+#    """
+#    splits data in training and test set
+#    """    
+
+def optimize_regularizer(kernel, labels, molecule_size, tr_size = 512, num_cross=10):
+    """
+    kernel generation for different sigma values can be expensive in CPU time and memory demand
+    therefore, it is done elsewhere
+    """
+    ## repeat for different sigma values
+    
+
+    # crossvalidate the following
+    lams = np.logspace(-15, 0, 16).tolist()
+    mean_errors_cv = np.zeros(len(lams))
+    std_errors_cv = np.zeros(len(lams))
+    for n in range(num_cross):
+        
+        # split kernel in training and validation
+        global_tr, global_test = qmi.get_indices(len(molecule_size), tr_size)
+        tr_ind = qmi.get_local_idx(global_tr, molecule_size)
+        test_ind = qmi.get_local_idx(global_test, molecule_size)
+    
+        tr_kernel, test_kernel = qmi.split_kernel(kernel, tr_ind, test_ind)
+        tr_label = labels[tr_ind]
+        test_label = labels[test_ind]
+        
+        # repeat for different lambda values
+        lams_error = np.zeros(len(lams))
+        lams_error_std = np.zeros(len(lams))
+        for idx_lams, l in enumerate(lams):
+            # get coefficients
+            reg_kernel = tr_kernel + np.identity(len(tr_kernel))*l
+            coeffs = qml.math.cho_solve(reg_kernel, tr_label)
+            
+            # predict
+            pred_label = np.dot(test_kernel, coeffs)
+    
+            # compute error
+            error = np.abs(pred_label - test_label)
+            mean_error = error.mean()
+            std_error = error.std()
+            
+            # save error
+            lams_error[idx_lams] = mean_error
+            lams_error_std[idx_lams] = std_error
+            
+        mean_errors_cv +=  lams_error
+        std_errors_cv += lams_error_std
+            
+    return(lams, lams_error/num_cross, lams_error_std/num_cross)
