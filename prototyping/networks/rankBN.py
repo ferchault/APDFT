@@ -123,7 +123,10 @@ class Ranker(object):
 				mean_bond_energies.append(self._mean_bond_energy(component))
 
 			# sort molecules
+			if self._explain:
+				print (len(components), "components found")
 			for component_id in np.argsort(mean_bond_energies):
+				print ("Group energy", mean_bond_energies[component_id])
 				molecules = [self._molecules[_][0] for _ in components[component_id]]
 				NN_energies = [self._getNN(_) for _ in molecules]
 				
@@ -135,9 +138,8 @@ class Ranker(object):
 		permutations = self._find_possible_permutations(stoichiometry)
 		molecules = []
 
-		npermutations = 0
+		npermutations = len(permutations)
 		for permutation in permutations:
-			npermutations += 1
 			for midx, molecule in enumerate(molecules):
 				if self._molecules_similar(molecule[0], permutation):
 					molecules[midx].append(permutation)
@@ -172,7 +174,7 @@ class Ranker(object):
 		groups = []
 		placed = []
 
-		mask = dists < 0.01
+		mask = dists < 1
 		for i, j, dist in zip(atomi[mask], atomj[mask], dists[mask]):
 			for gidx, group in enumerate(groups):
 				if i in group:
@@ -223,7 +225,7 @@ class Ranker(object):
 
 		# matching deltaZ
 		changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
-
+		
 		# ensure matching counts
 		if max(changes - changes[::-1]) != 0:
 			return False
@@ -234,12 +236,12 @@ class Ranker(object):
 
 		# all changing atoms need to be in the same group
 		assigned = []
+		deltaZ = np.array(deltaZ)
 		for changepos in (3, 4):
 			if changes[changepos] == 0:
 				continue
 
-			value = changepos - 2
-			    
+			value = changepos - 2	
 			changed_pos = np.where(deltaZ == value)[0]
 			changed_neg = np.where(deltaZ == -value)[0]
 			for changed in changed_pos:
@@ -261,7 +263,7 @@ class Ranker(object):
 		g = ig.Graph(self._nmodifiedatoms)
 
 		for a, b, distance in zip(*similarities):
-			if distance < 1:
+			if distance < 10:
 				g.add_edge(a, b)
 
 		self._molecule_comparison_groups = [_ for _ in g.components()]
@@ -274,15 +276,17 @@ class Ranker(object):
 			for site in group:
 				self._molecule_comparison_graph.add_edge(self._natoms + gidx, site)
 
+		# prepare charge vectors
+		self._cache_molecule_color1 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+		self._cache_molecule_color2 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
+
 	def _molecules_similar(self, c1, c2):
 		graph = self._molecule_comparison_graph
 
-		charges1 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
-		charges1[self._includeonly] = c1
-		charges2 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
-		charges2[self._includeonly] = c2
+		self._cache_molecule_color1[self._includeonly] = c1
+		self._cache_molecule_color2[self._includeonly] = c2
 
-		return graph.isomorphic_vf2(graph, color1=charges1, color2=charges2)
+		return graph.isomorphic_vf2(graph, color1=self._cache_molecule_color1, color2=self._cache_molecule_color2)
 
 	def _mean_bond_energy(self, component):
 		def bond_energy(molecule):
