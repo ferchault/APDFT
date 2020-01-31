@@ -143,18 +143,17 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     
     return(energies)
 
-def get_label_delta(prop, tr_ind, data, molecule_size):
+def get_label_delta(prop_mean, local_idc, data, molecule_size):
     """
     generates baseline for certain label by subtracting average label value for every element
     
-    prop: label for learning
-    tr_ind: local indices of training atoms
+    prop: baseline value for every element
+    local_idc: local indices of atoms
     data: alchemy data
     molecule_size: size of every molecule in data
     """
-    prop_mean = get_average_property(tr_ind, data, molecule_size, prop)
-    label_delta = np.zeros(len(tr_ind))
-    for idx, i in enumerate(get_property_from_local_index(tr_ind, data, 'charge', molecule_size)):
+    label_delta = np.zeros(len(local_idc))
+    for idx, i in enumerate(get_property_from_local_index(local_idc, data, 'charge', molecule_size)):
         label_delta[idx] = prop_mean[i]
     return(label_delta)
 
