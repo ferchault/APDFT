@@ -11,6 +11,7 @@ import math
 import igraph as ig
 import numpy as np 
 import numba
+import qml
 
 # Ideas:
 # - ranking based on nodal structure
@@ -67,16 +68,24 @@ class Ranker(object):
 			coordinates.append([float(_) for _ in parts[1:4]])
 		return np.array(nuclear_numbers), np.array(coordinates)
 
-	def __init__(self, nuclear_charges, coordinates, filename, mol2file, explain=False):
+	def __init__(self, nuclear_charges, coordinates, filename, mol2file, explain=False, sim=1, simmode=None):
+		self._similarity_parameter = sim
+		
+		if simmode == "ESP":
+			self._get_site_similarity = self._get_site_similarity_ESP
+		if simmode == "CM":
+			self._get_site_similarity = self._get_site_similarity_CM
+
 		self._coordinates = coordinates
+		self._c = qml.Compound(filename)
 		self._nuclear_charges = np.array(nuclear_charges).astype(np.int)
 		self._includeonly = np.where(self._nuclear_charges == 6)[0]
 		self._nmodifiedatoms = len(self._includeonly)
 		self._natoms = len(self._nuclear_charges)
 		self._explain = explain
-		self._molecule_similarity_threshold = 0.99999
 		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
+		#self._bondenergies = {(7., 6.): 4.54016298, (7., 7.): 3.02677532, (7., 5.): 3.37601863, (6., 6.): 6.05355064, (6., 5.): 4.88940629, (6., 1.): 6.40279395, (5., 1.): 5.23864959, (7., 1.): 6.98486612, (5., 5.): 3.72526193}
 		
 		# caching
 		self._prepare_getNN()
@@ -157,6 +166,7 @@ class Ranker(object):
 		num_carbons = len(self._includeonly)
 		stoichiometries = []
 		for bnpairs in range(num_carbons // 2 + 1):
+		#for bnpairs in (1,5):
 			charges = np.zeros(num_carbons, dtype=np.int) + 6
 			charges[:bnpairs] = 5
 			charges[bnpairs:2*bnpairs] = 7
@@ -174,7 +184,7 @@ class Ranker(object):
 		groups = []
 		placed = []
 
-		mask = dists < 1
+		mask = dists < self._similarity_parameter
 		for i, j, dist in zip(atomi[mask], atomj[mask], dists[mask]):
 			for gidx, group in enumerate(groups):
 				if i in group:
@@ -200,12 +210,32 @@ class Ranker(object):
 		self._cache_site_similarity_included_i = self._includeonly[indices[0]]
 		self._cache_site_similarity_included_j = self._includeonly[indices[1]]
 
-	def _get_site_similarity(self, nuclear_charges):
+	def _get_site_similarity_ESP(self, nuclear_charges):
 		""" Returns i, j, distance."""
 		esps = self._get_esp_representation(nuclear_charges)
 		
 		atomi, atomj = self._cache_site_similarity_indices
 		return self._cache_site_similarity_included_i, self._cache_site_similarity_included_j, np.abs(esps[atomi] - esps[atomj])
+
+	def _get_site_similarity_CM(self, nuclear_charges):
+		""" Returns i, j, distance."""
+		charges = self._c.nuclear_charges.copy().astype(np.float)
+		charges[self._includeonly] = nuclear_charges
+		atoms = np.where(self._c.nuclear_charges == 6)[0]
+		a = qml.representations.generate_coulomb_matrix(charges, self._c.coordinates, size=self._c.natoms, sorting='unsorted')
+		s = np.zeros((self._c.natoms, self._c.natoms))
+		s[np.tril_indices(self._c.natoms)] = a
+		d = np.diag(s)
+		s += s.T
+		s[np.diag_indices(self._c.natoms)] = d
+		sorted_elements = [np.sort(_) for _ in s[atoms]]
+		ret = []
+		for i in range(len(atoms)):
+			for j in range(i+1, len(atoms)):
+				dist = np.linalg.norm(sorted_elements[i] - sorted_elements[j])
+				ret.append([atoms[i], atoms[j], dist])
+		ret = np.array(ret)
+		return np.array(ret[:, 0], dtype=np.int), np.array(ret[:, 1], dtype=np.int), ret[:, 2]
 
 	def _prepare_esp_representation(self):
 		d = ssd.squareform(ssd.pdist(self._coordinates))[:self._nmodifiedatoms, :]
@@ -331,9 +361,9 @@ class TestRanker(unittest.TestCase):
 		self.assertTrue(np.allclose(np.array(expected), np.array(actual)))
 
 
-def do_main(fn, mol2file):
+def do_main(fn, mol2file, similarity, similarity_mode):
 	nuclear_charges, coordinates = Ranker.read_xyz(fn)
-	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True)
+	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True, sim=similarity, simmode=similarity_mode)
 	r.rank()
 
 if __name__ == '__main__':
@@ -342,4 +372,6 @@ if __name__ == '__main__':
 
 	fn = sys.argv[1]
 	mol2file = sys.argv[2]
-	do_main(fn, mol2file)
+	similarity = float(sys.argv[3])
+	similarity_mode = sys.argv[4]
+	do_main(fn, mol2file, similarity, similarity_mode)
