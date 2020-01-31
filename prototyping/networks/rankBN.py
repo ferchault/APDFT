@@ -126,15 +126,17 @@ class Ranker(object):
 
 			# rank components
 			mean_bond_energies = []
+			mean_nn_energies = []
 			components = []
 			for component in graph.components():
 				components.append(component)
 				mean_bond_energies.append(self._mean_bond_energy(component))
+				mean_nn_energies.append(self._mean_nn_energy(component))
 
 			# sort molecules
 			if self._explain:
 				print (len(components), "components found")
-			for component_id in np.argsort(mean_bond_energies):
+			for component_id in np.lexsort((mean_nn_energies, mean_bond_energies)):
 				print ("Group energy", mean_bond_energies[component_id])
 				molecules = [self._molecules[_][0] for _ in components[component_id]]
 				NN_energies = [self._getNN(_) for _ in molecules]
@@ -332,6 +334,10 @@ class Ranker(object):
 
 		energies = [bond_energy(self._molecules[molid][0]) for molid in component]
 		return -sum(energies) / len(energies)
+
+	def _mean_nn_energy(self, component):
+		energies = [self._getNN(self._molecules[molid][0]) for molid in component]
+		return sum(energies) / len(energies)
 
 	def _prepare_getNN(self):
 		angstrom = 1 / 0.52917721067
