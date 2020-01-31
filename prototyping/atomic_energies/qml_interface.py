@@ -99,18 +99,20 @@ def wrapper_global_representations(alchemy_data, molecule_size, rep_par='coulomb
         
     return(full_matrix)
     
-def calculate_distances(rep_matrix):
-    """
-    calculates the distance of every representation with all representations (including itself)
-    returns the distances as a 1D numpy array
-    
-    rep_matrix: 2D numpy array every row contains the representation for one atom
-    dist: distances as a 1D numpy array
-    """
-    
-    d2 = qml.distance.l2_distance(rep_matrix, rep_matrix)
-    d2_flattened = d2[np.triu_indices(len(rep_matrix))]
-    return(d2_flattened)
+#def calculate_distances(rep_matrix, modus):
+#    """
+#    calculates the distance of every representation with all representations (including itself)
+#    returns the distances as a 1D numpy array
+#    
+#    rep_matrix: 2D numpy array every row contains the representation for one atom
+#    dist: distances as a 1D numpy array
+#    """
+#    if modus = = 'l2':
+#        d2 = qml.distance.l2_distance(rep_matrix, rep_matrix)
+#        d2_flattened = d2[np.triu_indices(len(rep_matrix))]
+#    elif modus == 'wasserstein':
+#        
+#    return(d2_flattened)
 
 def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     """
@@ -140,7 +142,73 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
 
     
     return(energies)
-        
+
+def get_label_delta(prop, tr_ind, data, molecule_size):
+    """
+    generates baseline for certain label by subtracting average label value for every element
+    
+    prop: label for learning
+    tr_ind: local indices of training atoms
+    data: alchemy data
+    molecule_size: size of every molecule in data
+    """
+    prop_mean = get_average_property(tr_ind, data, molecule_size, prop)
+    label_delta = np.zeros(len(tr_ind))
+    for idx, i in enumerate(get_property_from_local_index(tr_ind, data, 'charge', molecule_size)):
+        label_delta[idx] = prop_mean[i]
+    return(label_delta)
+
+def get_average_property(idc, data, molecule_size, prop):
+    """
+    returns average label value for every element
+    idc: atom indices for which average label value will be calculated
+    """
+    # get charges, energies
+    charges = get_property_from_local_index(idc, data, 'charge', molecule_size)
+    prop = get_property_from_local_index(idc, data, prop, molecule_size)
+    
+    # divide indices of charges into groups
+    charges_divided = partition_idx_by_charge(charges)
+    # get energies for different groups
+    mean_prop = dict.fromkeys(charges_divided.keys(),0)
+    for mp in mean_prop:
+        mean_prop[mp] = prop[charges_divided[mp]].mean()
+    return(mean_prop)
+
+def get_property_from_local_index(local_idc, alchemy_data, prop, molecule_size):
+    """
+    returns property from local index
+    global_idx: index of molecule within all molecules
+    idx_in_mol: index of atom in its molecule
+    alchemy_data: contains information about atom in molecule and property
+    prop: atomic property from alchemy data set
+    """
+    global_idc = get_global_idx(local_idc, molecule_size)
+    idc_in_mol = get_idx_in_molecule(global_idc, local_idc, molecule_size)
+    
+    prop_local_idc = []
+    for idc in zip(global_idc, idc_in_mol):
+        prop_local_idc.append(get_property(idc[0], idc[1], alchemy_data, prop))
+    return(np.array(prop_local_idc))
+    
+def get_property(global_idx, idx_in_mol, alchemy_data, prop):
+    """
+    global_idx: index of molecule within all molecules
+    idx_in_mol: index of atom in its molecule
+    alchemy_data: contains information about atom in molecule and property
+    prop: atomic property from alchemy data set
+    """
+    
+    if prop == 'charge':
+        return(alchemy_data[global_idx][idx_in_mol,0])
+    elif prop == 'coords':
+        return(alchemy_data[global_idx][idx_in_mol,1:4])
+    elif prop == 'alch_pot':
+        return(alchemy_data[global_idx][idx_in_mol,4])
+    elif prop == 'atomic':
+        return(alchemy_data[global_idx][idx_in_mol,5])
+    elif prop == 'atomisation':
+        return(alchemy_data[global_idx][idx_in_mol,6])
 
 def get_indices(dim_full_rep, tr_size, val_size=None):
     """
@@ -176,7 +244,7 @@ def get_local_idx(global_idx, molecule_size):
     molecule_size: list of number of atoms of every representation in the full representation matrix
     
     @out
-    returns a lsit with the indices of the representations in the full local representation matrix
+    returns a list with the indices of the representations in the full local representation matrix
     """
     global_idx.sort()
     indices = []
@@ -186,6 +254,47 @@ def get_local_idx(global_idx, molecule_size):
         idc_mol = np.arange(start_idx, start_idx+length)
         indices.extend(idc_mol)
     return(indices)
+    
+def get_global_idx(local_idc, molecule_size):
+    """
+    inverse of get_local_index, return global index in local index is provided
+    local_idc: list of local indices
+    molecule_size: list with number of atoms in every molecule
+    global_idc: index of molecule in alchemy_data for every local index in local_idx
+    """
+    local_idc.sort()
+    cumulated = []
+    for idx in range(len(molecule_size)):
+        cumulated.append(np.sum(molecule_size[0:idx+1]))
+    
+    cumulated=np.array(cumulated)
+
+    global_idc = []
+    
+    for atom_idx in local_idc:
+        out = np.where(cumulated <= atom_idx)
+        global_idx = len(out[0])
+        assert atom_idx in get_local_idx([global_idx], molecule_size), "Wrong global index"
+        global_idc.append(global_idx)
+        
+    return(np.array(global_idc))
+    
+def get_idx_in_molecule(global_idx, local_idx, molecule_size):
+    """
+    returns the index of the atom in its molecule (at which index in data_set for the molecule)
+    global_idx: index of molecule
+    local_idx: index of atom in list over all molecules
+    
+    idx_in_mol: index of atom in molecule
+    """
+    
+    idx_in_mol = []
+    for idc in zip(global_idx, local_idx):
+        idx_in_mol.append(idc[1] - get_local_idx([idc[0]], molecule_size)[0])
+    return(np.array(idx_in_mol))
+    
+    
+    
     
 def select_sub_matrix(full_matrix, row_ind, col_ind):
     """
@@ -560,7 +669,7 @@ def train_kernel(rep_tr, labels_tr, sigma, lam_val):
     coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
     return(coeffs)
 
-def partition_idx_by_charge(alchemy_data, idx_list):
+def partition_idx_by_charge(charges):
     """
     partitions the idx in idx_list into groups, every group contains the indices
     with the same charge; for every unique nuclear charge a tuple (charge, list of idx where nuclear_charge == charge)
@@ -570,17 +679,12 @@ def partition_idx_by_charge(alchemy_data, idx_list):
     idx_list: global indices (molecules) that shall be partitioned into groups with the same charge
     """
     
-    nuc_charges = []
-    for idx in range(len(alchemy_data)):
-        nuc_charges.extend(alchemy_data[idx][:,0])
-    nuc_charges = np.array(nuc_charges)
-    
-    unique_charges = list(set(nuc_charges))
+    unique_charges = list(set(charges))
     unique_charges.sort()
     
-    charges_partitioned = []
-    for charge in unique_charges:
-        charges_partitioned.append((charge, np.where(nuc_charges == charge)))
+    charges_partitioned = dict.fromkeys(unique_charges,0)
+    for k in charges_partitioned:
+        charges_partitioned[k] = np.where(charges == k)
     return(charges_partitioned)
 
 def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
