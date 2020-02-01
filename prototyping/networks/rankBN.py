@@ -133,7 +133,10 @@ class Ranker(object):
 
 					for origin in self._molecules[mol_i]:
 						for opposite in self._molecules[mol_j]:
+							if (len(np.where(np.array(origin) != np.array(opposite))[0]) % 2) == 1:
+								continue
 							reference = (np.array(opposite) + origin) / 2
+
 							common_ground = self._identify_equivalent_sites(reference)
 							if self._check_common_ground(origin, opposite, reference, common_ground):
 								graph.add_edge(mol_i, mol_j)
