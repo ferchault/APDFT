@@ -40,6 +40,24 @@ def _do_partition(total, maxelements, maxdz):
 				res.append([x] + p)
 	return res
 
+@numba.jit(nopython=True)
+def numba_exit_norm(A, B, n, limit):
+	delta = 0.
+	for i in range(n):
+		delta += (A[i] - B[i])**2
+		if delta > limit:
+			return limit + 1
+	return delta**0.5
+
+@numba.jit(nopython=True)
+def numba_loop(atomi, atomj, sorted_elements, natoms, limit):
+	npairs = len(atomi)
+	ret = np.zeros(npairs)
+	for i in range(npairs):
+		dist = numba_exit_norm(sorted_elements[atomi[i]], sorted_elements[atomj[i]], natoms, limit)
+		ret[i] = dist
+	return ret
+
 def partition(maxelements, BNcount):
 	total = maxelements * 6
 	return _do_partition(total, maxelements, BNcount*2)
@@ -168,7 +186,7 @@ class Ranker(object):
 		num_carbons = len(self._includeonly)
 		stoichiometries = []
 		for bnpairs in range(num_carbons // 2 + 1):
-		#for bnpairs in (1,5):
+		#for bnpairs in (5,):
 			charges = np.zeros(num_carbons, dtype=np.int) + 6
 			charges[:bnpairs] = 5
 			charges[bnpairs:2*bnpairs] = 7
@@ -182,10 +200,11 @@ class Ranker(object):
 
 	def _identify_equivalent_sites(self, reference):
 		""" Lists all sites that are sufficiently similar in atomic environment."""
-		atomi, atomj, dists = self._get_site_similarity(reference)
+		dists = self._get_site_similarity(reference)
 		groups = []
 		placed = []
 
+		atomi, atomj = self._cache_site_similarity_indices
 		mask = dists < self._similarity_parameter
 		for i, j, dist in zip(atomi[mask], atomj[mask], dists[mask]):
 			for gidx, group in enumerate(groups):
@@ -211,6 +230,9 @@ class Ranker(object):
 		self._cache_site_similarity_indices = indices
 		self._cache_site_similarity_included_i = self._includeonly[indices[0]]
 		self._cache_site_similarity_included_j = self._includeonly[indices[1]]
+		self._sitesimCM_squareform_outcache = np.zeros((self._c.natoms, self._c.natoms))
+		self._sitesimCM_squareform_mask = np.tril(np.ones((self._c.natoms, self._c.natoms),dtype=bool))
+		self._sitesimCM_charges = self._c.nuclear_charges.copy().astype(np.float)
 
 	def _get_site_similarity_ESP(self, nuclear_charges):
 		""" Returns i, j, distance."""
@@ -221,23 +243,20 @@ class Ranker(object):
 
 	def _get_site_similarity_CM(self, nuclear_charges):
 		""" Returns i, j, distance."""
-		charges = self._c.nuclear_charges.copy().astype(np.float)
+		charges = self._sitesimCM_charges
 		charges[self._includeonly] = nuclear_charges
-		atoms = np.where(self._c.nuclear_charges == 6)[0]
 		a = qml.representations.generate_coulomb_matrix(charges, self._c.coordinates, size=self._c.natoms, sorting='unsorted')
-		s = np.zeros((self._c.natoms, self._c.natoms))
-		s[np.tril_indices(self._c.natoms)] = a
-		d = np.diag(s)
-		s += s.T
-		s[np.diag_indices(self._c.natoms)] = d
-		sorted_elements = [np.sort(_) for _ in s[atoms]]
-		ret = []
-		for i in range(len(atoms)):
-			for j in range(i+1, len(atoms)):
-				dist = np.linalg.norm(sorted_elements[i] - sorted_elements[j])
-				ret.append([atoms[i], atoms[j], dist])
-		ret = np.array(ret)
-		return np.array(ret[:, 0], dtype=np.int), np.array(ret[:, 1], dtype=np.int), ret[:, 2]
+
+		# to squareform
+		self._sitesimCM_squareform_outcache[self._sitesimCM_squareform_mask] = a
+		self._sitesimCM_squareform_outcache.T[self._sitesimCM_squareform_mask] = a
+
+		sorted_elements = np.sort(self._sitesimCM_squareform_outcache[self._includeonly], axis=1, kind="stable")
+
+		limit = self._similarity_parameter**2.
+		atomi, atomj = self._cache_site_similarity_indices
+
+		return numba_loop(atomi, atomj, sorted_elements, self._c.natoms, limit)
 
 	def _prepare_esp_representation(self):
 		d = ssd.squareform(ssd.pdist(self._coordinates))[:self._nmodifiedatoms, :]
@@ -294,7 +313,7 @@ class Ranker(object):
 		similarities = self._get_site_similarity(np.zeros(self._nmodifiedatoms) + 6)
 		g = ig.Graph(self._nmodifiedatoms)
 
-		for a, b, distance in zip(*similarities):
+		for a, b, distance in zip(*self._cache_site_similarity_indices, similarities):
 			if distance < 10:
 				g.add_edge(a, b)
 
