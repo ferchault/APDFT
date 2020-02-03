@@ -110,6 +110,7 @@ class Ranker(object):
 		self._prepare_site_similarity()
 		self._prepare_esp_representation()
 		self._prepare_molecule_comparison()
+		self._prepare_precheck()
 
 	def rank(self):
 		graphs = {}
@@ -280,6 +281,9 @@ class Ranker(object):
 		D *= self._esp_distance_cache
 		return np.sum(D, axis=1)
 
+	def _prepare_precheck(self):
+		self._cache_precheck_similar = self._identify_equivalent_sites([6] * self._nmodifiedatoms)
+
 	def _precheck(self, target, opposite, reference):
 		deltaZ = [a-b for a,b in zip(opposite, target)]
 
@@ -294,12 +298,17 @@ class Ranker(object):
 		if changes[2] == self._nmodifiedatoms:
 			return False
 
+		# at least of symmetry of all-carbon center
+		deltaZ = np.array(deltaZ)
+		for group in self._cache_precheck_similar:
+			if sum(deltaZ[group]) != 0:
+				return False
+
 		return deltaZ, changes
 
 	def _check_common_ground(self, deltaZ, changes, common_ground):
 		# all changing atoms need to be in the same group
 		assigned = []
-		deltaZ = np.array(deltaZ)
 		for changepos in (3, 4):
 			if changes[changepos] == 0:
 				continue
