@@ -133,12 +133,18 @@ class Ranker(object):
 
 					for origin in self._molecules[mol_i]:
 						for opposite in self._molecules[mol_j]:
+							# skip odd numbers of mutated sites
 							if (len(np.where(np.array(origin) != np.array(opposite))[0]) % 2) == 1:
 								continue
+
+							# check necessary requirements
 							reference = (np.array(opposite) + origin) / 2
+							check = self._precheck(origin, opposite, reference)
+							if check == False:
+								continue
 
 							common_ground = self._identify_equivalent_sites(reference)
-							if self._check_common_ground(origin, opposite, reference, common_ground):
+							if self._check_common_ground(*check, common_ground):
 								graph.add_edge(mol_i, mol_j)
 								break
 						else:
@@ -274,7 +280,7 @@ class Ranker(object):
 		D *= self._esp_distance_cache
 		return np.sum(D, axis=1)
 
-	def _check_common_ground(self, target, opposite, reference, common_ground):
+	def _precheck(self, target, opposite, reference):
 		deltaZ = [a-b for a,b in zip(opposite, target)]
 
 		# matching deltaZ
@@ -288,6 +294,9 @@ class Ranker(object):
 		if changes[2] == self._nmodifiedatoms:
 			return False
 
+		return deltaZ, changes
+
+	def _check_common_ground(self, deltaZ, changes, common_ground):
 		# all changing atoms need to be in the same group
 		assigned = []
 		deltaZ = np.array(deltaZ)
