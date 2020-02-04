@@ -11,34 +11,15 @@ import math
 import igraph as ig
 import numpy as np 
 import numba
+import pymatgen
+import pymatgen.io.xyz
+
 import qml
 
 # Ideas:
 # - ranking based on nodal structure
 # - ranking based on distance argument
 # - precompute results of partition
-
-@numba.jit(nopython=True)
-def _do_partition(total, maxelements, maxdz):
-	if maxelements == 1:
-		if total not in (5, 6, 7):
-			var = [1]
-			return [var[0:0]]
-		else:
-			return [[total]]
-	res = []
-
-	# get range to cover
-	first = max(5, 6 - maxdz)
-	last = min(7, 6 + maxdz)
-	for x in range(first, last + 1):
-		limit = maxdz - abs(x - 6)
-		if maxelements - 1 < limit:
-			continue
-		for p in _do_partition(total - x, maxelements - 1, limit):
-			if len(p) != 0:
-				res.append([x] + p)
-	return res
 
 @numba.jit(nopython=True)
 def numba_exit_norm(A, B, n, limit):
@@ -58,11 +39,6 @@ def numba_loop(atomi, atomj, sorted_elements, natoms, limit):
 		ret[i] = dist
 	return ret
 
-def partition(maxelements, BNcount):
-	total = maxelements * 6
-	return _do_partition(total, maxelements, BNcount*2)
-
-
 @numba.jit(nopython=True)
 def _precheck(target, opposite):	
 	deltaZ = opposite - target
@@ -81,6 +57,25 @@ def _precheck(target, opposite):
 		return False
 
 	return True
+
+def detect_automorphisms(filename):
+	xyz = pymatgen.io.xyz.XYZ.from_file(filename)
+	psa = pymatgen.symmetry.analyzer.PointGroupAnalyzer(xyz.molecule)
+
+	m = xyz.molecule.get_centered_molecule()
+	carbons = np.where(np.array(m.atomic_numbers, dtype=np.int) == 6)[0]
+
+	operations = psa.get_symmetry_operations()
+	mapping = np.zeros((len(carbons), len(operations)), dtype=np.int)
+	for opidx, op in enumerate(operations):
+		for bidx, base in enumerate(carbons):
+			ds = np.linalg.norm(op.operate(m.cart_coords[base]) - m.cart_coords[carbons], axis=1)
+			onto = np.argmin(ds)
+			if ds[onto] > 1e-3:
+				raise ValueError('Irregular geometry')
+			mapping[bidx, opidx] = onto
+
+	return mapping
 
 class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
@@ -129,8 +124,14 @@ class Ranker(object):
 		self._prepare_getNN()
 		self._prepare_site_similarity()
 		self._prepare_esp_representation()
-		self._prepare_molecule_comparison()
 		self._prepare_precheck()
+
+		# debug
+		l = list()
+		for i in detect_automorphisms(filename).T:
+			l.append(tuple(i))
+		l = set(l)
+		self._automorphism_cache = [list(_) for _ in l]
 
 	def rank(self):
 		graphs = {}
@@ -139,45 +140,42 @@ class Ranker(object):
 				print ("Working on stoichiometry: %s" % stoichiometry)
 
 			# build clusters of molecules
-			self._molecules, npermutations = self._identify_molecules(stoichiometry)
+			self._molecules = self._identify_molecules(stoichiometry)
 			nmolecules = len(self._molecules)
 			if self._explain:
-				print ("Found %d molecules from %d permutations." % (nmolecules, npermutations))
+				print ("Read %d molecules." % (nmolecules))
 
 			# connect molecules
 			graph = ig.Graph(nmolecules)
 			for mol_i in range(nmolecules):
-				for mol_j in range(mol_i, nmolecules):
+				origin = self._molecules[mol_i]
+
+				for mol_j in range(mol_i+1, nmolecules):
 					# short-circuit if other relations already exist
 					if not math.isinf(graph.shortest_paths(mol_i, mol_j)[0][0]):
 						continue
 
-					for origin in self._molecules[mol_i]:
-						for opposite in self._molecules[mol_j]:
-							opposite = np.array(opposite, dtype=np.int32)
-							origin = np.array(origin, dtype=np.int32)
-							# skip odd numbers of mutated sites
-							if (len(np.where(origin != opposite)[0]) % 2) == 1:
-								continue
-
-							# check necessary requirements
-							if not self._group_precheck(origin, opposite):
-								continue
-							if not _precheck(origin, opposite):
-								continue
-
-							deltaZ = opposite - origin
-							changes = np.zeros(5, dtype=np.int32)
-							reference = (opposite + origin) / 2
-							for i in deltaZ:
-								changes[i +2] +=1 
-							common_ground = self._identify_equivalent_sites(reference)
-							if self._check_common_ground(deltaZ, changes, common_ground):
-								graph.add_edge(mol_i, mol_j)
-								break
-						else:
+					for mod in self._automorphism_cache:
+						opposite = self._molecules[mol_j][mod]
+						# skip odd numbers of mutated sites
+						if (len(np.where(origin != opposite)[0]) % 2) == 1:
 							continue
-						break
+
+						# check necessary requirements
+						if not self._group_precheck(origin, opposite):
+							continue
+						if not _precheck(origin, opposite):
+							continue
+
+						deltaZ = opposite - origin
+						changes = np.zeros(5, dtype=np.int32)
+						reference = (opposite + origin) / 2.
+						for i in deltaZ:
+							changes[i + 2] +=1 
+						common_ground = self._identify_equivalent_sites(reference)
+						if self._check_common_ground(deltaZ, changes, common_ground):
+							graph.add_edge(mol_i, mol_j)
+							break
 
 			# rank components
 			mean_bond_energies = []
@@ -193,7 +191,7 @@ class Ranker(object):
 				print (len(components), "components found")
 			for component_id in np.lexsort((mean_nn_energies, mean_bond_energies)):
 				print ("Group energy", mean_bond_energies[component_id])
-				molecules = [self._molecules[_][0] for _ in components[component_id]]
+				molecules = [self._molecules[_] for _ in components[component_id]]
 				NN_energies = [self._getNN(_) for _ in molecules]
 				
 				for mol_id in np.argsort(NN_energies):
@@ -201,18 +199,9 @@ class Ranker(object):
 						print ('Found: %s' % str(molecules[mol_id]))
 
 	def _identify_molecules(self, stoichiometry):
-		permutations = self._find_possible_permutations(stoichiometry)
-		molecules = []
-
-		npermutations = len(permutations)
-		for permutation in permutations:
-			for midx, molecule in enumerate(molecules):
-				if self._molecules_similar(molecule[0], permutation):
-					molecules[midx].append(permutation)
-					break
-			else:
-				molecules.append([permutation])
-		return molecules, npermutations
+		nbn = len([_ for _ in stoichiometry if _ == 5])
+		molecules = np.load("out-nbn-%d.npy" % nbn)
+		return molecules
 
 	def _find_possible_permutations(self, stoichiometry):
 		BNcount = len([_ for _ in stoichiometry if _ == 5])
@@ -345,37 +334,6 @@ class Ranker(object):
 				assigned.append(changed)
 		return True
 
-	def _prepare_molecule_comparison(self):
-		# find equivalent sites
-		similarities = self._get_site_similarity(np.zeros(self._nmodifiedatoms) + 6)
-		g = ig.Graph(self._nmodifiedatoms)
-
-		for a, b, distance in zip(*self._cache_site_similarity_indices, similarities):
-			if distance < 10:
-				g.add_edge(a, b)
-
-		self._molecule_comparison_groups = [_ for _ in g.components()]
-
-		# initialize graph
-		self._molecule_comparison_graph = ig.Graph(self._natoms + len(self._molecule_comparison_groups))
-		for a, b in self._bonds:
-			self._molecule_comparison_graph.add_edge(a, b)
-		for gidx, group in enumerate(self._molecule_comparison_groups):
-			for site in group:
-				self._molecule_comparison_graph.add_edge(self._natoms + gidx, site)
-
-		# prepare charge vectors
-		self._cache_molecule_color1 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
-		self._cache_molecule_color2 = np.append(self._nuclear_charges, np.arange(-len(self._molecule_comparison_groups), 0))
-
-	def _molecules_similar(self, c1, c2):
-		graph = self._molecule_comparison_graph
-
-		self._cache_molecule_color1[self._includeonly] = c1
-		self._cache_molecule_color2[self._includeonly] = c2
-
-		return graph.isomorphic_vf2(graph, color1=self._cache_molecule_color1, color2=self._cache_molecule_color2)
-
 	def _mean_bond_energy(self, component):
 		def bond_energy(molecule):
 			energy = 0
@@ -388,11 +346,11 @@ class Ranker(object):
 				energy += self._bondenergies[(z1, z2)]
 			return energy
 
-		energies = [bond_energy(self._molecules[molid][0]) for molid in component]
+		energies = [bond_energy(self._molecules[molid]) for molid in component]
 		return -sum(energies) / len(energies)
 
 	def _mean_nn_energy(self, component):
-		energies = [self._getNN(self._molecules[molid][0]) for molid in component]
+		energies = [self._getNN(self._molecules[molid]) for molid in component]
 		return sum(energies) / len(energies)
 
 	def _prepare_getNN(self):
@@ -432,8 +390,8 @@ if __name__ == '__main__':
 	# self-test
 	#unittest.main(exit=False, verbosity=0)
 
-	fn = sys.argv[1]
-	mol2file = sys.argv[2]
-	similarity = float(sys.argv[3])
-	similarity_mode = sys.argv[4]
+	fn = "inp.xyz"
+	mol2file = "inp.mol2"
+	similarity = float(sys.argv[1])
+	similarity_mode = sys.argv[2]
 	do_main(fn, mol2file, similarity, similarity_mode)
