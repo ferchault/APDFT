@@ -135,7 +135,7 @@ trythisone(grouprec *group, graph *g, boolean digraph, int m, int n)
 /* Try one solution, accept if maximal. */
 /* Return value is level to return to. */
 {
-    int i,j;
+    int i,j,cweight;
     boolean accept;
     graph *gi;
     size_t ne;
@@ -183,16 +183,23 @@ trythisone(grouprec *group, graph *g, boolean digraph, int m, int n)
 		    if (ISELEMENT(gi,i)) ++ne;
 	        ne /= 2;
 	    }
-            fprintf(outfile,"%d %lu",n,(unsigned long)ne);
+            /*fprintf(outfile,"%d %lu",n,(unsigned long)ne);*/
     
+cweight = 0;
+	    for (i = 0; i < n; ++i) {
+if (col[i] == 1) cweight += 1;
+if (col[i] == 2) cweight -= 1;
+}
+if (cweight == 0) {
 	    for (i = 0; i < n; ++i) fprintf(outfile," %d",col[i]);
-	    fprintf(outfile," ");
+	    /*fprintf(outfile," ");
 	    for (i = 0, gi = g; i < n; ++i, gi += m)
 	    {
 		for (j = (digraph?-1:i-1); (j = nextelement(gi,m,j)) >= 0; )
                     fprintf(outfile," %d %d",i,j);
-	    }
+	    }*/
             fprintf(outfile,"\n");
+}
 #endif
         }
         return n-1;
