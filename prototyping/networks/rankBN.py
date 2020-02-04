@@ -62,6 +62,26 @@ def partition(maxelements, BNcount):
 	total = maxelements * 6
 	return _do_partition(total, maxelements, BNcount*2)
 
+
+@numba.jit(nopython=True)
+def _precheck(target, opposite):	
+	deltaZ = opposite - target
+
+	# matching deltaZ
+	changes = np.zeros(5, dtype=np.int32)
+	for i in deltaZ:
+		changes[i +2] +=1 
+
+	# ensure matching counts
+	if max(changes - changes[::-1]) != 0:
+		return False
+
+	# ignore identity operation
+	if changes[2] == 10:
+		return False
+
+	return True
+
 class Ranker(object):
 	""" Ranks BN doped molecules. Ranking in order from lowest to highest."""
 
@@ -134,18 +154,25 @@ class Ranker(object):
 
 					for origin in self._molecules[mol_i]:
 						for opposite in self._molecules[mol_j]:
+							opposite = np.array(opposite, dtype=np.int32)
+							origin = np.array(origin, dtype=np.int32)
 							# skip odd numbers of mutated sites
-							if (len(np.where(np.array(origin) != np.array(opposite))[0]) % 2) == 1:
+							if (len(np.where(origin != opposite)[0]) % 2) == 1:
 								continue
 
 							# check necessary requirements
-							reference = (np.array(opposite) + origin) / 2
-							check = self._precheck(origin, opposite, reference)
-							if check == False:
+							if not self._group_precheck(origin, opposite):
+								continue
+							if not _precheck(origin, opposite):
 								continue
 
+							deltaZ = opposite - origin
+							changes = np.zeros(5, dtype=np.int32)
+							reference = (opposite + origin) / 2
+							for i in deltaZ:
+								changes[i +2] +=1 
 							common_ground = self._identify_equivalent_sites(reference)
-							if self._check_common_ground(*check, common_ground):
+							if self._check_common_ground(deltaZ, changes, common_ground):
 								graph.add_edge(mol_i, mol_j)
 								break
 						else:
@@ -282,29 +309,18 @@ class Ranker(object):
 		return np.sum(D, axis=1)
 
 	def _prepare_precheck(self):
-		self._cache_precheck_similar = self._identify_equivalent_sites([6] * self._nmodifiedatoms)
+		# we don't actually need the iteration over groups to be dynamic
+		# numba cannot unroll this loop (or I don't know how to tell it to) since it does not know that these lists are static
+		# typed lists are faster but not as fast, so we want to unroll the loop
+		# ugly workaround: generate the code here, jit it and (re-)place the class method
 
-	def _precheck(self, target, opposite, reference):
-		deltaZ = [a-b for a,b in zip(opposite, target)]
+		code = []
+		for group in self._identify_equivalent_sites([6] * self._nmodifiedatoms):
+			code.append('(' + ' + '.join(['opposite[%d] - target[%s]' % (_, _) for _ in group]) + ') == 0')
+		code = ' and '.join(code)
+		code = f'lambda target, opposite: True if {code} else False'
+		self._group_precheck = numba.jit(nopython=True)(eval(code))
 
-		# matching deltaZ
-		changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
-		
-		# ensure matching counts
-		if max(changes - changes[::-1]) != 0:
-			return False
-
-		# ignore identity operation
-		if changes[2] == self._nmodifiedatoms:
-			return False
-
-		# at least of symmetry of all-carbon center
-		deltaZ = np.array(deltaZ)
-		for group in self._cache_precheck_similar:
-			if sum(deltaZ[group]) != 0:
-				return False
-
-		return deltaZ, changes
 
 	def _check_common_ground(self, deltaZ, changes, common_ground):
 		# all changing atoms need to be in the same group
