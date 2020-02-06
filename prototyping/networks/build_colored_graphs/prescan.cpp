@@ -33,7 +33,7 @@ bool is_even(uint8_t * a, uint8_t * b) {
 
 int main(int argc, char ** argv) {
 	// read raw binary graphs
-	std::ifstream file("bin", std::ios::binary | std::ios::ate);
+	std::ifstream file(argv[1], std::ios::binary | std::ios::ate);
 	std::streamsize size = file.tellg();
 	file.seekg(0, std::ios::beg);
 	std::vector<char> buffer(size);
@@ -43,8 +43,8 @@ int main(int argc, char ** argv) {
 	std::cout << "# loaded " << nentries << std::endl;
 	
 	// arguments
-	size_t begin = atoi(argv[1]);
-	size_t end = atoi(argv[2]);
+	size_t begin = atoi(argv[2]);
+	size_t end = atoi(argv[3]);
 	std::time_t begintime = std::time(nullptr);
 
 	// loop over molecules
