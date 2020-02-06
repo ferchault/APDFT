@@ -26,7 +26,7 @@ bool is_even(uint8_t * a, uint8_t * b) {
 	return (count % 2) == 0;
 }
 
-int main() {
+int main(int argc, char ** argv) {
 	// read raw binary graphs
 	std::ifstream file("bin", std::ios::binary | std::ios::ate);
 	std::streamsize size = file.tellg();
@@ -36,10 +36,14 @@ int main() {
 	int nentries = buffer.size()/22;
 	uint8_t * nums = reinterpret_cast<uint8_t *>(buffer.data());
 	std::cout << "# loaded " << nentries << std::endl;
+	
+	// arguments
+	size_t begin = atoi(argv[1]);
+	size_t end = atoi(argv[2]);
 
 	// loop over molecules
 	#pragma omp parallel for
-	for (size_t i = 0; i < nentries; i++) {
+	for (size_t i = begin; i < end; i++) {
 		std::stringstream stream;
 		// loop over other molecules
 		for (int j = i+1; j < nentries; j++){
