@@ -3,6 +3,7 @@
 #include<vector>
 #include<cstdint>
 #include<sstream>
+#include<ctime>
 
 bool group_precheck(uint8_t * a, uint8_t * b) {
 	// [[0, 5, 12, 13], [1, 14], [2, 15], [3, 10], [4, 11], [6, 9, 18, 19], [7, 8, 17, 20], [16, 21]]
@@ -40,6 +41,7 @@ int main(int argc, char ** argv) {
 	// arguments
 	size_t begin = atoi(argv[1]);
 	size_t end = atoi(argv[2]);
+	std::time_t begintime = std::time(nullptr);
 
 	// loop over molecules
 	#pragma omp parallel for
@@ -53,7 +55,11 @@ int main(int argc, char ** argv) {
 		}
 		std::cout << stream.str();
 	}
+	std::time_t endtime = std::time(nullptr);
+	double mcmps = (end+begin)/2;
+	mcmps = mcmps * (nentries - mcmps);
+	mcmps /= (endtime - begintime) * 1000000;
 
 	// finalize
-	std::cout << "# done" << nentries << std::endl;
+	std::cout << "# done, " << end-begin << " molecules in " << endtime - begintime << "s, " << mcmps << " Mcmp/s" << std::endl;
 }
