@@ -1,3 +1,5 @@
+// hard-coded for molecule 12 in 10.1063/1.5088083 
+// g++ -O4 -std=c++17 -fopenmp prescan.cpp
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -7,6 +9,7 @@
 
 bool group_precheck(uint8_t * a, uint8_t * b) {
 	// [[0, 5, 12, 13], [1, 14], [2, 15], [3, 10], [4, 11], [6, 9, 18, 19], [7, 8, 17, 20], [16, 21]]
+	// obtained for CM distance metric and 2.2 threshold
 	if (a[1] - b[1] + a[14] - b[14]) { return false; }
 	if (a[2] - b[2] + a[15] - b[15]) { return false; }
 	if (a[3] - b[3] + a[10] - b[10]) { return false; }
@@ -14,9 +17,10 @@ bool group_precheck(uint8_t * a, uint8_t * b) {
 	if (a[16] - b[16] + a[21] - b[21]) { return false; }
 	if (a[0] - b[0] + a[5] - b[5] + a[12] - b[12] + a[13] - b[13]) { return false; }
 	if (a[6] - b[6] + a[9] - b[9] + a[18] - b[18] + a[19] - b[19]) { return false; }
-	// last one not needed, implicitly checked
+	// last orbit not needed, implicitly checked
 	return true;
 }
+
 bool is_even(uint8_t * a, uint8_t * b) {
 	int count = 0;
 	for (int i =0; i < 22; i++) {
@@ -58,8 +62,8 @@ int main(int argc, char ** argv) {
 	std::time_t endtime = std::time(nullptr);
 	double mcmps = (end+begin)/2;
 	mcmps = mcmps * (nentries - mcmps);
-	mcmps /= (endtime - begintime) * 1000000;
+	mcmps /= std::difftime(endtime, begintime) * 1000000;
 
 	// finalize
-	std::cout << "# done, " << end-begin << " molecules in " << endtime - begintime << "s, " << mcmps << " Mcmp/s" << std::endl;
+	std::cout << "# done, " << end-begin << " molecules in " << std::difftime(endtime, begintime) << "s, " << mcmps << " Mcmp/s" << std::endl;
 }
