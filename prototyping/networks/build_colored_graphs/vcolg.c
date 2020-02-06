@@ -27,7 +27,7 @@ FILE *outfile;
 
 #define MAXNV 128 
 
-static int col[MAXNV];
+static uint8_t col[MAXNV];
 static boolean first;
 static int lastreject[MAXNV];
 static boolean lastrejok;
@@ -191,14 +191,15 @@ if (col[i] == 1) cweight += 1;
 if (col[i] == 2) cweight -= 1;
 }
 if (cweight == 0) {
-	    for (i = 0; i < n; ++i) fprintf(outfile," %d",col[i]);
+	    //for (i = 0; i < n; ++i) fprintf(outfile," %d",col[i]);
+		fwrite(col, sizeof(uint8_t), n, outfile);
 	    /*fprintf(outfile," ");
 	    for (i = 0, gi = g; i < n; ++i, gi += m)
 	    {
 		for (j = (digraph?-1:i-1); (j = nextelement(gi,m,j)) >= 0; )
                     fprintf(outfile," %d %d",i,j);
 	    }*/
-            fprintf(outfile,"\n");
+            //fprintf(outfile,"\n");
 }
 #endif
         }
