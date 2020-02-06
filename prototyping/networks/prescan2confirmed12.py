@@ -141,22 +141,12 @@ class Ranker(object):
 
 			for mod in self._automorphism_cache:
 				opposite = self._molecules[mol_j][mod]
-
-				# skip odd numbers of mutated sites
-				if (len(np.where(origin != opposite)[0]) % 2) == 1:
-					continue
-
-				# check necessary requirements
-				if not self._group_precheck(origin, opposite):
-					continue
 				if not _precheck(origin, opposite):
 					continue
 
 				deltaZ = opposite - origin
-				changes = np.zeros(5, dtype=np.int32)
 				reference = (opposite + origin) / 2.
-				for i in deltaZ:
-					changes[i + 2] +=1 
+				changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
 				common_ground = self._identify_equivalent_sites(reference)
 				if self._check_common_ground(deltaZ, changes, common_ground):
 					print(mol_i, mol_j)
@@ -274,7 +264,7 @@ class Ranker(object):
 		code = f'lambda target, opposite: True if {code} else False'
 		self._group_precheck = numba.jit(nopython=True)(eval(code))
 
-
+	#@numba.jit(forceobj=True)
 	def _check_common_ground(self, deltaZ, changes, common_ground):
 		# all changing atoms need to be in the same group
 		assigned = []
