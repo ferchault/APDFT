@@ -2,6 +2,7 @@
 #include<fstream>
 #include<vector>
 #include<cstdint>
+
 bool group_precheck(uint8_t * a, uint8_t * b) {
 	// [[0, 5, 12, 13], [1, 14], [2, 15], [3, 10], [4, 11], [6, 9, 18, 19], [7, 8, 17, 20], [16, 21]]
 	if (a[1] - b[1] + a[14] - b[14]) { return false; }
@@ -25,16 +26,20 @@ bool is_even(uint8_t * a, uint8_t * b) {
 }
 
 int main() {
+	// read raw binary graphs
 	std::ifstream file("bin", std::ios::binary | std::ios::ate);
 	std::streamsize size = file.tellg();
 	file.seekg(0, std::ios::beg);
 	std::vector<char> buffer(size);
 	file.read(buffer.data(), size);
 	int nentries = buffer.size()/22;
-	std::cout << "# loaded " << nentries << std::endl;
 	uint8_t * nums = reinterpret_cast<uint8_t *>(buffer.data());
+	std::cout << "# loaded " << nentries << std::endl;
 
-	for (int i = 0; i < nentries; i++) {
+	// loop over molecules
+	#pragma omp parallel for
+	for (size_t i = 0; i < nentries; i++) {
+		// loop over other molecules
 		for (int j = i+1; j < nentries; j++){
 			if (not group_precheck(nums + i*22, nums + j*22)) { continue; }
 			if (not is_even(nums + i*22, nums + j*22)) { continue; }
@@ -42,5 +47,7 @@ int main() {
 			std::cout << i << " " << j << std::endl;
 		}
 	}
+
+	// finalize
 	std::cout << "# done" << nentries << std::endl;
 }
