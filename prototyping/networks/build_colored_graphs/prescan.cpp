@@ -2,7 +2,7 @@
 #include<fstream>
 #include<vector>
 #include<cstdint>
-bool group_precheck(int8_t * a, int8_t * b) {
+bool group_precheck(uint8_t * a, uint8_t * b) {
 	// [[0, 5, 12, 13], [1, 14], [2, 15], [3, 10], [4, 11], [6, 9, 18, 19], [7, 8, 17, 20], [16, 21]]
 	if (a[1] - b[1] + a[14] - b[14]) { return false; }
 	if (a[2] - b[2] + a[15] - b[15]) { return false; }
@@ -14,7 +14,7 @@ bool group_precheck(int8_t * a, int8_t * b) {
 	// last one not needed, implicitly checked
 	return true;
 }
-bool is_even(int8_t * a, int8_t * b) {
+bool is_even(uint8_t * a, uint8_t * b) {
 	int count = 0;
 	for (int i =0; i < 22; i++) {
 		if (a[i] != b[i]) {
@@ -31,7 +31,8 @@ int main() {
 	std::vector<char> buffer(size);
 	file.read(buffer.data(), size);
 	int nentries = buffer.size()/22;
-	int8_t * nums = reinterpret_cast<int8_t *>(buffer.data());
+	std::cout << "# loaded " << nentries << std::endl;
+	uint8_t * nums = reinterpret_cast<uint8_t *>(buffer.data());
 
 	for (int i = 0; i < nentries; i++) {
 		for (int j = i+1; j < nentries; j++){
@@ -41,4 +42,5 @@ int main() {
 			std::cout << i << " " << j << std::endl;
 		}
 	}
+	std::cout << "# done" << nentries << std::endl;
 }
