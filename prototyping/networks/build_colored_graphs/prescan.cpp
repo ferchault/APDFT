@@ -2,6 +2,7 @@
 #include<fstream>
 #include<vector>
 #include<cstdint>
+#include<sstream>
 
 bool group_precheck(uint8_t * a, uint8_t * b) {
 	// [[0, 5, 12, 13], [1, 14], [2, 15], [3, 10], [4, 11], [6, 9, 18, 19], [7, 8, 17, 20], [16, 21]]
@@ -39,13 +40,14 @@ int main() {
 	// loop over molecules
 	#pragma omp parallel for
 	for (size_t i = 0; i < nentries; i++) {
+		std::stringstream stream;
 		// loop over other molecules
 		for (int j = i+1; j < nentries; j++){
 			if (not group_precheck(nums + i*22, nums + j*22)) { continue; }
 			if (not is_even(nums + i*22, nums + j*22)) { continue; }
-			
-			std::cout << i << " " << j << std::endl;
+			stream << i << " " << j << std::endl;
 		}
+		std::cout << stream.str();
 	}
 
 	// finalize
