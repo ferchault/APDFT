@@ -168,29 +168,36 @@ class Ranker(object):
 						break
 				else:
 					coefficients.append(this)
-		coeff = -np.array(coefficients).mean(axis=0)
-		print (coeff)
+		#coeff = -np.array(coefficients).mean(axis=0)
+		coeff = [-0.122015 ,  -0.44260741, -0.24407662 ,-0.24389064, -3.71681812 ,-2.25259099, -0.44260741, -0.24407662, -0.122015  ]
+		#coeff = -np.array([293/4.184 , 356./4.184, 389/4.184, 115,  346./4.184, 411/4.184, 305./4.184 ,386/4.184, 160./4.184])
 
 		group_energies = []
-		for group in components:
-			Atmp = self._build_mat(group, bondorder)
+		group_nn_energies = []
+		for component in components:
+			Atmp = self._build_mat(component, bondorder)
 			group_energies.append(np.dot(Atmp, coeff).mean())
 
+			nn = np.array([self._getNN(self._molecules[_]) for _ in component]).mean()
+			group_nn_energies.append(nn)
+
 		reranked = []
-		for idx in np.argsort(group_energies):
-			reranked += components[idx]
+		for component_id in np.lexsort((group_nn_energies, group_energies)):
+			component = components[component_id]
+			nn = np.array([self._getNN(self._molecules[_]) for _ in component])
+			
+			for mol_id in np.argsort(nn):
+				reranked.append(component[mol_id])
+
+		mixed = np.array(reranked).astype(np.int32)
+		mixed.tofile('ranking')
 
 		# mix in NN ranking to ensure stability for few groups with valid regressions
 		rankNN = np.argsort(bnn)
 		newrank = np.array(reranked)
-		N = len(coefficients)
+		N = max(1, len(coefficients))
 		mixed = np.argsort(rankNN/N + newrank * N)
 
-		mixed = mixed.astype(np.int32)
-		mixed.tofile('ranking')
-
-		bonds = self._build_mat(list(range(nmolecules)), bondorder).astype(np.int8)
-		bonds.tofile('bondcounts')
 
 	def _bond_count(self, label):
 		bonds = {'BH': 0, 'CH': 0, 'HN': 0, 'BB': 0, 'BC': 0, 'BN': 0, 'CC': 0, 'CN': 0, 'NN': 0, }
