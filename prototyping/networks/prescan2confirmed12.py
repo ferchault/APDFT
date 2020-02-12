@@ -8,6 +8,7 @@ import multiprocessing as mp
 import queue
 import ctypes
 import os.path
+import warnings
 
 from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
@@ -122,7 +123,9 @@ class Ranker(object):
 		self._nmodifiedatoms = len(self._includeonly)
 		self._natoms = len(self._nuclear_charges)
 		self._explain = explain
-		self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
+		with warnings.catch_warnings():
+			warnings.simplefilter("ignore")
+			self._bonds = MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
 		self._bondenergies = {(7., 6.): 305./4.184, (7., 7.): 160./4.184, (7., 5.): 115,(6., 6.): 346./4.184, (6., 5.): 356./4.184, (6., 1.): 411/4.184, (5., 1.): 389/4.184, (7., 1.): 386/4.184, (5., 5.): 293/4.184 }
 		#self._bondenergies = {(7., 6.): 4.54016298, (7., 7.): 3.02677532, (7., 5.): 3.37601863, (6., 6.): 6.05355064, (6., 5.): 4.88940629, (6., 1.): 6.40279395, (5., 1.): 5.23864959, (7., 1.): 6.98486612, (5., 5.): 3.72526193}
 		
