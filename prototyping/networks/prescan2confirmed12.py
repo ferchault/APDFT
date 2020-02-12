@@ -4,6 +4,10 @@
 import sys
 import time
 import unittest
+import multiprocessing as mp
+import queue
+import ctypes
+import os.path
 
 from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
@@ -130,7 +134,7 @@ class Ranker(object):
 		# debug
 		self._automorphism_cache = [[0,1,2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21], [13,14,15,10,11,12,9,8,7,6,3,4,5,0,1,2,21,20,19,18,17,16]]
 
-	def rank(self, candidates):
+	def rank(self, candidates, queue):
 		nmolecules = len(self._molecules)
 		if self._explain:
 			print ("#Read %d molecules." % (nmolecules))
@@ -149,7 +153,8 @@ class Ranker(object):
 				changes = np.bincount([_ + 2 for _ in deltaZ], minlength=5)
 				common_ground = self._identify_equivalent_sites(reference)
 				if self._check_common_ground(deltaZ, changes, common_ground):
-					print(mol_i, mol_j)
+					#print(mol_i, mol_j)
+					queue.put((mol_i, mol_j), block=False)
 					break
 
 	def _identify_molecules(self, stoichiometry):
@@ -335,14 +340,49 @@ class TestRanker(unittest.TestCase):
 		self.assertTrue(np.allclose(np.array(expected), np.array(actual)))
 
 
-def do_main(fn, mol2file, similarity, similarity_mode, candidates,mollist):
+def do_main(fn, mol2file, similarity, similarity_mode, candidates,mollist, results):
 	nuclear_charges, coordinates = Ranker.read_xyz(fn)
 	r = Ranker(nuclear_charges, coordinates, fn, mol2file, explain=True, sim=similarity, simmode=similarity_mode)
-	r._molecules = np.fromfile(mollist, dtype=np.int8).reshape(-1, 22)
-	r._molecules += 6
-	r._molecules[r._molecules == 8] = 5
+	c = np.frombuffer(mollist, dtype=np.int8).view()
+	c.shape = (-1, 22)
+	r._molecules = c
+	r.rank(candidates, results)
+
+def parallel_do_main(fn, mol2file, similarity, similarity_mode, candidates, mollist, nproc):
 	begin = time.time()
-	r.rank(candidates)
+	fragments = int(len(candidates) / nproc)
+
+	a = mp.Array(ctypes.c_int8, os.path.getsize(mollist), lock=False)
+	c = np.frombuffer(a, dtype=np.int8)
+	c2 = np.fromfile(mollist, dtype=np.int8) # .reshape(-1, 22)
+	c[:] = c2[:]
+	del c2
+
+	c += 6
+	c[c == 8] = 5
+
+	results = mp.Queue()
+	procs = []
+	for i in range(nproc):
+		start = i*fragments
+		stop = (i+1)*fragments-1
+		if i == nproc - 1:
+			stop = len(candidates)
+
+		procs.append(mp.Process(target=do_main, args=(fn, mol2file, similarity, similarity_mode, candidates[start:stop], a, results)))
+
+	for p in procs:
+		p.start()
+	for p in procs:
+		p.join()
+
+	try:
+		while True:
+			q = results.get_nowait()
+			print (*q)
+	except queue.Empty:
+		pass
+
 	end = time.time()
 	print ("# done, %d molecules in %ds, %f cmp/s" % (len(candidates), (end-begin), len(candidates)/(end-begin)))
 
@@ -359,4 +399,5 @@ if __name__ == '__main__':
 	similarity_mode = "CM"
 	mollist = sys.argv[3]
 	candidates = read_prescan(sys.argv[4])
-	do_main(fn, mol2file, similarity, similarity_mode, candidates, mollist)
+	nprocesses = int(sys.argv[5])
+	parallel_do_main(fn, mol2file, similarity, similarity_mode, candidates, mollist, nprocesses)
