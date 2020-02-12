@@ -18,6 +18,7 @@ import numpy as np
 import numba
 import pymatgen
 import pymatgen.io.xyz
+import pandas as pd
 
 import qml
 
@@ -139,6 +140,7 @@ class Ranker(object):
 		if self._explain:
 			print ("#Read %d molecules." % (nmolecules))
 
+		results = []
 		# connect molecules
 		for mol_i, mol_j in candidates:
 			origin = self._molecules[mol_i]
@@ -154,8 +156,9 @@ class Ranker(object):
 				common_ground = self._identify_equivalent_sites(reference)
 				if self._check_common_ground(deltaZ, changes, common_ground):
 					#print(mol_i, mol_j)
-					queue.put((mol_i, mol_j), block=False)
+					results.append((mol_i, mol_j))
 					break
+		queue.put(results, block=False)
 
 	def _identify_molecules(self, stoichiometry):
 		nbn = len([_ for _ in stoichiometry if _ == 5])
@@ -348,8 +351,14 @@ def do_main(fn, mol2file, similarity, similarity_mode, candidates,mollist, resul
 	r._molecules = c
 	r.rank(candidates, results)
 
+def print_out(queue, remaining):
+	while remaining > 0:
+		result = queue.get()
+		remaining -= 1
+		for i in result:
+			print (*i)
+
 def parallel_do_main(fn, mol2file, similarity, similarity_mode, candidates, mollist, nproc):
-	begin = time.time()
 	fragments = int(len(candidates) / nproc)
 
 	a = mp.Array(ctypes.c_int8, os.path.getsize(mollist), lock=False)
@@ -370,24 +379,20 @@ def parallel_do_main(fn, mol2file, similarity, similarity_mode, candidates, moll
 			stop = len(candidates)
 
 		procs.append(mp.Process(target=do_main, args=(fn, mol2file, similarity, similarity_mode, candidates[start:stop], a, results)))
+	procs.append(mp.Process(target=print_out, args=(results, nproc)))
 
+	begin = time.time()
 	for p in procs:
 		p.start()
 	for p in procs:
 		p.join()
-
-	try:
-		while True:
-			q = results.get_nowait()
-			print (*q)
-	except queue.Empty:
-		pass
-
 	end = time.time()
+
 	print ("# done, %d molecules in %ds, %f cmp/s" % (len(candidates), (end-begin), len(candidates)/(end-begin)))
 
 def read_prescan(fn):
-	return np.loadtxt(fn, dtype=np.int)
+	return pd.read_csv(fn, comment='#', names='A B'.split(), sep=' ').to_numpy()
+	#return np.loadtxt(fn, dtype=np.int)
 
 if __name__ == '__main__':
 	# self-test
