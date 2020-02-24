@@ -1,5 +1,4 @@
 // hard-coded for molecule 12 in 10.1063/1.5088083 
-// g++ -O4 -std=c++17 -fopenmp prescan.cpp
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -51,19 +50,12 @@ int main(int argc, char ** argv) {
 	std::time_t begintime = std::time(nullptr);
 
 	// loop over molecules
-	//#pragma omp parallel for
 	for (size_t i = begin; i < end; i++) {
-		std::stringstream stream;
-		
 		for (pos = 0; pos < 22; pos ++){
 			attyp[pos] = nums[i*22 + pos];
-			/*if (attyp[pos] == 8) {
-				attyp[pos]=5;
-			}*/
 		}
 		GFN2_calculation(&natoms, attyp, &charge, 0, coords, &opt, "/dev/null", &energy, NULL, dipole, q, NULL, qp, wbo);
-		stream << "energy" << energy << std::endl;
-		std::cout << stream.str();
+		std::cout << energy << std::endl;
 	}
 	std::time_t endtime = std::time(nullptr);
 	double mcmps = (end+begin)/2;
