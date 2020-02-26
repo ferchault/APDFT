@@ -32,7 +32,7 @@ def generate_fchl_atomic_kernel(reps, molecule_size, sigma):
         # build atomic kernel elements with all representations > idx1-1
         
         for idx2 in range(idx1, len(reps)):
-            two_particle_kernel = qml.fchl.fchl_scalar_kernels.get_atomic_kernels(reps[idx1], reps[idx2], kernel_args={"sigma":[sigma],})[0]#string_mult(reps[idx1], reps[idx2])#
+            two_particle_kernel = qml.fchl.fchl_scalar_kernels.get_atomic_kernels(reps[idx1], reps[idx2], alchemy='off', kernel_args={"sigma":[sigma],})[0]#string_mult(reps[idx1], reps[idx2])#
             
             rowindex_start = molecule_size[0:idx1].sum()
             colindex_start = molecule_size[0:idx2].sum()
@@ -61,7 +61,7 @@ def optimize_regularizer(kernel, labels, molecule_size, tr_size = 512, num_cross
     
 
     # crossvalidate the following
-    lams = np.logspace(-15, 0, 16).tolist()
+    lams = np.logspace(-11, 0, 16).tolist()
     mean_errors_cv = np.zeros(len(lams))
     std_errors_cv = np.zeros(len(lams))
     for n in range(num_cross):

@@ -57,6 +57,32 @@ class CUBE(object):
         projected_density = np.sum(self.data*self.dv, axis=axes)
         return(projected_density)
         
+    def get_axis(self, axis, unit='Ang'):
+        """
+        returns cell coordinates in Angstrom or Bohr
+        """
+        if axis == 'x' or axis == 0:
+            l_x = self.X[0]*self.NX
+            coords = np.linspace(self.origin[0], l_x-self.X[0], self.NX)
+            
+        if axis == 'y' or axis == 1:
+            l_y = self.Y[1]*self.NY
+            coords = np.linspace(self.origin[1], l_y-self.Y[1], self.NY)
+            
+        if axis == 'x' or axis == 0:
+            l_z = self.Z[2]*self.NZ
+            coords = np.linspace(self.origin[2], l_z-self.Z[2], self.NZ)
+            
+        if unit=='Ang':
+            coords *= Bohr
+        elif unit=='Bohr':
+            pass
+        else:
+            raise Exception('Unknown unit')
+            
+        return(coords)
+        
+        
     def get_grid(self):
         """
         returns the coordinates of the grid points where the density values are given as a meshgrid
@@ -64,7 +90,7 @@ class CUBE(object):
         """
         # length along the axes
         l_x = self.X[0]*self.NX
-        l_y = self.Y[1]*self.NX
+        l_y = self.Y[1]*self.NY
         l_z = self.Z[2]*self.NZ
         # gpts along every axis
         x_coords = np.linspace(self.origin[0], l_x-self.X[0], self.NX)
