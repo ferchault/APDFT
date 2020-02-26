@@ -101,6 +101,7 @@ for r in radii:
     estat_int = at.calculate_atomic_energies(dens_b, nuclei, gpts, h_matrix)
     print('saving results')
     energies.append(estat_int[2])
+    np.save(basepath[0]+'energies_radius', energies, allow_pickle=False)
     
     # save density projections for certain density
     pr01 = dens_b.sum(axis=(0,1))
