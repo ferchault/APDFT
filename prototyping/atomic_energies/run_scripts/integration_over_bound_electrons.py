@@ -6,17 +6,11 @@ Created on Tue Feb 25 16:59:12 2020
 @author: misa
 """
 import numpy as np
-import scipy.spatial as scsp
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
-
-import parse_density_files as pdf
 import alchemy_tools2 as at
 
-import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib import pyplot as plt
 
 def get_integrals_box(density, gpts, nuclei, radii):
     """
@@ -88,8 +82,8 @@ def lookup_vdW(Z, unit = 'Bohr'):
     return(r_w)
     
 # get path to density file
-basepath = ['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/dsgdb9nsd_001212/bound_electrons/']
-
+basepath = [sys.argv[1]+'/']
+print(basepath)
 # generate density and all the other variables
 dens, nuclei, gpts, h_matrix = at.load_vasp_dens([basepath[0]+'CHG'])
 #lam,dens, nuclei, gpts, h_matrix = at.load_cube_data([basepath[0]+'ve_8.cube'])
