@@ -95,8 +95,11 @@ energies = []
 radii = [0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
 #radii = [0.5, 1, 1.5]
 for r in radii:
+    print('generating bound density')
     dens_b = generate_bound_density(dens, nuclei, r, gpts)[0]
+    print('calculating atomic energy')
     estat_int = at.calculate_atomic_energies(dens_b, nuclei, gpts, h_matrix)
+    print('saving results')
     energies.append(estat_int[2])
     
     # save density projections for certain density
@@ -121,6 +124,7 @@ for r in radii:
         np.save(s[0], pr, allow_pickle=False)
     
 np.save(basepath[0]+'energies_radius', energies, allow_pickle=False)
+
     
     
 
