@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import sys
+import tqdm
 
 mollist = sys.argv[1]
 
@@ -11,8 +12,8 @@ for line in open('inp.xyz').readlines()[2:]:
 	parts = line.strip().split()
 	coords.append(' '.join(parts[1:]))
 
-lookup = '_____BCN'
-for mol in range(len(charges))[:1000]:
+lookup = 'CNB'
+for mol in tqdm.tqdm(range(len(charges))):
 	task = ""
 	for parts in zip([lookup[_] for _ in charges[mol]] + ['H']*14, coords):
 		task += ' '.join(parts) + "###"
