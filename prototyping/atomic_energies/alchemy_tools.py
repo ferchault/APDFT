@@ -13,7 +13,7 @@ import glob
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
 
-from parse_cube_files import CUBE
+from parse_density_files import CUBE
 from explore_qml_data import get_property
 from explore_qml_data import get_free_atom_data
 from explore_qml_data import get_num_val_elec

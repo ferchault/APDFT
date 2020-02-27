@@ -134,6 +134,8 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
             energies[start:length+start] = alchemy_data[idx][:,5]
         elif value == 'alch_pot':
             energies[start:length+start] = alchemy_data[idx][:,4]
+        elif value == 'charge':
+            energies[start:length+start] = alchemy_data[idx][:,0]
         elif value == 'atomisation_global':
             energies[idx] = alchemy_data[idx][:, 6].sum()
         else:
@@ -145,14 +147,16 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
 
 def get_label_delta(prop_mean, local_idc, data, molecule_size):
     """
-    generates baseline for certain label by subtracting average label value for every element
+    generates baseline for certain label by assigning average label value for every element to every index
     
-    prop: baseline value for every element
+    prop_mean: dictionary with mean value per element
     local_idc: local indices of atoms
     data: alchemy data
     molecule_size: size of every molecule in data
     """
     label_delta = np.zeros(len(local_idc))
+    # generate array contoining the charge of the elements at index local_idc
+    # iterate over all these charges, for every charge assign the corresponding mean value at the index in label_delta
     for idx, i in enumerate(get_property_from_local_index(local_idc, data, 'charge', molecule_size)):
         label_delta[idx] = prop_mean[i]
     return(label_delta)
@@ -559,11 +563,13 @@ def optimize_hypar(rep, labels, sigmas, lams):
     
     start_idx = 0
     for idx_s, s in enumerate(sigmas):
+        print("Optimizing sigma = {}".format(s))
         # build kernel for different sigmas
         tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, s)
         val_kernel = qml.kernels.gaussian_kernel(rep_val, rep_tr, s)
         
         for idx_l, l in enumerate(lams):
+            print("Optimizing lambda = {}".format(l))
             reg_kernel = tr_kernel + np.identity(len(tr_kernel))*l
             coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
             

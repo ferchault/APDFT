@@ -9,15 +9,47 @@ import os
 import numpy as np
 import scipy
 import glob
+from ase.units import Bohr
 
 import sys
 sys.path.insert(0, '/home/misa/APDFT/prototyping/atomic_energies/')
 
-from parse_density_files import CUBE
+from parse_density_files import CUBE, Vasp_CHG
 from explore_qml_data import get_property
 from explore_qml_data import get_free_atom_data
 from explore_qml_data import get_num_val_elec
 
+def load_vasp_dens(path_vasp_dens):
+    """
+    returns the data necessary to calculate the atomic energies from the vasp density files
+    for different lambda values
+    """
+    
+    densities = []
+    nuclei = None # nuclear charges and their positions
+    gpts = None # gridpoints where density values are given
+    h_matrix = np.zeros((3,3)) # needed for the calculation of the distance of the nuclei to the gridpoints with MIC
+    
+    for idx, path in enumerate(path_vasp_dens):
+        dens_obj = Vasp_CHG(path)
+        
+        densities.append(dens_obj.charge_density) # density
+                
+        if idx==len(path_vasp_dens)-1:
+            pos = dens_obj.atoms.get_positions()
+            chrg = dens_obj.atoms.get_atomic_numbers()
+            nuclei = np.zeros((len(chrg), 4))
+            nuclei[:,0] = chrg
+            nuclei[:,1:4] = pos
+            
+            gpts = dens_obj.get_grid()
+            h_matrix = dens_obj.atoms.get_cell()/Bohr
+            
+            densities.insert(0, np.zeros(dens_obj.charge_density.shape)) # first entry
+    
+    return(np.array(densities), nuclei, gpts, h_matrix)
+    
+    
 def load_cube_data(paths_cubes):
     """
     returns the data necessary to calculate the atomic energies from the cube-files
@@ -53,6 +85,44 @@ def load_cube_data(paths_cubes):
             h_matrix = [cube.X*cube.NX, cube.Y*cube.NY, cube.Z*cube.NZ]
     
     return(np.array(lam_vals), np.array(densities), nuclei, gpts, h_matrix)
+    
+def get_idc_rvdW(center, rvdw, gpts):
+    """
+    returns indices of grid points lying in a sphere around center with radius rdwV
+    
+    center: center of sphere
+    rdvw: radius of sphere
+    coordinates of grid as flattened numpy array, shape (number of grid points, dimension of grid)
+    """
+    
+    # distance of every gridpoint from center
+    distance_array = scipy.spatial.distance.cdist(gpts, center)
+    idc_in_sphere = np.where(distance_array[:, 0] <= rvdw)[0] # indices of points within sphere with vdW radius
+    
+    return(idc_in_sphere)
+    
+def meshgrid2vector(grid):
+    """
+    convert components of meshgrid into set of vectors; every vector is a point of the grid
+    e.g. a 3D grid is converted in a numpy array of shape (number gridpoints, 3)
+    """
+    flattened_grid = []
+    for c in grid:
+        flattened_grid.append(c.flatten())
+        
+    return(np.array(flattened_grid).T)
+    
+def get_all_idc_out(all_idc_in, all_idc):
+    """
+    returns unique indices that lie not within the van der Waals spheres of any of the nuclei in the molecules
+    
+    all_idc_in: list/tuple of indices inside the sphere around the individual nuclei
+    all_idc: all indices 1D-array (smallest element = 0, largest element = number of gridpoints -1)
+    """
+    all_idc_in = np.concatenate(all_idc_in)
+    all_idc_in = np.unique(all_idc_in)
+    all_idc_out = np.setdiff1d(all_idc, all_idc_in, assume_unique=True)
+    return(all_idc_out)
 
 def integrate_lambda_density(densities, lam_vals, method='trapz'):
     """
