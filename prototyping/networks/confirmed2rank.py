@@ -169,6 +169,7 @@ class Ranker(object):
 				else:
 					coefficients.append(this)
 		#coeff = -np.array(coefficients).mean(axis=0)
+		# obtained from olympic molecule, 2 BN pairs set
 		coeff = [-0.122015 ,  -0.44260741, -0.24407662 ,-0.24389064, -3.71681812 ,-2.25259099, -0.44260741, -0.24407662, -0.122015  ]
 		#coeff = -np.array([293/4.184 , 356./4.184, 389/4.184, 115,  346./4.184, 411/4.184, 305./4.184 ,386/4.184, 160./4.184])
 
