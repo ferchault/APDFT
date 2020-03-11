@@ -1,0 +1,21 @@
+language: python
+cache: pip
+python:
+  - "3.6"
+install:
+  - pip install -r requirements.txt
+  - cd $TRAVIS_BUILD_DIR
+script:
+  - PYTHONPATH="src/:$PYTHONPATH" pytest --cov-report=xml --cov=apdft --ignore=prototyping
+  - codecov
+after_success:
+  - cd $TRAVIS_BUILD_DIR/docs && make html
+deploy:
+  provider: pages
+  skip-cleanup: true
+  keep-history: true
+  on:
+    branch: master
+  github-token: $GH_TOKEN
+  local-dir: docs/_build/html
+  committer-from-gh: true

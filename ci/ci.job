@@ -1,0 +1,23 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=ci-run
+#SBATCH --time=00:30:00
+#SBATCH --mem=5G
+#SBATCH --qos=30min
+#SBATCH --output=/dev/null 
+#SBATCH --error=/dev/null
+
+module load Gaussian
+
+# Setup proxy
+ssh -D 47119 -nN login20 &
+SSHPID=$!
+export HTTP_PROXY="socks5://localhost:47119"
+export HTTPS_PROXY="socks5://localhost:47119"
+
+# Run CI
+./ci/worker.sh ONLINE
+
+# Teardown
+kill -9 $SSHPID
+

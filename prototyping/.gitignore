@@ -1,0 +1,6 @@
+*.pdf
+pyscf/results*
+mrcc/validation
+tmp*
+*.cube
+*.pptx

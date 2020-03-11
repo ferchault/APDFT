@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jul 18 12:52:03 2019
+
+@author: misa
+"""
+
+import itertools
+import pandas as pd
+import re
+
+def read_filestream_from_line(fs, start_line):
+    """
+    file: path to file
+    start_line: line from which on file will be read
+    lines: lines of file from start_line to end as itertools object
+    return: lines of file from start_line to end as elements of a list
+    """
+    not_start_line = lambda line: not(line == start_line)
+#    with open(file, 'r') as f:
+    lines = itertools.dropwhile(not_start_line, [line for line in fs])
+    return(list(lines))
+    
+def read_filestream_till_line(fs, end_line):
+    """
+    file: path to file
+    start_line: line from which on file will be read
+    lines: lines of file from start_line to end as itertools object
+    return: lines of file from start_line to end as elements of a list
+    """
+    not_end_line = lambda line: not(line == end_line)
+#    with open(file, 'r') as f:
+    lines = itertools.takewhile(not_end_line, [line for line in fs])
+    return(list(lines))
+    
+def remove_strings_from_list(strings_to_remove, list_):
+    """
+    removes all elements from list_ that contain the patterns specified in strings_to_remove
+    strings_to_remove: list of patterns (not necessarily a string)
+    list_: list from which elements will be removed
+    return: list without elements containing the patterns specified in strings_to_remove
+    """
+    remove_strings = lambda line : pattern_in_string(strings_to_remove, line)
+    lines = itertools.filterfalse(remove_strings, [line for line in list_])
+    return(list(lines))
+
+def pattern_in_string(pattern_list, string):
+    found = []
+    for el in pattern_list:
+        found.append(bool(re.search(el, string)))
+    return(any(found))
+    
+#def remove_pattern_from_list(pattern_to_remove, list_):
+    
+    
+def get_scf_information(log_file):
+    """
+    log_file: log-file of CPMD calculation
+    return: information about scf cycle as pandas dataframe
+    """
+    # remove lines till scf-iterations start
+    with open(log_file, 'r') as f:
+        start = start = ' NFI      GEMAX       CNORM           ETOT        DETOT      TCPU\n'
+        data_cropped = read_filestream_from_line(f, start)
+        end = ' DENSITY WRITTEN TO FILE DENSITY\n'
+        data_cropped = read_filestream_till_line(data_cropped, end)
+    # remove information about reset of optimizer, writing of Restart-file, empty lines ...
+    strings_to_remove = [' ODIIS| Insufficient progress; reset! \n', ' RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1\n', 'LINE SEARCH']
+    data_cropped = remove_strings_from_list(strings_to_remove, data_cropped)
+    
+    # remove \n, split lines in separate values, remove empty lists (linebreaks)
+    data_cropped = [line.strip('\n)') for line in data_cropped]
+    data_cropped=[line.split() for line in data_cropped]
+    data_cropped = list(filter(None, data_cropped))
+    # use first line as header
+    header = data_cropped[0]
+    # convert values to floats
+    data=[ [float(el) for el in line] for line in data_cropped[1:] ]
+    # write scf information to panads dataframe
+    df = pd.DataFrame(data, columns=header)
+    return(df)
+    
+def write_scf_information(log_file, save_file):
+    """
+    writes information about scf cycle from log-file to save_file in table form
+    log_file: path to log-file
+    save_file: path to file were data is stored
+    """
+    df = get_scf_information(log_file)
+    df.to_csv(save_file, sep='\t', header=True, index=False)
+    
+
+import glob, os
+directory = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/optimizer/val_el_8/log-files'
+os.chdir(directory)
+for file in glob.glob("*.log"):
+    save_file = file.replace('log', 'scf_info')
+    save_file = os.path.join(directory, save_file)
+    write_scf_information(file, save_file)
+        

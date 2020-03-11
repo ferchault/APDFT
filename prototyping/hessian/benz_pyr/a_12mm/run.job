@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH	 --job-name="a12mm_pyscf"
+#SBATCH  --time=24:00:00	
+#SBATCH	 --partition=classic
+#SBATCH	 --cpus-per-task=4
+#SBATCH	 --out="./slurm.out"
+#SBATCH	 --error="./slurm.err" 
+#SBATCH  --mem=25GB
+
+SCRATCH="/scratch/giorgiod/$SLURM_JOB_ID"
+mkdir -p $SCRATCH
+cd $SLURM_SUBMIT_DIR
+cp * $SCRATCH
+
+cd $SCRATCH
+
+export PATH="$PATH:/home/giorgiod/miniconda3/bin/"
+python a12mm.py
+cp * $SLURM_SUBMIT_DIR
+cd
+rm -rf $SCRATCH
