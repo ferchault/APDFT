@@ -1,2 +1,0 @@
-CO vibr freq 2143 cm-1 Rotational inderence 
-N2  2328.72 cm-1 (by raman scattering)
