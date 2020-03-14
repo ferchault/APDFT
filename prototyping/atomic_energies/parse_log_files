@@ -63,7 +63,7 @@ def get_scf_information(log_file):
     with open(log_file, 'r') as f:
         start = start = ' NFI      GEMAX       CNORM           ETOT        DETOT      TCPU\n'
         data_cropped = read_filestream_from_line(f, start)
-        end = ' DENSITY WRITTEN TO FILE DENSITY\n'
+        end = ' RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1\n'
         data_cropped = read_filestream_till_line(data_cropped, end)
     # remove information about reset of optimizer, writing of Restart-file, empty lines ...
     strings_to_remove = [' ODIIS| Insufficient progress; reset! \n', ' RESTART INFORMATION WRITTEN ON FILE                  ./RESTART.1\n', 'LINE SEARCH']
@@ -92,7 +92,7 @@ def write_scf_information(log_file, save_file):
     
 
 import glob, os
-directory = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/optimizer/val_el_8/log-files'
+directory = '/home/misa/APDFT/prototyping/atomic_energies/results/test_calculations/scale_up/log_files_slow_cpmd/'
 os.chdir(directory)
 for file in glob.glob("*.log"):
     save_file = file.replace('log', 'scf_info')

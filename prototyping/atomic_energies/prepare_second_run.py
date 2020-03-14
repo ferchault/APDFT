@@ -37,12 +37,12 @@ input_file = read_till_keyword(template_second_run, 'ATOMS')
 #           merge template and atom section and write new file                #
 ###############################################################################
 input_file.extend(at_sec)
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/fractional_charge/dsgdb9nsd_014656/lambda_0p2/run.inp'
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/val_el_30/approach_b/second_run/run.inp'
 with open(calc_dir, 'w') as f:
     f.writelines(input_file)
     
 ###############################################################################
 #           get compensation charge                                           #
 ###############################################################################
-lamb = 0.2
+lamb = 0.7894736842105263
 charge = compensation_charge(compound.nuclear_charges, lamb)

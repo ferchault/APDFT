@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jun 20 11:23:43 2019
-
 @author: misa
-
 Testing of CPMD class
 """
 

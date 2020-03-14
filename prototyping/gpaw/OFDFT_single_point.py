@@ -38,30 +38,30 @@ name = 'lambda_{0}'.format(lambda_coeff)
 
 filename = 'atoms_'+name+'.dat'
 
-f = paropen(filename,'w')
+f = paropen(filename, 'w')
 
-elements = ['N']
+elements = 'N'
 
-for symbol in elements:
-    mixer = Mixer()
 
-    eigensolver = CG(tw_coeff=lambda_coeff)
-    
-    poissonsolver=PoissonSolver()
-    molecule = Atoms(symbol,
-                     positions=[(c,c,c)] ,
-                     cell=(a,a,a))
-    
-    calc = GPAW(h=h,
-                xc=xcname,
-                maxiter=240,
-                eigensolver=eigensolver,
-                mixer=mixer,
-                setups=name,
-                poissonsolver=poissonsolver)
-        
-    molecule.set_calculator(calc)
+mixer = Mixer()
 
-    E = molecule.get_total_energy()
+eigensolver = CG(tw_coeff=lambda_coeff)
 
-    f.write('{0}\t{1}\n'.format(symbol,E))
+poissonsolver=PoissonSolver()
+molecule = Atoms(elements,
+                 positions=[(c,c,c)] ,
+                 cell=(a,a,a))
+
+calc = GPAW(h=h,
+            xc=xcname,
+            maxiter=240,
+            eigensolver=eigensolver,
+            mixer=mixer,
+            setups=name,
+            poissonsolver=poissonsolver)
+
+molecule.set_calculator(calc)
+
+E = molecule.get_total_energy()
+
+f.write('{0}\t{1}\n'.format(elements,E))

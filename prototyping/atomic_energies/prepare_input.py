@@ -196,13 +196,13 @@ def get_PP_file(Z, lval):
 
 PARENT_INP = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
 compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/dsgdb9nsd_014656/test'
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/dsgdb9nsd_014656/lambda0p2/start_scaled_pp'
 
 if not os.path.exists(calc_dir):
     os.makedirs(calc_dir)
 
-box_size = np.array([10.0, 10.0, 10.0])
-#initialize(calc_dir, compound, box_size)
+box_size = np.array([20.0, 20.0, 20.0])
+initialize(calc_dir, compound, box_size)
 
 ###############################################################################
 
@@ -211,4 +211,4 @@ box_size = np.array([10.0, 10.0, 10.0])
 lookup = {1: 'H', 6: 'C', 7: 'N', 8: 'O'}
 rlookup = {'H': 1, 'C': 6, 'O': 8, 'N': 7}
 
-total = generate_new_pps(compound, 1, calc_dir)
+total = generate_new_pps(compound, 0.2, calc_dir)
