@@ -67,7 +67,7 @@ def calculate_density(Calc):
     
 def calculate_effective_potential(Calc):
     # calculate potential
-    Calc.hamiltonian.update_pseudo_potential(Calc_NEW.density)
+    Calc.hamiltonian.update_pseudo_potential(Calc.density)
     # restrict to coarse grid
     Calc.hamiltonian.vt_sG.fill(0.0)
     Calc.hamiltonian.restrict_and_collect(Calc.hamiltonian.vt_sg, Calc.hamiltonian.vt_sG)
@@ -108,8 +108,8 @@ for idx, d in enumerate(d_list):
                 setups=name, txt='test.txt')
         
     molecule.set_calculator(Calc_ref)
-    
     energy_arr[idx] = molecule.get_total_energy()
+    Calc_ref.write('result_32_gpts_d_'+str(d)+'.gpw', mode='all')
 
 debug=Calc_ref
 
@@ -185,7 +185,18 @@ error_tot_max = max([np.amax(error0_tot), np.amax(error1_tot)])
 comp_D_asp0 = np.allclose(Calc_NEW.density.D_asp.data[0], Calc_ref.density.D_asp.data[0])
 comp_D_asp0 = np.allclose(Calc_NEW.density.D_asp.data[1], Calc_ref.density.D_asp.data[1])
  # different; due to updating/density mixing in SCF-cycle?
-update_projectors(Calc_ref)    
+#update_projectors(Calc_ref)
+nproj_a = [setup.ni for setup in Calc_ref.wfs.setups]
+for kpt in Calc_ref.wfs.kpt_u:
+
+    kpt.P = Projections(
+                Calc_ref.wfs.bd.nbands, nproj_a,
+                kpt.P.atom_partition,
+                Calc_ref.wfs.bd.comm,
+                collinear=True, spin=Calc_ref.wfs.nspins, dtype=Calc_ref.wfs.dtype)
+
+kpt.psit.matrix_elements(Calc_ref.wfs.pt, out=kpt.P)
+
 update_mykpts(Calc_ref)
 update_atomic_density_matrix(Calc_ref) 
 

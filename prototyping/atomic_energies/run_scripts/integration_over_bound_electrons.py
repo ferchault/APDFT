@@ -82,49 +82,61 @@ def lookup_vdW(Z, unit = 'Bohr'):
     return(r_w)
     
 # get path to density file
-basepath = [sys.argv[1]+'/']
-print(basepath)
-# generate density and all the other variables
-dens, nuclei, gpts, h_matrix = at.load_vasp_dens([basepath[0]+'CHG'])
-#lam,dens, nuclei, gpts, h_matrix = at.load_cube_data([basepath[0]+'ve_8.cube'])
+#basepath = [sys.argv[1]+'/']
+main = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/'
+comps = ['dsgdb9nsd_001212', 'dsgdb9nsd_003712', 'dsgdb9nsd_003886', 'dsgdb9nsd_002626', 'dsgdb9nsd_014656','dsgdb9nsd_000228', 'dsgdb9nsd_002025','dsgdb9nsd_002900','dsgdb9nsd_001442','dsgdb9nsd_003727']
+paths = [main + p + '/' for p in comps]
 
-# calculate :
-# a) density within certain radius to nuclei
-# b) integral of density over distance to nuclei
-energies = []
-radii = [0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
-#radii = [0.5, 1, 1.5]
-for r in radii:
-    print('generating bound density')
-    dens_b = generate_bound_density(dens, nuclei, r, gpts)[0]
-    print('calculating atomic energy')
-    estat_int = at.calculate_atomic_energies(dens_b, nuclei, gpts, h_matrix)
+for basepath in paths:
+    print(basepath)
+    
+    # generate density and all the other variables
+#    dens, nuclei, gpts, h_matrix = at.load_vasp_dens([basepath[0]+'CHG'])
+    lam,dens, nuclei, gpts, h_matrix = at.load_cube_data([basepath +'cube-files/'+'ve_8.cube'])
+    
+    # calculate :
+    # a) density within certain radius to nuclei
+    # b) integral of density over distance to nuclei
+    energies = []
+    alch_pots = []
+    radii = [0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 7.0]
+    #radii = [0.5, 1, 1.5]
+    for r in radii:
+        print('generating bound density radius = {}'.format(r))
+        dens_b = generate_bound_density(dens, nuclei, r, gpts)[0]
+        print('calculating atomic energy')
+        estat_int = at.calculate_atomic_energies(dens_b, nuclei, gpts, h_matrix)
+        
+        energies.append(estat_int[1])
+        alch_pots.append(estat_int[2])
+    #    np.save(basepath[0]+'energies_radius', energies, allow_pickle=False)
+        
+    #    # save density projections for certain density
+    #    pr01 = dens_b.sum(axis=(0,1))
+    #    pr02 = dens_b.sum(axis=(0,2))
+    #    pr12 = dens_b.sum(axis=(1,2))
+    #    
+    #    main = basepath[0] + 'radius{}_'.format(r)
+    #    f0 = main + 'pr0.txt'
+    #    f1 = main + 'pr1.txt'
+    #    f2 = main + 'pr2.txt'
+    #    
+    #    f01 = main + 'pr01.txt'
+    #    f02 = main + 'pr02.txt'
+    #    f12 = main + 'pr12.txt'
+    #    
+    #    files = [f0, f1, f2, f01, f02, f12]
+    #    axis = [0, 1, 2, (0,1), (0,2), (1,2)]
+    #    
+    #    for s in zip(files, axis):
+    #        pr = dens_b.sum(axis=s[1])
+    #        np.save(s[0], pr, allow_pickle=False)
+    
+    energies = np.array(energies)
+    alch_pots = np.array(alch_pots)
     print('saving results')
-    energies.append(estat_int[2])
-    np.save(basepath[0]+'energies_radius', energies, allow_pickle=False)
-    
-    # save density projections for certain density
-    pr01 = dens_b.sum(axis=(0,1))
-    pr02 = dens_b.sum(axis=(0,2))
-    pr12 = dens_b.sum(axis=(1,2))
-    
-    main = basepath[0] + 'radius{}_'.format(r)
-    f0 = main + 'pr0.txt'
-    f1 = main + 'pr1.txt'
-    f2 = main + 'pr2.txt'
-    
-    f01 = main + 'pr01.txt'
-    f02 = main + 'pr02.txt'
-    f12 = main + 'pr12.txt'
-    
-    files = [f0, f1, f2, f01, f02, f12]
-    axis = [0, 1, 2, (0,1), (0,2), (1,2)]
-    
-    for s in zip(files, axis):
-        pr = dens_b.sum(axis=s[1])
-        np.save(s[0], pr, allow_pickle=False)
-    
-np.save(basepath[0]+'energies_radius', energies, allow_pickle=False)
+    np.save(basepath+'radius_energies', energies, allow_pickle=False)
+    np.save(basepath+'radius_alchpots', alch_pots, allow_pickle=False)
 
     
     

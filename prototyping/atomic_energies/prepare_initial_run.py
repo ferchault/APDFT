@@ -31,6 +31,7 @@ def gd_comp(compound_path, lambda_ve):
     """
     # load compound entry in qml.compound
     compound = qml.Compound(xyz=compound_path)
+
     total_ve = get_num_val_elec(compound.nuclear_charges)
     
     # make directory from compound

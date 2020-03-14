@@ -194,7 +194,6 @@ class TestQmlInterface(unittest.TestCase):
         self.assertTrue( np.array_equal(val_err_mean_ref, results[2]) )
         self.assertTrue( np.array_equal(coeffs_ref, out[1]) )
         self.assertTrue( np.array_equal(val_errors_ref, out[2]) )
-            
         
         
 if __name__ == '__main__':

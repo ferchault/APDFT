@@ -41,18 +41,12 @@ num_val = np.empty(len(path_list), dtype=int)
 for idx, file in enumerate(path_list):
     mol = qml.Compound(xyz=file)
     num_val[idx] = get_num_val_elec(mol.nuclear_charges)
+    
+    if num_val[idx] == 38:
+        compounds.append(file)
+        
+with open('/home/misa/APDFT/prototyping/atomic_energies/results/val_el_38.txt', 'w') as f:
+    for item in compounds:
+        f.write("%s\n" % item)
+f.close()
 
-# plot results 
-occurences = np.bincount(num_val)
-electron_number = np.linspace(0, 56, 57)
-plt.bar(electron_number, occurences)
-plt.xlabel('# of valence electrons')
-plt.ylabel('# of molecules')
-
-#fig, ax = plt.subplots(1, 2)
-#ax[0].bar(electron_number, occurences)
-#ax[0].set_xlabel('# of valence electrons')
-#ax[0].set_ylabel('# of molecules')
-#ax[1].bar(electron_number, np.log10(occurences))
-#ax[1].set_xlabel('# of valence electrons')
-#ax[1].set_ylabel(r'$\log_{10}$ (# of molecules)')

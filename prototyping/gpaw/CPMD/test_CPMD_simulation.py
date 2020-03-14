@@ -132,12 +132,12 @@ kwargs_Calc = { 'gpts':gpts , 'xc':xc, 'maxiter':maxiter, 'eigensolver':eigensol
 
 occupation_numbers = Calc_ref.wfs.kpt_u[0].f_n
 pseudo_wf = Calc_ref.wfs.kpt_u[0].psit_nG[0]
-mu = 1000
-dt = 0.1
+mu = 500
+dt = 0.05
 niter_max = 10
 
 # Create target directory & all intermediate directories if don't exists
-path = '/home/misa/APDFT/prototyping/gpaw/CPMD/results/'+'test_dt_'+str(dt)+'-mu_'+str(mu)
+path = '/home/misa/APDFT/prototyping/gpaw/CPMD/results/'+'dt_'+str(dt)+'-mu_'+str(mu)
 if not os.path.exists(path):
     os.makedirs(path)
 
@@ -145,7 +145,7 @@ CPMD_obj = CPMD(kwargs_Calc, kwargs_mol, occupation_numbers, mu, dt, niter_max, 
 
 # test run
 CPMD_obj.run()
-#CPMD_obj.save_all()
+CPMD_obj.save_all()
 
 #cProfile.run('CPMD_obj.run()', 'stats')
 #CPMD_obj.save_all()
