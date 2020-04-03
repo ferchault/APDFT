@@ -13,7 +13,7 @@ import shutil
 sys.path.append('/home/giorgiod/Documents/APDFT/dep')
 sys.path.append('/home/giorgiod/Documents/APDFT/src')
 
-from apdft import calculator
+#from apdft import calculator
 proj_path='/home/giorgiod/MRCC_interface/PES-BS-ALCHEMY/'
 
 # general parse 
