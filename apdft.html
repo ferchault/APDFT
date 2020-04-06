@@ -229,44 +229,44 @@
 </div>
 <div class="section" id="module-apdft.calculator">
 <span id="calculators"></span><h2>Calculators<a class="headerlink" href="#module-apdft.calculator" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.calculator.Calculator">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">Calculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">Calculator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">basisset</span></em>, <em class="sig-param"><span class="n">superimpose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.CalculatorInterface" title="apdft.calculator.CalculatorInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.CalculatorInterface</span></code></a></p>
 <p>A concurrency-safe blocking interface for an external QM code.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.Calculator.get_density_on_grid">
-<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridpoints</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">gridpoints</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.Calculator.get_grid">
-<em class="property">static </em><code class="sig-name descname">get_grid</code><span class="sig-paren">(</span><em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">outputfolder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_grid" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">outputfolder</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the integration grid used by this calculator for a given set of nuclei and geometry.</p>
 <p>Grid weights and coordinates may be in internal units. Return value should be coords, weights. If return value is None, a default grid is used.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.Calculator.get_methods">
 <code class="sig-name descname">get_methods</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#Calculator.get_methods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.Calculator.get_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.calculator.CalculatorInterface">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">CalculatorInterface</code><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>All the functions that need to be implemented for a new code to be supported in APDFT.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.CalculatorInterface.get_epn">
-<code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_epn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">includeatoms</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_epn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts the electronic contribution to the electrostatic potential at the nuclei.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.CalculatorInterface.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em>, <em class="sig-param"><span class="n">iscomparison</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">includeonly</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -286,14 +286,14 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.CalculatorInterface.get_runfile">
-<code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_runfile" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_runfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.CalculatorInterface.get_total_energy">
-<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_total_energy" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#CalculatorInterface.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.CalculatorInterface.get_total_energy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts the total energy of a calculation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -307,29 +307,29 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.calculator.MockCalculator">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">MockCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#MockCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.MockCalculator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.</code><code class="sig-name descname">MockCalculator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">basisset</span></em>, <em class="sig-param"><span class="n">superimpose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#MockCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.MockCalculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.MockCalculator.get_runfile">
-<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#MockCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.MockCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator.html#MockCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.MockCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <div class="section" id="module-apdft.calculator.gaussian">
 <span id="gaussian"></span><h3>Gaussian<a class="headerlink" href="#module-apdft.calculator.gaussian" title="Permalink to this headline">¶</a></h3>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.calculator.gaussian.GaussianCalculator">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.gaussian.</code><code class="sig-name descname">GaussianCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.gaussian.</code><code class="sig-name descname">GaussianCalculator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">basisset</span></em>, <em class="sig-param"><span class="n">superimpose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
 <p>Performs the QM calculations for APDFT with the help of Gaussian.</p>
 <p>General Idea:
 Gaussian supports both fractional nuclar charges (via the undocumented <cite>Massage</cite> keyword) and the evaluation of the electrostatic potential at the nucleus (via the <cite>Prop</cite> keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_epn">
-<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">includeatoms</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts the EPN from a Gaussian log file.</p>
 <p>The Gaussian convention is to include the nuclear interaction of all other sites. Signs are in the physical sense, i.e. the electronic contribution is negative, while the nuclear contribution is positive. This function also converts to the APDFT convention where <span class="math notranslate nohighlight">\(\int \rho / |\mathbf{r}-\mathbf{R}_I|\)</span> is positive.</p>
 <dl class="field-list simple">
@@ -347,9 +347,9 @@ Gaussian supports both fractional nuclar charges (via the undocumented <cite>Mas
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em>, <em class="sig-param"><span class="n">iscomparison</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">includeonly</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -369,14 +369,14 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_runfile">
-<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.gaussian.GaussianCalculator.get_total_energy">
-<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_total_energy" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/gaussian.html#GaussianCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.gaussian.GaussianCalculator.get_total_energy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the total energy in Hartree.</p>
 </dd></dl>
 
@@ -385,28 +385,28 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </div>
 <div class="section" id="module-apdft.calculator.mrcc">
 <span id="mrcc"></span><h3>MRCC<a class="headerlink" href="#module-apdft.calculator.mrcc" title="Permalink to this headline">¶</a></h3>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.calculator.mrcc.MrccCalculator">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.mrcc.</code><code class="sig-name descname">MrccCalculator</code><span class="sig-paren">(</span><em class="sig-param">method</em>, <em class="sig-param">basisset</em>, <em class="sig-param">superimpose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.calculator.mrcc.</code><code class="sig-name descname">MrccCalculator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">basisset</span></em>, <em class="sig-param"><span class="n">superimpose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#apdft.calculator.Calculator" title="apdft.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">apdft.calculator.Calculator</span></code></a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.density_on_grid">
-<em class="property">static </em><code class="sig-name descname">density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">densityfile</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.density_on_grid" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">density_on_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">densityfile</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.density_on_grid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_density_on_grid">
-<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_density_on_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_density_on_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_density_on_grid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole">
-<em class="property">static </em><code class="sig-name descname">get_electronic_dipole</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">gridcoords</em>, <em class="sig-param">gridweights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_electronic_dipole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_electronic_dipole</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">gridcoords</span></em>, <em class="sig-param"><span class="n">gridweights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_electronic_dipole"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_electronic_dipole" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_epn">
-<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">includeatoms</em>, <em class="sig-param">nuclear_charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_epn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">includeatoms</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_epn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_epn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the EPN from a MRCC density file.</p>
 <p>MRCC has no support to evaluate the EPN directly. To avoid parsing the ordering of the density matrix in ao basis, the density on a grid is read instead. The resulting error should be small for the first few orders.</p>
 <dl class="field-list simple">
@@ -424,9 +424,9 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_grid">
-<em class="property">static </em><code class="sig-name descname">get_grid</code><span class="sig-paren">(</span><em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">outputfolder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_grid" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">outputfolder</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtains the integration grid from one of the MRCC output files.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -435,9 +435,9 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em>, <em class="sig-param">iscomparison=False</em>, <em class="sig-param">includeonly=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em>, <em class="sig-param"><span class="n">iscomparison</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">includeonly</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the calculation input file for the external code.</p>
 <p>It is crucial to remember that this may involve calculations where the basis set of a nucleus and its element to not match.</p>
 <dl class="field-list simple">
@@ -457,14 +457,14 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_runfile">
-<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">nuclear_charges</em>, <em class="sig-param">grid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">get_runfile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">grid</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_runfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_runfile" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.calculator.mrcc.MrccCalculator.get_total_energy">
-<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param">folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_total_energy" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">get_total_energy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/calculator/mrcc.html#MrccCalculator.get_total_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.calculator.mrcc.MrccCalculator.get_total_energy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the total energy in Hartree.</p>
 </dd></dl>
 
@@ -474,18 +474,18 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </div>
 <div class="section" id="module-apdft.physics">
 <span id="physics-related-functions"></span><h2>Physics-related functions<a class="headerlink" href="#module-apdft.physics" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.physics.APDFT">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param">highest_order</em>, <em class="sig-param">nuclear_numbers</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">basepath</em>, <em class="sig-param">calculator</em>, <em class="sig-param">max_charge=0</em>, <em class="sig-param">max_deltaz=3</em>, <em class="sig-param">include_atoms=None</em>, <em class="sig-param">targetlist=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">APDFT</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">highest_order</span></em>, <em class="sig-param"><span class="n">nuclear_numbers</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">basepath</span></em>, <em class="sig-param"><span class="n">calculator</span></em>, <em class="sig-param"><span class="n">max_charge</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">max_deltaz</span><span class="o">=</span><span class="default_value">3</span></em>, <em class="sig-param"><span class="n">include_atoms</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">targetlist</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT" title="Permalink to this definition">¶</a></dt>
 <dd><p>Implementation of alchemical perturbation density functional theory.</p>
 <p>Requires a working directory <cite>basepath</cite> which allows for storing the intermediate calculation results.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.analyse">
-<code class="sig-name descname">analyse</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.analyse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.analyse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">analyse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">explicit_reference</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.analyse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.analyse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs actual analysis and integration. Prints results</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.enumerate_all_targets">
 <code class="sig-name descname">enumerate_all_targets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.enumerate_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.enumerate_all_targets" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds a list of all possible targets.</p>
@@ -500,7 +500,7 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.estimate_cost_and_coverage">
 <code class="sig-name descname">estimate_cost_and_coverage</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.estimate_cost_and_coverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.estimate_cost_and_coverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Estimates number of single points (cost) and number of targets (coverage).</p>
@@ -517,9 +517,9 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_energy_from_reference">
-<code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param">nuclear_charges</em>, <em class="sig-param">is_reference_molecule=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_energy_from_reference</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nuclear_charges</span></em>, <em class="sig-param"><span class="n">is_reference_molecule</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_energy_from_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_energy_from_reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retreives the total energy from a QM reference.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -531,20 +531,20 @@ nuclear_numbers:        A N array of nuclear numbers <span class="math notransla
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_epn_coefficients">
-<code class="sig-name descname">get_epn_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_coefficients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_epn_coefficients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">deltaZ</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_coefficients" title="Permalink to this definition">¶</a></dt>
 <dd><p>EPN coefficients are the weighting of the electronic EPN from each of the finite difference calculations.</p>
 <p>The weights depend on the change in nuclear charge, i.e. implicitly on reference and target molecule as well as the finite difference stencil employed.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_epn_matrix">
 <code class="sig-name descname">get_epn_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_epn_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_epn_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collects <span class="math notranslate nohighlight">\(\int_Omega rho_i(\mathbf{r}) /|\mathbf{r}-\mathbf{R}_I|\)</span>.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_folder_order">
 <code class="sig-name descname">get_folder_order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_folder_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_folder_order" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a static order of calculation folders to build the individual derivative entries.</p>
@@ -555,9 +555,9 @@ function builds the list of folders to be included.</p>
 <p>Returns: List of strings, the folder names.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_linear_density_coefficients">
-<code class="sig-name descname">get_linear_density_coefficients</code><span class="sig-paren">(</span><em class="sig-param">deltaZ</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_coefficients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_linear_density_coefficients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">deltaZ</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_coefficients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtains the finite difference coefficients for a property linear in the density.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -569,9 +569,9 @@ function builds the list of folders to be included.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.get_linear_density_matrix">
-<code class="sig-name descname">get_linear_density_matrix</code><span class="sig-paren">(</span><em class="sig-param">propertyname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_matrix" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_linear_density_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">propertyname</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.get_linear_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.get_linear_density_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the value matrix for properties linear in density.</p>
 <p>Valid properties are: ELECTRONIC_DIPOLE, IONIC_FORCE, ELECTRONIC_QUADRUPOLE.
 :param self: APDFT instance.
@@ -583,31 +583,31 @@ function builds the list of folders to be included.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.predict_all_targets">
 <code class="sig-name descname">predict_all_targets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.predict_all_targets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.predict_all_targets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.APDFT.prepare">
-<code class="sig-name descname">prepare</code><span class="sig-paren">(</span><em class="sig-param">explicit_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.prepare" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">prepare</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">explicit_reference</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#APDFT.prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.APDFT.prepare" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds a complete folder list of all relevant calculations.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.physics.Coulomb">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">Coulomb</code><a class="reference internal" href="_modules/apdft/physics.html#Coulomb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collects functions for Coulomb interaction.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.Coulomb.nuclear_potential">
-<em class="property">static </em><code class="sig-name descname">nuclear_potential</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">charges</em>, <em class="sig-param">at</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclear_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclear_potential" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">nuclear_potential</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">charges</span></em>, <em class="sig-param"><span class="n">at</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclear_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclear_potential" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.Coulomb.nuclei_nuclei">
-<em class="property">static </em><code class="sig-name descname">nuclei_nuclei</code><span class="sig-paren">(</span><em class="sig-param">coordinates</em>, <em class="sig-param">charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclei_nuclei"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclei_nuclei" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">nuclei_nuclei</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">charges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Coulomb.nuclei_nuclei"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Coulomb.nuclei_nuclei" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the nuclear-nuclear interaction energy from Coulomb interaction.</p>
 <p>Sign convention assumes positive charges for nuclei.</p>
 <dl class="field-list simple">
@@ -625,13 +625,13 @@ function builds the list of folders to be included.</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.physics.Dipoles">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">Dipoles</code><a class="reference internal" href="_modules/apdft/physics.html#Dipoles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Dipoles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collects functions regarding the calculation of dipole moments. This code follows the physics convention of the sign: the dipole moment vector points from the negative charge center to the positive charge center.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.Dipoles.electron_density">
-<em class="property">static </em><code class="sig-name descname">electron_density</code><span class="sig-paren">(</span><em class="sig-param">reference_point</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">electron_density</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Dipoles.electron_density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Dipoles.electron_density" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">electron_density</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reference_point</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">electron_density</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Dipoles.electron_density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Dipoles.electron_density" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the dipole moment of a charge distribution.</p>
 <p>Note that for a charge density, the resulting dipole momennt depends on the chosen reference point. A common choice in the molecular context is the center of mass.
 Electron density is a positive quantity.</p>
@@ -651,9 +651,9 @@ Electron density is a positive quantity.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.physics.Dipoles.point_charges">
-<em class="property">static </em><code class="sig-name descname">point_charges</code><span class="sig-paren">(</span><em class="sig-param">reference_point</em>, <em class="sig-param">coordinates</em>, <em class="sig-param">charges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Dipoles.point_charges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Dipoles.point_charges" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">point_charges</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reference_point</span></em>, <em class="sig-param"><span class="n">coordinates</span></em>, <em class="sig-param"><span class="n">charges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#Dipoles.point_charges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.Dipoles.point_charges" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the dipole moment of point charges.</p>
 <p>Note that for sets of point charges of a net charge, the resulting dipole moment depends on the chosen reference point. A common choice in the molecular context is the center of mass.
 Sign convention is such that nuclei should be given as positive charges.</p>
@@ -675,15 +675,15 @@ Sign convention is such that nuclei should be given as positive charges.</p>
 
 </dd></dl>
 
-<dl class="data">
+<dl class="py data">
 <dt id="apdft.physics.angstrom">
 <code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">angstrom</code><em class="property"> = 1.8897261254578281</em><a class="headerlink" href="#apdft.physics.angstrom" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion factor from Bohr in Angstrom.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.physics.charge_to_label">
-<code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">charge_to_label</code><span class="sig-paren">(</span><em class="sig-param">Z</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#charge_to_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.charge_to_label" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">charge_to_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">Z</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/physics.html#charge_to_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.physics.charge_to_label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a nuclear charge to an element label.</p>
 <p>Uncharged (ghost) sites are assigned a dash.</p>
 <dl class="field-list simple">
@@ -696,7 +696,7 @@ Sign convention is such that nuclei should be given as positive charges.</p>
 </dl>
 </dd></dl>
 
-<dl class="data">
+<dl class="py data">
 <dt id="apdft.physics.debye">
 <code class="sig-prename descclassname">apdft.physics.</code><code class="sig-name descname">debye</code><em class="property"> = 4.803204775077208</em><a class="headerlink" href="#apdft.physics.debye" title="Permalink to this definition">¶</a></dt>
 <dd><p>Conversion factor from electron charges and Angstrom to Debye</p>
@@ -705,12 +705,12 @@ Sign convention is such that nuclei should be given as positive charges.</p>
 </div>
 <div class="section" id="module-apdft.math">
 <span id="math-related-functions"></span><h2>Math-related functions<a class="headerlink" href="#module-apdft.math" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.math.IntegerPartitions">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.math.</code><code class="sig-name descname">IntegerPartitions</code><a class="reference internal" href="_modules/apdft/math.html#IntegerPartitions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.math.IntegerPartitions" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><dl class="py method">
 <dt id="apdft.math.IntegerPartitions.partition">
-<em class="property">static </em><code class="sig-name descname">partition</code><span class="sig-paren">(</span><em class="sig-param">total</em>, <em class="sig-param">maxelements</em>, <em class="sig-param">around=None</em>, <em class="sig-param">maxdz=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/math.html#IntegerPartitions.partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.math.IntegerPartitions.partition" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">partition</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">total</span></em>, <em class="sig-param"><span class="n">maxelements</span></em>, <em class="sig-param"><span class="n">around</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">maxdz</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/math.html#IntegerPartitions.partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.math.IntegerPartitions.partition" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds all integer partitions of <em>total</em> split into <em>maxelements</em> parts.</p>
 <p>Note that ordering matters, i.e. (2, 1) and (1, 2) are district partitions. Moreover, elements of zero value are allowed. In all cases, the sum of all elements is equal to <em>total</em>.
 There is no guarantee as for the ordering of elements.</p>
@@ -736,48 +736,48 @@ Only those partitions are listed where the L1 norm of the distance between parti
 </div>
 <div class="section" id="module-apdft">
 <span id="apdft-logic"></span><h2>APDFT logic<a class="headerlink" href="#module-apdft" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.count_log_level_usage">
-<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">count_log_level_usage</code><span class="sig-paren">(</span><em class="sig-param">_</em>, <em class="sig-param">__</em>, <em class="sig-param">event_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#count_log_level_usage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.count_log_level_usage" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">count_log_level_usage</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_</span></em>, <em class="sig-param"><span class="n">__</span></em>, <em class="sig-param"><span class="n">event_dict</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#count_log_level_usage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.count_log_level_usage" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.get_element_number">
-<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">get_element_number</code><span class="sig-paren">(</span><em class="sig-param">element</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#get_element_number"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.get_element_number" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">get_element_number</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#get_element_number"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.get_element_number" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.get_methods">
 <code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">get_methods</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#get_methods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.get_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.read_xyz">
-<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">read_xyz</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#read_xyz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.read_xyz" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.</code><code class="sig-name descname">read_xyz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft.html#read_xyz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.read_xyz" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
 <div class="section" id="module-apdft.commandline">
 <span id="command-line-interface"></span><h2>Command Line Interface<a class="headerlink" href="#module-apdft.commandline" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.commandline.build_main_commandline">
-<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">build_main_commandline</code><span class="sig-paren">(</span><em class="sig-param">set_defaults=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#build_main_commandline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.build_main_commandline" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">build_main_commandline</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">set_defaults</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#build_main_commandline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.build_main_commandline" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds an argparse object of the user-facing command line interface.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.commandline.entry_cli">
 <code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">entry_cli</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#entry_cli"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.entry_cli" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.commandline.mode_energies">
-<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">mode_energies</code><span class="sig-paren">(</span><em class="sig-param">conf</em>, <em class="sig-param">modeshort=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#mode_energies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.mode_energies" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">mode_energies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conf</span></em>, <em class="sig-param"><span class="n">modeshort</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#mode_energies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.mode_energies" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.commandline.parse_into">
-<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">parse_into</code><span class="sig-paren">(</span><em class="sig-param">parser</em>, <em class="sig-param">configuration=None</em>, <em class="sig-param">cliargs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#parse_into"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.parse_into" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">parse_into</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parser</span></em>, <em class="sig-param"><span class="n">configuration</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cliargs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#parse_into"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.parse_into" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the configuration with the values specified on the command line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -793,9 +793,9 @@ Only those partitions are listed where the L1 norm of the distance between parti
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.commandline.parse_target_list">
-<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">parse_target_list</code><span class="sig-paren">(</span><em class="sig-param">lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#parse_target_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.parse_target_list" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.commandline.</code><code class="sig-name descname">parse_target_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/commandline.html#parse_target_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.commandline.parse_target_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Separates an explicit target list.</p>
 <p>Accepted values: - for a missing atom, labels, nuclear charges. One target per line, comma separated.</p>
 </dd></dl>
@@ -804,103 +804,103 @@ Only those partitions are listed where the L1 norm of the distance between parti
 <div class="section" id="module-apdft.settings">
 <span id="settings"></span><h2>Settings<a class="headerlink" href="#module-apdft.settings" title="Permalink to this headline">¶</a></h2>
 <p>Manages settings and config file parsing.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.settings.CodeEnum">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">CodeEnum</code><a class="reference internal" href="_modules/apdft/settings.html#CodeEnum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.CodeEnum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
 <p>An enumeration.</p>
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="apdft.settings.CodeEnum.G09">
 <code class="sig-name descname">G09</code><em class="property"> = 'G09'</em><a class="headerlink" href="#apdft.settings.CodeEnum.G09" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="apdft.settings.CodeEnum.MRCC">
 <code class="sig-name descname">MRCC</code><em class="property"> = 'MRCC'</em><a class="headerlink" href="#apdft.settings.CodeEnum.MRCC" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="apdft.settings.CodeEnum.PYSCF">
 <code class="sig-name descname">PYSCF</code><em class="property"> = 'PYSCF'</em><a class="headerlink" href="#apdft.settings.CodeEnum.PYSCF" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.CodeEnum.get_calculator_class">
 <code class="sig-name descname">get_calculator_class</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#CodeEnum.get_calculator_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.CodeEnum.get_calculator_class" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.settings.Configuration">
 <em class="property">class </em><code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">Configuration</code><a class="reference internal" href="_modules/apdft/settings.html#Configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A complete set of configuration values. Merges settings and default values.</p>
 <p>Settings are referred to as category.variablename.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Configuration.from_file">
 <code class="sig-name descname">from_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Configuration.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration.from_file" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Configuration.list_options">
-<code class="sig-name descname">list_options</code><span class="sig-paren">(</span><em class="sig-param">section=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Configuration.list_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration.list_options" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">list_options</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">section</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Configuration.list_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration.list_options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gives all configurable options for a given section.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Configuration.list_sections">
 <code class="sig-name descname">list_sections</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Configuration.list_sections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration.list_sections" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of all sections.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Configuration.to_file">
 <code class="sig-name descname">to_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Configuration.to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Configuration.to_file" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="apdft.settings.Option">
-<em class="property">class </em><code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">Option</code><span class="sig-paren">(</span><em class="sig-param">category</em>, <em class="sig-param">name</em>, <em class="sig-param">validator</em>, <em class="sig-param">default</em>, <em class="sig-param">description</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">Option</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">category</span></em>, <em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">validator</span></em>, <em class="sig-param"><span class="n">default</span></em>, <em class="sig-param"><span class="n">description</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Represents a single configuration option.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Option.get_attribute_name">
 <code class="sig-name descname">get_attribute_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.get_attribute_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.get_attribute_name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Option.get_description">
 <code class="sig-name descname">get_description</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.get_description"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.get_description" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Option.get_validator">
 <code class="sig-name descname">get_validator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.get_validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.get_validator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Option.get_value">
 <code class="sig-name descname">get_value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.get_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.get_value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="apdft.settings.Option.set_value">
-<code class="sig-name descname">set_value</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.set_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.set_value" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_value</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#Option.set_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.Option.set_value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.settings.boolean">
-<code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">boolean</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#boolean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.boolean" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">boolean</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#boolean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.boolean" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="apdft.settings.intelementrange">
-<code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">intelementrange</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#intelementrange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.intelementrange" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">apdft.settings.</code><code class="sig-name descname">intelementrange</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/apdft/settings.html#intelementrange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#apdft.settings.intelementrange" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
