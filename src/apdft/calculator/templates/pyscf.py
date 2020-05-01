@@ -27,13 +27,14 @@ includeonly = np.array(({{includeonly}}))
 def add_qmmm(calc, mol, deltaZ):
     mf = pyscf.qmmm.mm_charge(calc, mol.atom_coords()[includeonly]/ angstrom, deltaZ)
 
-    class NoSelfQMMM(mf.__class__):
-        def energy_nuc(self):
-            q = mol.atom_charges().astype(np.float)
-            q[includeonly] += deltaZ
-            return mol.energy_nuc(q)
+    def energy_nuc(self):
+        q = mol.atom_charges().astype(np.float)
+        q[includeonly] += deltaZ
+        return mol.energy_nuc(q)
 
-    return NoSelfQMMM()
+    mf.energy_nuc = energy_nuc.__get__(mf, mf.__class__)
+
+    return mf
 
 
 if method == "HF":
