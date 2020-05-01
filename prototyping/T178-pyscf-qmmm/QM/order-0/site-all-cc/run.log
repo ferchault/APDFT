@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "run.inp", line 45, in <module>
+    calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
+  File "run.inp", line 36, in add_qmmm
+    return NoSelfQMMM()
+TypeError: __init__() missing 2 required positional arguments: 'scf_method' and 'mm_mol'
