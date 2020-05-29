@@ -38,6 +38,7 @@ def get_status(dirs, dest, save_df=False, write=True):
     
     # get status for every directory in dirs
     ready2cube = []
+    revise = []
     restart = []
     broken = []
     other = []
@@ -45,8 +46,10 @@ def get_status(dirs, dest, save_df=False, write=True):
         status, gemax, num_it = parse_log_file(os.path.join(d,'run.log'), save=save_df)
         if status == 'finished' and gemax < 1e-6:
             ready2cube.append(d)
-        elif status == 'finished' and gemax > 1e-6:
+        elif status == 'finished' and gemax > 1e-5:
             restart.append(d)
+        elif status == 'finished' and gemax > 1e-6 and gemax < 1e-5: # maybe if more than 1000 iterations change to ready2cube
+            revise.append(d)
         elif status == 'broken':
             broken.append(d+'\t'+gemax)
         elif status == "Running, not started or broken":
@@ -69,9 +72,14 @@ def get_status(dirs, dest, save_df=False, write=True):
         with open(os.path.join(dest, 'other'), 'w') as fs:
             for item in other:
                 fs.write("%s\n" % item)
+
+        with open(os.path.join(dest, 'revise'), 'w') as fs:
+            for item in revise:
+                fs.write("%s\n" % item)
+
     else:
-        return(ready2cube, restart, broken, other)
-            
+        return(ready2cube, restart, broken, other, revise)
+           
 def concatenate_files(file_paths):
     """
     concatenates lines of all the files and returns one list with elements as lines of the files
