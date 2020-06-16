@@ -63,6 +63,7 @@ def generate_atomic_representations(alchemy_data, molecule_size, rep_par='coulom
     for idx, molecule in enumerate(alchemy_data):
         if rep_par=='coulomb':
             rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm')
+
             #rep = qml.representations.generate_atomic_coulomb_matrix(molecule[:,0], molecule[:,[1,2,3]], size=max_size, sorting='row-norm', central_cutoff = 15, central_decay = 0.1)
         for idx2 in range(0, len(rep)):
             full_matrix[start+idx2] = rep[idx2]
@@ -127,7 +128,7 @@ def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     energies = np.zeros(num_rep)
     start = 0
     for idx, mol in enumerate(alchemy_data):
-        length = len(alchemy_data[idx][:,6])
+        length = len(alchemy_data[idx][:,0])
         if value == 'atomisation':
             energies[start:length+start] = alchemy_data[idx][:,6]
         elif value == 'atomic':
