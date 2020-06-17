@@ -25,7 +25,7 @@ for i in zip(data, molecule_size):
     reps.append(rep_fchl)
     
 savebase = '/home/misa/APDFT/prototyping/atomic_energies/results/analyse_learning/FCHL/'
-sigmas = np.logspace(-1, 4, 12).tolist()
+sigmas = np.logspace(-4, -2, 3).tolist()
 
 #sigmas = [432.8761281083057, 10000]
 for sigma in sigmas:
