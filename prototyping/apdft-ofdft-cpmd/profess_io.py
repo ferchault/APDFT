@@ -1,3 +1,17 @@
+def parse_out_file(file, value_name):
+    value = []
+    with open(file, 'r') as f:
+        for line in f:
+            if not value_name in line:
+                pass
+            else:
+                if value_name == 'TOTAL ENERGY':
+                    value = float(line.split()[-3])
+                    return(value)
+                elif value_name == 'NVE Kinetic energy' or value_name == 'NVE Potential energy':
+                    value.append(float(line.split()[-2]))
+    return(value)
+
 def parse_ion_file(file):
     positions = []
     with open(file, 'r') as f:
