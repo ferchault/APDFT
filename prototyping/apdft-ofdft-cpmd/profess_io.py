@@ -62,3 +62,42 @@ def parse_force_section(f):
         else:
             break
     return(forces)
+
+def generate_cell_section(cell_par):
+    cell_section = []
+    cell_section.append('%BLOCK LATTICE_CART\n')
+    for cell_vec in cell_par:
+        cell_vec_string = '\t' + '\t'.join(map(str, cell_vec))
+        cell_section.append(cell_vec_string+'\n')
+    cell_section.append('%END BLOCK LATTICE_CART\n')
+    return(cell_section)
+
+def generate_position_section(atom_types, positions, pos_type):
+    positions_section = []
+    positions_section.append(f'%BLOCK POSITIONS_{pos_type}\n')
+    
+    for at, pos in zip(atom_types, positions):
+        atom_string = f'\t{at}\t' + '\t'.join(map(str, pos))
+        positions_section.append(atom_string+'\n')
+    positions_section.append(f'%END BLOCK POSITIONS_{pos_type}\n')
+    return(positions_section)
+
+def generate_pp_section(elements, pp_names):
+    pp_section = []
+    pp_section.append('%BLOCK SPECIES_POT\n')
+    for el, pp in zip(elements, pp_names):
+        pp_section.append(f'\t{el}\t{pp}\n')
+    pp_section.append('%END BLOCK SPECIES_POT\n')
+    return(pp_section)
+    
+def generate_ion_file(cell_par, atom_types, positions, pos_type, pp):
+    cell_section = generate_cell_section(cell_par)
+    position_section = generate_position_section(atom_types, positions, pos_type)
+    elements = set(atom_types)
+    pp_section= generate_pp_section(elements, pp)
+    ion_file = cell_section + position_section + pp_section
+    return(ion_file)
+
+def write_file(fname, fcontent):
+    with open(fname, 'w') as f:
+        f.writelines(fcontent)
