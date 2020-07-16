@@ -17,11 +17,15 @@ class PROFESS(Calculator):
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
+        self.energy_zero = 0.0
         
     def run_profess(self):
         os.chdir(self.run_dir)
         p = subprocess.run(['/home/misa/git_repositories/PROFESS/PROFESS', self.inpt_name])
         return(p)
+    
+    def update(self, atoms):
+        self.atoms = atoms
 
     def get_forces(self, atoms=None):
         # write new .ion file
