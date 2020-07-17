@@ -35,17 +35,17 @@ class CUBE(object):
         
         self.atoms = []
         for i in range(self.natoms):
-            tkns = f.readline().split()
-            self.atoms.append([float(tkns[0]), float(tkns[2]), float(tkns[3]), float(tkns[4])])
+          tkns = f.readline().split()
+          self.atoms.append([float(tkns[0]), float(tkns[2]), float(tkns[3]), float(tkns[4])])
           
         self.atoms = np.array(self.atoms)
         
         self.data = np.zeros((self.NX,self.NY,self.NZ))
         i=0
         for s in f:
-            for v in s.split():
-                self.data[i//(self.NY*self.NZ), (i//self.NZ)%self.NY, i%self.NZ] = float(v)
-                i+=1
+          for v in s.split():
+            self.data[i//(self.NY*self.NZ), (i//self.NZ)%self.NY, i%self.NZ] = float(v)
+            i+=1
         if i != self.NX*self.NY*self.NZ: raise NameError("FSCK!")
         
         self.scale() # values scaled by volume
@@ -69,7 +69,7 @@ class CUBE(object):
             l_y = self.Y[1]*self.NY
             coords = np.linspace(self.origin[1], l_y-self.Y[1], self.NY)
             
-        if axis == 'z' or axis == 2:
+        if axis == 'x' or axis == 0:
             l_z = self.Z[2]*self.NZ
             coords = np.linspace(self.origin[2], l_z-self.Z[2], self.NZ)
             
@@ -99,12 +99,6 @@ class CUBE(object):
         # create gridpoints
         meshgrid = np.meshgrid(x_coords, y_coords, z_coords, indexing='ij')
         return(meshgrid)
-    
-    def get_hmatrix(self):
-        h_x = self.X*self.NX
-        h_y = self.Y*self.NY
-        h_z = self.Z*self.NZ
-        return(np.array([h_x, h_y, h_z]))
         
         
     def scale(self):
