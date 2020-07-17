@@ -10,6 +10,8 @@ def parse_out_file(file, value_name):
                     return(value)
                 elif value_name == 'NVE Kinetic energy' or value_name == 'NVE Potential energy':
                     value.append(float(line.split()[-2]))
+                elif value_name == 'Final total energy':
+                    value = float(line.split()[3])
     return(value)
 
 def parse_ion_file(file):
