@@ -99,7 +99,7 @@ def write_atom(idx, atomsym, coordinates):
     the name of the pp is 'element_name' + idx of atom in Compound object + '_SG_LDA'
     the coordinates are read from Compund as well (must be shifted to center before)
     """
-    line1 = '*' + generate_pp_file_name(idx, atomsym) + '\n'
+    line1 = f'*{atomsym}_SG_LDA\n'
     line2 = ' LMAX=S\n'
     line3 = ' 1\n'
     line4 = ' ' + str(coordinates[0]) + ' ' + str(coordinates[1]) + ' ' + str(coordinates[2]) + '\n'
