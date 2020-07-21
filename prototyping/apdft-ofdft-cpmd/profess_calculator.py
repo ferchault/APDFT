@@ -13,20 +13,28 @@ class PROFESS(Calculator):
     name = 'PROFESS'
     implemented_properties = ['forces']
 
-    def __init__(self, run_dir, inpt_name, pp_names, atoms, pos_type = 'CART'):
-        self.atoms = atoms.copy()
+    def __init__(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
+        self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
+    def initialize(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
+        self.atoms = atoms
+        self.run_dir = run_dir
+        self.inpt_name = inpt_name
+        self.pp_names = pp_names
+        self.energy_zero = 0.0
+      
     def run_profess(self):
         os.chdir(self.run_dir)
         p = subprocess.run(['/home/misa/git_repositories/PROFESS/PROFESS', self.inpt_name], capture_output = True,  text=True )
         return(p)
     
     def update(self, atoms):
-        self.atoms = atoms
+        if atoms != self.atoms:
+            self.atoms = atoms
     
     def parse_out_for_en(self, stdout):
         outfile = stdout.split('\n')
