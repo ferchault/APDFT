@@ -19,6 +19,133 @@ from explore_qml_data import get_property
 from explore_qml_data import get_free_atom_data
 from explore_qml_data import get_num_val_elec
 
+def atomic_energy_decomposition(lam_vals, scaled_densities, nuclei, gpts, h_matrix, intgr_method='trapz'):
+    """
+    returns charge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
+   
+    param lam_vals: lambda-values
+    type lam_vals: numpy array, shape (1,)
+    param scaled_densities: valence electron densities corresponding to the lambda-values in lam_vals
+    type scaled densities: numpy array, shape (len(lam_vals), shape(gpts))
+    param nuclei: charge and positions of the nuclei
+    type nuclei: numpy array shape (number nuclei, 4)
+    param gpts: grid which contains the coordinates for which the electron densities  are given
+    type gpts: numpy array, shape (number of pts x-direction, number of pts y-direction, number of pts z-direction)
+    h_matrix: H matrix with the cell vectors as columns
+    type h_matrix: numpy array, shape (3, 3)
+    param intgr_method: method used for integration over lambda
+    type intgr_method: string
+   """
+   
+    # integrate density with respect to lambda
+    av_dens = integrate_lambda_density(scaled_densities, lam_vals, method=intgr_method)
+    
+    # calculate alchemical potentials and atomic energies by integrating over r
+    atomic_energies_with_repulsion, atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts, h_matrix)
+    
+    return(nuclei, atomic_energies_with_repulsion, atomic_energies, alch_pots)
+    
+def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
+    """
+    returns atomic contributions to the atomisation energy
+    
+    1) shifts the atomic energies calculated from the lambda-averaged 
+       alchemical potential (at_en_alch) to the total energy (total_en) at some level of theory
+        - ae_alch are relative to the free electron gas with pbc
+        - total_en is the total energy of the compund e.g. calculated with B3LYP
+        - after the shift the sum of the atomic energies is equal to total_en
+        
+    2) get the atomisation energy
+       - from each atomic energy the energy of the corresponding free atom is subtracted
+    
+    at_en_dec: atomic energies calculated from lambda averaged alchemical potential
+    total_en: total energy of the system at the desired level of theory
+    free_at_en: energies of the single atoms for the corresponding alchemical potential
+    """
+    
+    # shift at_en_alch to give total_en
+    total_en_alch = ae_alch.sum()
+    num_atoms = len(ae_alch)
+    shift = (total_en - total_en_alch) / num_atoms
+    ae_alch_shifted = ae_alch + shift
+    
+    # calculate contribution of every atom to the atomisation energy
+    atomisation_energies = ae_alch_shifted - free_at_en
+    
+    return(atomisation_energies)
+
+def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix, intg_method = 'sum'):
+    """
+    performs intgegration over electron density with minimum image convention
+
+    density: the lambda averaged electron density
+    nuclei: charge and coordinates of nuclei in compound
+    meshgrid: rid which contains the coordinates for which the electron densities  are given
+    h_matrix: H matrix with the cell vectors as columns
+    return: the alchemical potentials and atomic energies of the compound if the input the lambda averaged density
+    """
+        
+    # calculate atomic energies for every atom in compound
+    atomic_energies_with_repulsion = np.empty(nuclei.shape[0])
+    atomic_energies_with_repulsion = nuclear_repulsion(nuclei[:,0], nuclei[:, 1:4])
+    
+    atomic_energies = np.empty(nuclei.shape[0])
+    alch_pots = np.empty(nuclei.shape[0])
+    for idx, nuc in enumerate(nuclei):
+        distance_nuc_grid = distance_MIC2(nuc[1:4], meshgrid, h_matrix) # calculate distance of gpts to nucleus with MIC
+        if intg_method == 'sum':
+            alch_pot = -(density/distance_nuc_grid).sum() # integrate over position of electron density
+        elif intg_method == 'simps':
+            d = meshgrid[0][1,0,0] - meshgrid[0][0,0,0] # distance between the grid points
+            alch_pot = -1*multidim_int(density/distance_nuc_grid, d, 'simps') # integrate over position of electron density
+        alch_pots[idx] = alch_pot
+        atomic_energies[idx] = nuc[0]*alch_pot
+        atomic_energies_with_repulsion[idx] += atomic_energies[idx]
+        
+    
+    return(atomic_energies_with_repulsion, atomic_energies, alch_pots)
+       
+def check_shapes(density_arrays):
+    """
+    checks if each array in a set (list) has the same shape
+    density_arrays: list of density
+    """
+    prev_shape = None
+    for idx, density in enumerate(density_arrays):
+        if idx == 0:
+            prev_shape = density.shape
+        assert prev_shape == density.shape, "Densities have not the same shape!"
+        prev_shape = density.shape
+
+    
+def get_all_idc_out(all_idc_in, all_idc):
+    """
+    returns unique indices that lie not within the van der Waals spheres of any of the nuclei in the molecules
+    
+    all_idc_in: list/tuple of indices inside the sphere around the individual nuclei
+    all_idc: all indices 1D-array (smallest element = 0, largest element = number of gridpoints -1)
+    """
+    all_idc_in = np.concatenate(all_idc_in)
+    all_idc_in = np.unique(all_idc_in)
+    all_idc_out = np.setdiff1d(all_idc, all_idc_in, assume_unique=True)
+    return(all_idc_out)
+
+def get_idc_rvdW(center, rvdw, gpts):
+    """
+    returns indices of grid points lying in a sphere around center with radius rdwV
+    
+    center: center of sphere
+    rdvw: radius of sphere
+    coordinates of grid as flattened numpy array, shape (number of grid points, dimension of grid)
+    """
+    
+    # distance of every gridpoint from center
+    distance_array = scipy.spatial.distance.cdist(gpts, center)
+    idc_in_sphere = np.where(distance_array[:, 0] <= rvdw)[0] # indices of points within sphere with vdW radius
+    
+    return(idc_in_sphere)
+
+
 def load_vasp_dens(path_vasp_dens):
     """
     returns the data necessary to calculate the atomic energies from the vasp density files
@@ -85,44 +212,6 @@ def load_cube_data(paths_cubes):
             h_matrix = [cube.X*cube.NX, cube.Y*cube.NY, cube.Z*cube.NZ]
     
     return(np.array(lam_vals), np.array(densities), nuclei, gpts, h_matrix)
-    
-def get_idc_rvdW(center, rvdw, gpts):
-    """
-    returns indices of grid points lying in a sphere around center with radius rdwV
-    
-    center: center of sphere
-    rdvw: radius of sphere
-    coordinates of grid as flattened numpy array, shape (number of grid points, dimension of grid)
-    """
-    
-    # distance of every gridpoint from center
-    distance_array = scipy.spatial.distance.cdist(gpts, center)
-    idc_in_sphere = np.where(distance_array[:, 0] <= rvdw)[0] # indices of points within sphere with vdW radius
-    
-    return(idc_in_sphere)
-    
-def meshgrid2vector(grid):
-    """
-    convert components of meshgrid into set of vectors; every vector is a point of the grid
-    e.g. a 3D grid is converted in a numpy array of shape (number gridpoints, 3)
-    """
-    flattened_grid = []
-    for c in grid:
-        flattened_grid.append(c.flatten())
-        
-    return(np.array(flattened_grid).T)
-    
-def get_all_idc_out(all_idc_in, all_idc):
-    """
-    returns unique indices that lie not within the van der Waals spheres of any of the nuclei in the molecules
-    
-    all_idc_in: list/tuple of indices inside the sphere around the individual nuclei
-    all_idc: all indices 1D-array (smallest element = 0, largest element = number of gridpoints -1)
-    """
-    all_idc_in = np.concatenate(all_idc_in)
-    all_idc_in = np.unique(all_idc_in)
-    all_idc_out = np.setdiff1d(all_idc, all_idc_in, assume_unique=True)
-    return(all_idc_out)
 
 def integrate_lambda_density(densities, lam_vals, method='trapz'):
     """
@@ -142,6 +231,7 @@ def integrate_lambda_density(densities, lam_vals, method='trapz'):
         raise Exception("Unknown integration method!")
    
     return(averaged_density)
+
     
 def distance_MIC2(pos_nuc, meshgrid, h_matrix):
     """
@@ -176,18 +266,55 @@ def distance_MIC2(pos_nuc, meshgrid, h_matrix):
     z = np.power(h_matrix[2][2]*t_12_z, 2)
     
     return(np.sqrt(x+y+z))
-       
-def check_shapes(density_arrays):
+
+def meshgrid2vector(grid):
     """
-    checks if each array in a set (list) has the same shape
-    density_arrays: list of density
+    convert components of meshgrid into set of vectors; every vector is a point of the grid
+    e.g. a 3D grid is converted in a numpy array of shape (number gridpoints, 3)
     """
-    prev_shape = None
-    for idx, density in enumerate(density_arrays):
-        if idx == 0:
-            prev_shape = density.shape
-        assert prev_shape == density.shape, "Densities have not the same shape!"
-        prev_shape = density.shape
+    flattened_grid = []
+    for c in grid:
+        flattened_grid.append(c.flatten())
+        
+    return(np.array(flattened_grid).T)
+
+def multidim_int(f, dx, mode):
+    """
+    numerical integration over 3-dimensional integrals
+    with different Newton-Cotes orders (trapz, simpson ...)
+    f: function as numpy array
+    dx: grid spacing
+    mode: type of integration
+    """
+    
+    I_z = np.zeros((f.shape[0], f.shape[1]))
+    for i in range(f.shape[0]):
+        for j in range(f.shape[1]):
+            if mode == 'trapz':
+                I_z[i,j] = np.trapz(f[i,j], dx = dx)
+            elif mode == 'simps':
+                I_z[i,j] = scipy.integrate.simps(f[i,j], dx = dx)
+            else:
+                I_z[i,j] = nc_integration(f[i,j], dx, mode)
+            
+    I_yz = np.zeros(f.shape[0])
+    for i in range(f.shape[0]):
+        if mode == 'trapz':
+            I_yz[i] = np.trapz(I_z[i], dx = dx)
+        elif mode == 'simps':
+            I_yz[i] = scipy.integrate.simps(I_z[i], dx = dx)
+        else:
+            I_yz[i] = nc_integration(I_z[i], dx, mode)
+    
+    if mode == 'trapz':
+        I_xyz = np.trapz(I_yz, dx = dx)
+    elif mode == 'simps':
+        I_xyz = scipy.integrate.simps(I_yz, dx = dx)
+    else:
+        I_xyz = nc_integration(I_yz, dx, mode)
+        
+    return(I_xyz)
+
             
 def nuclear_repulsion(charges, positions):
     """
@@ -241,87 +368,9 @@ def get_alchpot_free(nuclei, densities_free_atoms, meshgrid, h_matrix, pos_free_
         alch_pot_free.append(alch_pot_free_I)  
     return(np.array(alch_pot_free))
         
-def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix):
-    """
-    performs intgegration over electron density with minimum image convention
 
-    density: the lambda averaged electron density
-    nuclei: charge and coordinates of nuclei in compound
-    meshgrid: rid which contains the coordinates for which the electron densities  are given
-    h_matrix: H matrix with the cell vectors as columns
-    return: the alchemical potentials and atomic energies of the compound if the input the lambda averaged density
-    """
         
-    # calculate atomic energies for every atom in compound
-    atomic_energies_with_repulsion = np.empty(nuclei.shape[0])
-    atomic_energies_with_repulsion = nuclear_repulsion(nuclei[:,0], nuclei[:, 1:4])
-    
-    atomic_energies = np.empty(nuclei.shape[0])
-    alch_pots = np.empty(nuclei.shape[0])
-    for idx, nuc in enumerate(nuclei):
-        distance_nuc_grid = distance_MIC2(nuc[1:4], meshgrid, h_matrix) # calculate distance of gpts to nucleus with MIC
-        alch_pot = -(density/distance_nuc_grid).sum() # integrate over position of electron density
-        alch_pots[idx] = alch_pot
-        atomic_energies[idx] = nuc[0]*alch_pot
-        atomic_energies_with_repulsion[idx] += atomic_energies[idx]
-        
-    
-    return(atomic_energies_with_repulsion, atomic_energies, alch_pots)
-        
-def atomic_energy_decomposition(lam_vals, scaled_densities, nuclei, gpts, h_matrix, intgr_method='trapz'):
-    """
-    returns charge and position of nuclei, alchemical potentials and atomic energies for atoms in compound
-   
-    param lam_vals: lambda-values
-    type lam_vals: numpy array, shape (1,)
-    param scaled_densities: valence electron densities corresponding to the lambda-values in lam_vals
-    type scaled densities: numpy array, shape (len(lam_vals), shape(gpts))
-    param nuclei: charge and positions of the nuclei
-    type nuclei: numpy array shape (number nuclei, 4)
-    param gpts: grid which contains the coordinates for which the electron densities  are given
-    type gpts: numpy array, shape (number of pts x-direction, number of pts y-direction, number of pts z-direction)
-    h_matrix: H matrix with the cell vectors as columns
-    type h_matrix: numpy array, shape (3, 3)
-    param intgr_method: method used for integration over lambda
-    type intgr_method: string
-   """
-   
-    # integrate density with respect to lambda
-    av_dens = integrate_lambda_density(scaled_densities, lam_vals, method=intgr_method)
-    
-    # calculate alchemical potentials and atomic energies by integrating over r
-    atomic_energies_with_repulsion, atomic_energies, alch_pots = calculate_atomic_energies(av_dens, nuclei, gpts, h_matrix)
-    
-    return(nuclei, atomic_energies_with_repulsion, atomic_energies, alch_pots)
-    
-def calculate_atomisation_energies(ae_alch, total_en, free_at_en):
-    """
-    returns atomic contributions to the atomisation energy
-    
-    1) shifts the atomic energies calculated from the lambda-averaged 
-       alchemical potential (at_en_alch) to the total energy (total_en) at some level of theory
-        - ae_alch are relative to the free electron gas with pbc
-        - total_en is the total energy of the compund e.g. calculated with B3LYP
-        - after the shift the sum of the atomic energies is equal to total_en
-        
-    2) get the atomisation energy
-       - from each atomic energy the energy of the corresponding free atom is subtracted
-    
-    at_en_dec: atomic energies calculated from lambda averaged alchemical potential
-    total_en: total energy of the system at the desired level of theory
-    free_at_en: energies of the single atoms for the corresponding alchemical potential
-    """
-    
-    # shift at_en_alch to give total_en
-    total_en_alch = ae_alch.sum()
-    num_atoms = len(ae_alch)
-    shift = (total_en - total_en_alch) / num_atoms
-    ae_alch_shifted = ae_alch + shift
-    
-    # calculate contribution of every atom to the atomisation energy
-    atomisation_energies = ae_alch_shifted - free_at_en
-    
-    return(atomisation_energies)
+
     
 def write_atomisation_energies(dirs):
     """
