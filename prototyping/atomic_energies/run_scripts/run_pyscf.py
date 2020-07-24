@@ -1,4 +1,9 @@
-# import all the necessary stuff
+import sys
+sys.path.insert('/home/misa/git_repositories/APDFT/prototyping/atomic_energies')
+import alchemy_tools_pyscf as atp
+from parse_pyscf import read_input
+import qml
+import numpy as np
 
 # get current directory
 run_dir = os.getcwd()
