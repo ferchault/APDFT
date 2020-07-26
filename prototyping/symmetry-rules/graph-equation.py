@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-from fractions import gcd
+from math import gcd
 from functools import reduce
 
 def bonds_array(colors, vertices, elements, nv):
