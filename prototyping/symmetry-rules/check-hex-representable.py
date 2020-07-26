@@ -20,6 +20,9 @@ def test():
 	g.add_edge(2,0)
 	print (is_hex_representable(g))
 
-for graph in nx.readwrite.graph6.read_graph6(infile):
-	if is_hex_representable(graph):
-		print (nx.readwrite.graph6.to_graph6_bytes(graph, header=False).decode("ascii").strip())
+with open(infile) as fh:
+	for line in fh:
+		line = line.strip()
+		graph = nx.from_graph6_bytes(line.encode("ascii"))
+		if is_hex_representable(graph):
+			print (line)
