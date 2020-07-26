@@ -1,10 +1,10 @@
 #!/bin/bash
-NAUTYPATH="/mnt/c/Users/guido/opt/nauty/nauty27rc3"
+NAUTYPATH="/home/grudorff/opt/nauty/nauty27r1"
 NATOMS=$1
 DELTAZMAX=$2
 
 
-LABEL="${NATOMS}-${DELTAMAX}"
+LABEL="${NATOMS}-${DELTAZMAX}"
 # generate all connected graphs with NATOMS many nodes
 $NAUTYPATH/geng -c -t -f -D3 $NATOMS > graphlist-$LABEL
 # remove all but graphs that can be on a hexgrid
