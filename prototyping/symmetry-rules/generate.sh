@@ -5,9 +5,10 @@ DELTAZMAX=$2
 
 # generate all connected graphs with NATOMS many nodes
 $NAUTYPATH/geng -c -t -f -D3 $NATOMS > graphlist
-# TODO: remove all but six-cycles
+# remove all but graphs that can be on a hexgrid
+python check-hex-representable.py graphlist > graphlist-hex
 # build all colored graphs
-$NAUTYPATH/vcolg -m$(($DELTAZMAX*2+1)) -T graphlist graphlist-colored
+$NAUTYPATH/vcolg -m$(($DELTAZMAX*2+1)) -T graphlist-hex graphlist-colored
 # filter all non-alchemical symmetry graphs
 echo -e "\n\nEQUATIONS:\n\n"
 # convert graphs into unique equations
