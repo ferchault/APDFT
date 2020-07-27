@@ -30,26 +30,67 @@ def bonds_array(colors, vertices, elements, nv):
 			bonds[element_a + element_b] += 1
 	return bonds
 	
+def angles_array(colors, vertices, elements, nv):
+	selements = sorted(elements)
+	angles = {}
+	slements = sorted(elements)
+	for i in range(len(selements)):
+		for j in range(i, len(selements)):
+			for k in selements:
+				angles[selements[i] + k + selements[j]] = 0
+	
+	bonded_to = []
+	vertexranks = [0 for _ in range(nv)]
+	for i in range(nv):
+		bonded_to.append([])
+	
+	for a, b in zip(vertices[::2], vertices[1::2]):
+		bonded_to[a].append(b)
+		bonded_to[b].append(a)
+		vertexranks[a] += 1
+		vertexranks[b] += 1
 
-# nv ne {col} {v1 v2}
-# 4 3 0 0 0 0  0 3 1 3 2 3
-deltaz = [0, -1, 1, -2, 2, -3, 3]
-elements_up = "CBDAEFG"
-elements_dn = "CDBEAGF"
-shown = []
-for line in sys.stdin:
-	parts = line.strip().split()
-	nv = int(parts[0])
-	ne = int(parts[1])
-	colors = parts[2:2+nv]
-	colors = [int(_) for _ in colors]
-	vertices = [int(_) for _ in parts[2+nv:]]
+	for i in range(nv):
+		for j in range(i+1, nv):
+			for k in range(nv):
+				if k == i or k == j:
+					continue
+				if k in bonded_to[i] and k in bonded_to[j]:
+					# j-k-i
+					a = elements[colors[i]]
+					b = elements[colors[j]]
+					c = elements[colors[k]]
+					label = min(a, b) + c + max(a, b)
+					angles[label] += 1
+	
+	for i in range(nv):
+		for bt in bonded_to[i]:
+			a = elements[colors[bt]]
+			c = elements[colors[i]]
+			b = elements[0]
+			label = min(a, b) + c + max(a, b)
+			if vertexranks[i] == 1:
+				angles[label] += 2
+			if vertexranks[i] == 2:
+				angles[label] += 1
+		a = elements[colors[i]]
+		b = elements[0]
+		c = elements[0]
+		label = min(a, b) + c + max(a, b)
+		if vertexranks[i] == 2:
+			angles[label] += 2
+		if vertexranks[i] == 1:
+			angles[label] += 4
+			label = b + a + c
+			angles[label] += 1
 
-	# get eqn
-	lhs = bonds_array(colors, vertices, elements_up, nv)	
-	rhs = bonds_array(colors, vertices, elements_dn, nv)
+	#for k, v in angles.items():
+	#	if v != 0:
+	#		print (k, v)
+	return angles
+	
 
-	# simplify
+def simplify(lhs, rhs):
 	values = []
 	for k in lhs.keys():
 		remove = min(lhs[k], rhs[k])
@@ -65,10 +106,10 @@ for line in sys.stdin:
 			for k in lhs.keys():
 				lhs[k] //= red
 				rhs[k] //= red
-		
-		
-
-	# print
+	
+	return lhs, rhs
+	
+def eformat(lhs, rhs):
 	lhsstr = ""
 	rhsstr = ""
 	for k in sorted(lhs.keys()):
@@ -83,7 +124,42 @@ for line in sys.stdin:
 				numrep = str(rhs[k])
 			rhsstr += "+%s%s" % (numrep, k)
 	lhsstr, rhsstr = sorted((lhsstr, rhsstr))
-	eqnstr = (lhsstr[1:] + "=" + rhsstr[1:])
+	eqnstr = (lhsstr.strip('+') + "=" + rhsstr.strip("+"))
+	return eqnstr
+
+
+# nv ne {col} {v1 v2}
+# 4 3 0 0 0 0  0 3 1 3 2 3
+deltaz = [0, -1, 1, -2, 2, -3, 3]
+elements_up = "CBDAEFG"
+elements_dn = "CDBEAGF"
+shown = []
+DOBONDS = True
+for line in sys.stdin:
+	parts = line.strip().split()
+	nv = int(parts[0])
+	ne = int(parts[1])
+	colors = parts[2:2+nv]
+	colors = [int(_) for _ in colors]
+	vertices = [int(_) for _ in parts[2+nv:]]
+
+	lhs = bonds_array(colors, vertices, elements_up, nv)
+	rhs = bonds_array(colors, vertices, elements_dn, nv)
+	lhs, rhs = simplify(lhs, rhs)	
+	eqnstr = eformat(lhs, rhs)
+	if DOBONDS:
+		if eqnstr != "=" and eqnstr not in shown:
+			print (eqnstr)
+			shown.append(eqnstr)
+		continue
+
+	if eqnstr != "=":
+		continue
+	lhs = angles_array(colors, vertices, elements_up, nv)	
+	rhs = angles_array(colors, vertices, elements_dn, nv)
+	lhs, rhs = simplify(lhs, rhs)	
+	eqnstr = eformat(lhs, rhs)
+	
 	if eqnstr != "=" and eqnstr not in shown:
 		shown.append(eqnstr)
 		print (eqnstr, "#", line.strip())
