@@ -59,7 +59,7 @@ def get_num_elec(lam_val, total_num_elecs):
         num_elec = int(lam_val*total_num_elecs) + 1
     return(num_elec)
 
-def make_apdft_calc(deltaZ, includeonly, mol, method = "HF"):
+def make_apdft_calc(deltaZ, dm_restart, includeonly, mol, method = "HF", **kwargs):
     """
     SCF calculation for fractional charges defined in deltaZ
     returns the density matrix and the total energy
@@ -67,19 +67,30 @@ def make_apdft_calc(deltaZ, includeonly, mol, method = "HF"):
     
     if method not in ["CCSD", "HF"]:
         raise NotImplementedError("Method %s not supported." % method)
-
+    
+    
     if method == "HF":
         calc = add_qmmm(pyscf.scf.RHF(mol), deltaZ, includeonly, mol)
-        hfe = calc.kernel(verbose=0)
+        for k in kwargs.keys():
+            if k == 'max_cycle':
+                calc.max_cycle = kwargs[k]
+            elif k == 'diis':
+                calc.diis = kwargs[k]
+            elif k == 'init_guess':
+                calc.init_guess = kwargs[k]
+        if dm_restart is None:
+            hfe = calc.kernel(verbose=0)
+        else:
+            hfe = calc.kernel(dm0 = dm_restart, verbose=0)
         dm1_ao = calc.make_rdm1()
         total_energy = calc.e_tot
-    if method == "CCSD":
-        calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
-        hfe = calc.kernel(verbose=0)
-        mycc = pyscf.cc.CCSD(calc).run()
-        dm1 = mycc.make_rdm1()
-        dm1_ao = np.einsum("pi,ij,qj->pq", calc.mo_coeff, dm1, calc.mo_coeff.conj())
-        total_energy = mycc.e_tot
+#     if method == "CCSD":
+#         calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
+#         hfe = calc.kernel(verbose=0)
+#         mycc = pyscf.cc.CCSD(calc).run()
+#         dm1 = mycc.make_rdm1()
+#         dm1_ao = np.einsum("pi,ij,qj->pq", calc.mo_coeff, dm1, calc.mo_coeff.conj())
+#         total_energy = mycc.e_tot
     return(dm1_ao, total_energy, calc.mo_energy, calc.mo_occ)
 
 def prepare_input(coords, nuc_charges, num_elec, basis = 'def2-qzvp'):
