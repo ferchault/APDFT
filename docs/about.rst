@@ -9,4 +9,4 @@ All gaussian basis sets from the `EMSL Basis Set Exchange <https://www.basissete
    APDFT is under development. While the software is ready to use, the API may be subject to change.
 
 
-.. [APDFT] https://arxiv.org/abs/1809.01647
+.. [APDFT] https://doi.org/10.1103/PhysRevResearch.2.023220
