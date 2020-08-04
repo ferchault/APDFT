@@ -1,5 +1,6 @@
 #!/bin/bash
 NAUTYPATH="/home/grudorff/opt/nauty/nauty27r1"
+NAUTYPATH="/mnt/c/Users/guido/opt/nauty/nauty27rc3/"
 NATOMS=$1
 DELTAZMAX=$2
 

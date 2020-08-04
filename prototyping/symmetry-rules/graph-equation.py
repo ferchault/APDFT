@@ -134,7 +134,7 @@ deltaz = [0, -1, 1, -2, 2, -3, 3]
 elements_up = "CBDAEFG"
 elements_dn = "CDBEAGF"
 shown = []
-DOBONDS = True
+DOBONDS = False
 for line in sys.stdin:
 	parts = line.strip().split()
 	nv = int(parts[0])
