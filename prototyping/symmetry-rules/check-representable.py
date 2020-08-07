@@ -45,7 +45,21 @@ def build_diamond_lattice():
 
 
 def build_hexagonal_lattice():
-    return nx.generators.lattice.hexagonal_lattice_graph(10, 10)
+    N = 10
+    g = nx.generators.lattice.hexagonal_lattice_graph(N, N)
+    pos = nx.get_node_attributes(g, "pos")
+    xs = [_[0] for _ in pos.values()]
+    ys = [_[1] for _ in pos.values()]
+    for k, v in pos.items():
+        x, y = v
+        if (
+            2 * np.sqrt(3) + 0.1 < y < (N - 2) * np.sqrt(3)
+            and (np.sqrt(3) + 1) < x < (np.sqrt(3) + 1) * (N / 2) - 1
+        ):
+            g.nodes[k]["is_padding"] = False
+        else:
+            g.nodes[k]["is_padding"] = True
+    return g
 
 
 def is_representable(supergraph, graph):
@@ -55,8 +69,7 @@ def is_representable(supergraph, graph):
     matcher = nx.algorithms.isomorphism.GraphMatcher(
         supergraph, graph, node_match=no_padding
     )
-    retval = matcher.subgraph_is_isomorphic()
-    return retval, matcher.mapping
+    return matcher.subgraph_is_isomorphic(), matcher.mapping
 
 
 def run_tests():
@@ -67,15 +80,15 @@ def run_tests():
     g.add_edge(0, 1)
     g.add_edge(1, 2)
     g.add_edge(2, 3)
-    assert True == is_representable(supergraph_diamond, g)
-    assert True == is_representable(supergraph_hexagonal, g)
+    assert True == is_representable(supergraph_diamond, g)[0]
+    assert True == is_representable(supergraph_hexagonal, g)[0]
     # three-cycle
     g = nx.Graph()
     g.add_edge(0, 1)
     g.add_edge(1, 2)
     g.add_edge(2, 0)
-    assert False == is_representable(supergraph_diamond, g)
-    assert False == is_representable(supergraph_hexagonal, g)
+    assert False == is_representable(supergraph_diamond, g)[0]
+    assert False == is_representable(supergraph_hexagonal, g)[0]
     # three fused diamond rings
     g = nx.Graph()
     g.add_edge(0, 1)
@@ -90,8 +103,8 @@ def run_tests():
     g.add_edge(7, 9)
     g.add_edge(1, 8)
     g.add_edge(8, 9)
-    assert True == is_representable(supergraph_diamond, g)
-    assert False == is_representable(supergraph_hexagonal, g)
+    assert True == is_representable(supergraph_diamond, g)[0]
+    assert False == is_representable(supergraph_hexagonal, g)[0]
     # graphene segment
     g = nx.Graph()
     g.add_edge(0, 1)
@@ -109,8 +122,8 @@ def run_tests():
     g.add_edge(9, 12)
     g.add_edge(11, 12)
     g.add_edge(5, 12)
-    assert True == is_representable(supergraph_diamond, g)
-    assert True == is_representable(supergraph_hexagonal, g)
+    assert True == is_representable(supergraph_diamond, g)[0]
+    assert True == is_representable(supergraph_hexagonal, g)[0]
 
 
 if __name__ == "__main__":
