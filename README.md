@@ -21,3 +21,4 @@ Paper | Preprint | Content
 &nbsp;| [arXiv](https://arxiv.org/abs/2007.15511) | Which basis sets to use for APDFT, how to correct for basis set errors
 [JPhysChemB2019](https://doi.org/10.1021/acs.jpcb.9b07799)| [arXiv](https://arxiv.org/abs/1907.06677) | Atoms in molecules: consistent energy and density decomposition based on APDFT
 [PhysChemChemPhys2019](https://doi.org/10.1039/C9CP06471K) | [arXiv](https://arxiv.org/abs/1911.13080) | Application of APDFT to deprotonation energies, mixture of density derivatives from different levels of theory
+&nbsp; | [arXiv](https://arxiv.org/abs/2008.02784) | A symmetry relation in chemical compound space that gives alchemical enantiomers: molecules that have the same electronic energy even through they are distinct molecules
