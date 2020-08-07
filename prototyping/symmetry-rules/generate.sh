@@ -14,7 +14,7 @@ SCRATCHDIR="/tmp"
 $NAUTYPATH/geng -c -t -f -D3 $NATOMS > $SCRATCHDIR/graphlist-$LABEL
 
 # remove all but graphs that can be on the grid
-python check-representable.py $SCRATCHDIR/graphlist-$LABEL $GRID > $SCRATCHDIR/graphlist-grid-$LABEL
+python check_representable.py $SCRATCHDIR/graphlist-$LABEL $GRID > $SCRATCHDIR/graphlist-grid-$LABEL
 
 # build all colored graphs
 $NAUTYPATH/vcolg -m$(($DELTAZMAX*2+1)) -T $SCRATCHDIR/graphlist-grid-$LABEL $SCRATCHDIR/graphlist-colored-$LABEL
