@@ -153,7 +153,7 @@ for line in sys.stdin:
 	eqnstr = eformat(lhs, rhs)
 	if DOBONDS:
 		if eqnstr != "=" and eqnstr not in shown:
-			print (eqnstr)
+			print (eqnstr, "#", line.strip())
 			shown.append(eqnstr)
 		continue
 
