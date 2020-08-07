@@ -14,16 +14,7 @@ SCRATCHDIR="/tmp"
 $NAUTYPATH/geng -c -t -f -D3 $NATOMS > $SCRATCHDIR/graphlist-$LABEL
 
 # remove all but graphs that can be on the grid
-if [ "$GRID" == "HEXAGONAL" ]
-then
-	python check-hex-representable.py $SCRATCHDIR/graphlist-$LABEL > $SCRATCHDIR/graphlist-grid-$LABEL
-elif [ "$GRID" == "DIAMOND" ]
-then
-	python check-diamond-representable.py $SCRATCHDIR/graphlist-$LABEL > $SCRATCHDIR/graphlist-grid-$LABEL
-else
-	echo "Unsupported grid."
-	exit 1
-fi
+python check-representable.py $SCRATCHDIR/graphlist-$LABEL $GRID > $SCRATCHDIR/graphlist-grid-$LABEL
 
 # build all colored graphs
 $NAUTYPATH/vcolg -m$(($DELTAZMAX*2+1)) -T $SCRATCHDIR/graphlist-grid-$LABEL $SCRATCHDIR/graphlist-colored-$LABEL
