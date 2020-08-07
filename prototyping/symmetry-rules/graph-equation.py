@@ -134,7 +134,11 @@ deltaz = [0, -1, 1, -2, 2, -3, 3]
 elements_up = "CBDAEFG"
 elements_dn = "CDBEAGF"
 shown = []
-DOBONDS = False
+ntuples = int(sys.argv[1])
+if ntuples == 2:
+	DOBONDS = True
+if ntuples == 3:
+	DOBONDS = False
 for line in sys.stdin:
 	parts = line.strip().split()
 	nv = int(parts[0])
