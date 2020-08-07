@@ -19,7 +19,7 @@ then
 	python check-hex-representable.py $SCRATCHDIR/graphlist-$LABEL > $SCRATCHDIR/graphlist-grid-$LABEL
 elif [ "$GRID" == "DIAMOND" ]
 then
-	echo "NOTIMPL"
+	python check-diamond-representable.py $SCRATCHDIR/graphlist-$LABEL > $SCRATCHDIR/graphlist-grid-$LABEL
 else
 	echo "Unsupported grid."
 	exit 1
