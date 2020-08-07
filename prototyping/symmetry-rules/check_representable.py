@@ -139,5 +139,5 @@ if __name__ == "__main__":
         for line in fh:
             line = line.strip()
             graph = nx.from_graph6_bytes(line.encode("ascii"))
-            if is_representable(graph)[0]:
+            if is_representable(supergraph, graph)[0]:
                 print(line)

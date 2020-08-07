@@ -20,4 +20,4 @@ python check_representable.py $SCRATCHDIR/graphlist-$LABEL $GRID > $SCRATCHDIR/g
 $NAUTYPATH/vcolg -m$(($DELTAZMAX*2+1)) -T $SCRATCHDIR/graphlist-grid-$LABEL $SCRATCHDIR/graphlist-colored-$LABEL
 
 # convert graphs into unique equations
-cat $SCRATCHDIR/graphlist-colored-$LABEL | python filter-alchemy-graphs.py | python graph-equation.py $TUPLES | sort -u
+cat $SCRATCHDIR/graphlist-colored-$LABEL | python filter-alchemy-graphs.py | python graph-equation.py $TUPLES $GRID | sort -u
