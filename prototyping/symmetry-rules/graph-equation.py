@@ -66,36 +66,7 @@ def build_pathcache(graph, n):
                     paths.append([source, other])
     return np.array(paths)
 
-
-# nv ne {col} {v1 v2}
-# 4 3 0 0 0 0  0 3 1 3 2 3
-deltaz = [0, -1, 1, -2, 2, -3, 3]
-elements_up = "RQSPTOU"
-elements_dn = "RSQTPUO"
-ntuples = int(sys.argv[1])
-gridtype = sys.argv[2]
-if gridtype == "DIAMOND":
-    supergraph = check_representable.build_diamond_lattice()
-if gridtype == "HEXAGONAL":
-    supergraph = check_representable.build_hexagonal_lattice()
-
-pathcache = build_pathcache(supergraph, ntuples)
-
-printed = []
-for line in sys.stdin:
-    parts = line.strip().split()
-    nv = int(parts[0])
-    ne = int(parts[1])
-    colors = parts[2 : 2 + nv]
-    colors = np.array([int(_) for _ in colors])
-    edges = [int(_) for _ in parts[2 + nv :]]
-
-    g = nx.Graph()
-    for i in range(nv):
-        g.add_node(i)
-    for a, b in zip(edges[::2], edges[1::2]):
-        g.add_edge(a, b)
-
+def graph_to_equation(supergraph, g, pathcache)
     mapping = check_representable.is_representable(supergraph, g)[1]
     supercolors = np.zeros(supergraph.number_of_nodes(), dtype=np.int)
     for k, v in mapping.items():
@@ -118,7 +89,47 @@ for line in sys.stdin:
         rhs[label] += 1
 
     lhs, rhs = simplify(lhs, rhs)
-    eqn = eformat(lhs, rhs)
+    return eformat(lhs, rhs)
+
+
+# nv ne {col} {v1 v2}
+# 4 3 0 0 0 0  0 3 1 3 2 3
+deltaz = [0, -1, 1, -2, 2, -3, 3]
+elements_up = "RQSPTOU"
+elements_dn = "RSQTPUO"
+ntuples = int(sys.argv[1])
+gridtype = sys.argv[2]
+if gridtype == "DIAMOND":
+    supergraph = check_representable.build_diamond_lattice()
+if gridtype == "HEXAGONAL":
+    supergraph = check_representable.build_hexagonal_lattice()
+
+pathcache = build_pathcache(supergraph, ntuples)
+if ntuples == 3:
+    # triples can only be assesed where all bonds are identical
+    lower_pathcache = build_pathcache(supergraph, 2)
+
+printed = []
+for line in sys.stdin:
+    parts = line.strip().split()
+    nv = int(parts[0])
+    ne = int(parts[1])
+    colors = parts[2 : 2 + nv]
+    colors = np.array([int(_) for _ in colors])
+    edges = [int(_) for _ in parts[2 + nv :]]
+
+    g = nx.Graph()
+    for i in range(nv):
+        g.add_node(i)
+    for a, b in zip(edges[::2], edges[1::2]):
+        g.add_edge(a, b)
+
+    if ntuples == 3:
+        eqn = graph_to_equation(supergraph, g, lower_pathcache)
+        if eqn != "=":
+            # bonds not equal, three-body terms could be anything
+            continue
+    eqn = graph_to_equation(supergraph, g, pathcache)
     if eqn == "=":
         continue
     if eqn in printed:
