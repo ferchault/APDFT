@@ -66,7 +66,7 @@ def build_pathcache(graph, n):
                     paths.append([source, other])
     return np.array(paths)
 
-def graph_to_equation(supergraph, g, pathcache)
+def graph_to_equation(supergraph, g, pathcache, ntuples):
     mapping = check_representable.is_representable(supergraph, g)[1]
     supercolors = np.zeros(supergraph.number_of_nodes(), dtype=np.int)
     for k, v in mapping.items():
@@ -125,14 +125,14 @@ for line in sys.stdin:
         g.add_edge(a, b)
 
     if ntuples == 3:
-        eqn = graph_to_equation(supergraph, g, lower_pathcache)
+        eqn = graph_to_equation(supergraph, g, lower_pathcache, 2)
         if eqn != "=":
             # bonds not equal, three-body terms could be anything
             continue
-    eqn = graph_to_equation(supergraph, g, pathcache)
+    eqn = graph_to_equation(supergraph, g, pathcache, 3)
     if eqn == "=":
         continue
     if eqn in printed:
         continue
-    print(f"{eqn} # {line.strip()}")
+    print(eqn, "#", line.strip())
     printed.append(eqn)

@@ -3,7 +3,7 @@ import sympy
 import numpy as np
 import sys
 
-TOKENLEN=3
+TOKENLEN=int(sys.argv[2])
 
 with open(sys.argv[1]) as fh:
 	lines = fh.readlines()
