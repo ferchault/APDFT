@@ -11,7 +11,7 @@ LABEL="${NATOMS}-${DELTAZMAX}-${GRID}-${TUPLES}"
 SCRATCHDIR="/tmp"
 
 # generate all connected graphs with NATOMS many nodes
-$NAUTYPATH/geng -c -t -f -D3 $NATOMS > $SCRATCHDIR/graphlist-$LABEL
+$NAUTYPATH/geng -c -t -f -D4 $NATOMS > $SCRATCHDIR/graphlist-$LABEL
 
 # remove all but graphs that can be on the grid
 python check_representable.py $SCRATCHDIR/graphlist-$LABEL $GRID > $SCRATCHDIR/graphlist-grid-$LABEL
