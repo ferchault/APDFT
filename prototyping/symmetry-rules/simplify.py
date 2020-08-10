@@ -49,31 +49,25 @@ for idx in range(len(lines)):
     if not np.allclose(row, row * 0):
         print(idx, row)
 
+# include lines that add information
+included = []
 mat2 = mat.copy()
 reference_ref = np.array(reference_ref, np.float)
 reference_ref = reference_ref[np.abs(reference_ref).sum(axis=1) != 0]
-while True:
-    for i in range(len(mat2)):
-        print(i)
-        s = np.concatenate((mat2[:i, :], mat2[i + 1 :, :]))
-        this_ref, this_pivots = sympy.Matrix(s).rref()
-        this_ref = np.array(this_ref, np.float)
-        this_ref = this_ref[np.abs(this_ref).sum(axis=1) != 0]
-        if this_ref.shape != reference_ref.shape:
-            continue
-        if np.allclose(this_ref, reference_ref):
-            mat2 = s
-            del lines[i]
-            del graphs[i]
-            break
-    else:
+for i in range(len(lines)):
+    s = np.concatenate([mat2[_ : _ + 1, :] for _ in included + [i]])
+    this_ref, this_pivots = sympy.Matrix(s).rref()
+    this_ref = np.array(this_ref, np.float)
+    this_ref = this_ref[np.abs(this_ref).sum(axis=1) != 0]
+    if len(this_ref) > len(included):
+        included.append(i)
+    if this_ref.shape != reference_ref.shape:
+        continue
+    if np.allclose(this_ref, reference_ref):
         break
+else:
+    raise ValueError("Unable to reproduce rref")
 
 print("Minimal graphs (vcolg format)")
-for graph in graphs:
-    print(graph.strip())
-
-print("Unique reduced row echelon form (needs to be the same as above)")
-solution = sympy.linsolve(sympy.Matrix(mat2), [sympy.symbols(_) for _ in symbols])
-for variable, element in zip(symbols, solution.args[0]):
-    print(variable, "=", element)
+for graph in included:
+    print(graphs[graph])
