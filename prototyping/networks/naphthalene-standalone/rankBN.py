@@ -1,10 +1,10 @@
 #!/usr/bin/env python -u
 # %%
 import sys
-import unittest
 
 from basis_set_exchange import lut
 import scipy.spatial.distance as ssd
+import scipy.stats as sts
 import MDAnalysis
 import math
 import igraph as ig
@@ -12,6 +12,7 @@ import numpy as np
 import numba
 import pymatgen
 import pymatgen.io.xyz
+import pandas as pd
 
 import qml
 
@@ -104,16 +105,7 @@ class Ranker(object):
             coordinates.append([float(_) for _ in parts[1:4]])
         return np.array(nuclear_numbers), np.array(coordinates)
 
-    def __init__(
-        self,
-        nuclear_charges,
-        coordinates,
-        filename,
-        mol2file,
-        explain=False,
-        sim=1,
-        simmode=None,
-    ):
+    def __init__(self, nuclear_charges, coordinates, filename, mol2file, sim=1):
         self._similarity_parameter = sim
         self._coordinates = coordinates
         self._c = qml.Compound(filename)
@@ -121,14 +113,12 @@ class Ranker(object):
         self._includeonly = np.where(self._nuclear_charges == 6)[0]
         self._nmodifiedatoms = len(self._includeonly)
         self._natoms = len(self._nuclear_charges)
-        self._explain = explain
         self._bonds = (
             MDAnalysis.topology.MOL2Parser.MOL2Parser(mol2file).parse().bonds.values
         )
         # caching
         self._prepare_getNN()
         self._prepare_site_similarity()
-        self._prepare_esp_representation()
         self._prepare_precheck()
         self._bond_kinds = "HB HC HN BB BC BN CC CN NN".split()
         self._elements = "_H___BCN"
@@ -150,14 +140,9 @@ class Ranker(object):
             stoichiometries.append(stoichiometry)
             nbn = len([_ for _ in stoichiometry if _ == 5])
 
-            if self._explain:
-                print("Working on stoichiometry: %s" % stoichiometry)
-
             # build clusters of molecules
             self._molecules = self._identify_molecules(stoichiometry)
             nmolecules = len(self._molecules)
-            if self._explain:
-                print("Read %d molecules." % (nmolecules))
 
             # connect molecules
             graph = ig.Graph(nmolecules)
@@ -215,14 +200,12 @@ class Ranker(object):
                                 z1, z2 = z2, z1
                             bond_kind = self._elements[z1] + self._elements[z2]
                             A[midx, self._bond_kinds.index(bond_kind)] += 1
-                    coeffs = np.linalg.lstsq(A, np.zeros(len(A)) + 100, rcond=None)[0]
+                    coeffs = np.linalg.lstsq(A, np.zeros(len(A)) + 1000, rcond=None)[0]
                     coefficients.append(coeffs)
             graphs.append(graph)
-        print(largest_component)
 
         # get effective bond energies
         self._bondenergies = np.array(coefficients).mean(axis=0)
-        print(self._bondenergies)
 
         # rank
         order = []
@@ -230,36 +213,23 @@ class Ranker(object):
             self._molecules = self._identify_molecules(stoichiometry)
 
             # rank components
-            mean_bond_energies = []
-            mean_nn_energies = []
-            components = []
+            molecules = []
+            energies = []
             for component in graph.components():
-                components.append(component)
-                mean_bond_energies.append(self._mean_bond_energy(component))
-                mean_nn_energies.append(self._mean_nn_energy(component))
-
-            # sort molecules
-            if self._explain:
-                print(len(components), "components found")
-            for component_id in np.lexsort((mean_nn_energies, mean_bond_energies)):
-                print("Group energy", mean_bond_energies[component_id])
-                molecules = [self._molecules[_] for _ in components[component_id]]
-                NN_energies = [self._getNN(_) for _ in molecules]
-
-                for mol_id in np.argsort(np.array(NN_energies)):
-                    if self._explain:
-                        # print("Found: %s" % str(molecules[mol_id]))
-                        order.append(molecules[mol_id])
+                molecules += [self._molecules[_] for _ in component]
+                bond_energy = self._mean_bond_energy(component)
+                energies += [bond_energy] * len(component)
+            NN_energies = [self._getNN(_) for _ in molecules]
+            energies = np.array(energies) + np.array(NN_energies)
+            ordering = np.argsort(energies)
+            for mid in ordering:
+                order.append(molecules[mid])
         return order
 
     def _identify_molecules(self, stoichiometry):
         nbn = len([_ for _ in stoichiometry if _ == 5])
         molecules = np.load("out-nbn-%d.npy" % nbn)
         return molecules
-
-    def _find_possible_permutations(self, stoichiometry):
-        BNcount = len([_ for _ in stoichiometry if _ == 5])
-        return partition(self._nmodifiedatoms, BNcount)
 
     def _find_stochiometries(self):
         """ Builds a list of all possible BN-doped stoichiometries, for carbon atoms only."""
@@ -308,8 +278,6 @@ class Ranker(object):
     def _prepare_site_similarity(self):
         indices = np.triu_indices(self._nmodifiedatoms, 1)
         self._cache_site_similarity_indices = indices
-        self._cache_site_similarity_included_i = self._includeonly[indices[0]]
-        self._cache_site_similarity_included_j = self._includeonly[indices[1]]
         self._sitesimCM_squareform_outcache = np.zeros((self._c.natoms, self._c.natoms))
         self._sitesimCM_squareform_mask = np.tril(
             np.ones((self._c.natoms, self._c.natoms), dtype=bool)
@@ -338,19 +306,6 @@ class Ranker(object):
         atomi, atomj = self._cache_site_similarity_indices
 
         return numba_loop(atomi, atomj, sorted_elements, self._c.natoms, limit)
-
-    def _prepare_esp_representation(self):
-        d = ssd.squareform(ssd.pdist(self._coordinates))[: self._nmodifiedatoms, :]
-        d[np.diag_indices(self._nmodifiedatoms)] = 1e100
-        self._esp_distance_cache = 1 / d
-        self._esp_cache = np.zeros((self._nmodifiedatoms, self._natoms))
-
-    def _get_esp_representation(self, nuclear_charges):
-        charges = self._nuclear_charges.copy()
-        charges[: self._nmodifiedatoms] = nuclear_charges
-        D = np.outer(nuclear_charges, charges, out=self._esp_cache)
-        D *= self._esp_distance_cache
-        return np.sum(D, axis=1)
 
     def _prepare_precheck(self):
         # we don't actually need the iteration over groups to be dynamic
@@ -408,10 +363,6 @@ class Ranker(object):
         energies = [bond_energy(self._molecules[molid]) for molid in component]
         return -sum(energies) / len(energies)
 
-    def _mean_nn_energy(self, component):
-        energies = [self._getNN(self._molecules[molid]) for molid in component]
-        return sum(energies) / len(energies)
-
     def _prepare_getNN(self):
         angstrom = 1 / 0.52917721067
         d = ssd.squareform(ssd.pdist(self._coordinates)) * angstrom
@@ -431,8 +382,11 @@ class Ranker(object):
 
 fn = "inp.xyz"
 charges, coords = Ranker.read_xyz(fn)
-r = Ranker(charges, coords, fn, "inp.mol2", explain=True, sim=2.2, simmode="CM")
+r = Ranker(charges, coords, fn, "inp.mol2", sim=2.2)
 pred = r.rank()
+df = pd.read_csv("reference.csv")
+actual = [str(_) for _ in df.sort_values("energy").label.values]
+
 order = ["".join([str(_) for _ in __]) for __ in pred]
 rank_pred = []
 for _ in actual:
@@ -441,70 +395,11 @@ for _ in actual:
         if q in order:
             rank_pred.append(order.index(q))
             break
-    else:
-        count += 1
-f = plt.figure(figsize=(4, 4))
-plt.scatter(range(len(rank_pred)), rank_pred, s=3)
 
+expected = np.arange(len(rank_pred))
+delta = np.abs(expected - rank_pred)
 
-# %%
-import glob
-import pandas as pd
+np.savetxt("APDFT-ranking.txt", rank_pred)
+print("predicted ranks in the order of actual ranks written to APDFT-ranking.txt")
+print("Spearman r", sts.spearmanr(expected, rank_pred).correlation)
 
-
-def read_reference_energies():
-    folders = glob.glob("../naphtalene/validation-molpro/*/")
-    res = []
-    for folder in folders:
-        this = {}
-
-        basename = folder.split("/")[-2]
-        this["label"] = basename.split("-")[-1]
-        this["nbn"] = int(basename.split("-")[1])
-
-        try:
-            with open(folder + "direct.out") as fh:
-                lines = fh.readlines()
-            this["energy"] = float(lines[-6].strip().split()[-1])
-            this["nn"] = float(
-                [_ for _ in lines if "Nuclear energy" in _][0].strip().split()[-1]
-            )
-        except:
-            with open(folder + "run.log") as fh:
-                lines = fh.readlines()
-            this["energy"] = float(lines[-7].strip().split()[-1])
-            this["nn"] = float(
-                [_ for _ in lines if "Nuclear repulsion energy" in _][0]
-                .strip()
-                .split()[-1]
-            )
-
-        res.append(this)
-    return pd.DataFrame(res)
-
-
-df = read_reference_energies()
-
-# %%
-df
-df["electronic"] = df.energy
-
-# %%
-
-
-# %%
-actual = df.sort_values("electronic").label.values
-
-# %%
-
-# %%
-
-print(count)
-
-# %%
-import matplotlib.pyplot as plt
-
-# %%
-
-
-# %%
