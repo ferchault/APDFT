@@ -71,29 +71,63 @@ other = read_other()
 # %%
 def get_rep(label):
     c = qml.Compound("build_colored_graphs/db-1/inp.xyz")
-    c.nuclear_charges[:10] = [int(_) for _ in str(label)]
-    c.generate_coulomb_matrix(size=18, sorting="row-norm")
-    return c.representation
+    # c.nuclear_charges[:10] = [int(_) for _ in str(label)]
+    # c.generate_coulomb_matrix(size=18, sorting="row-norm")
+    # return c.representation
+    charges = np.array([int(_) for _ in str(label)])
+    rep = qml.representations.generate_bob(
+        charges, c.coordinates[:10], "BCN".split(), 10, {"B": 5, "C": 10, "N": 5}
+    )
+    return rep
 
 
-@functools.lru_cache(maxsize=1)
-def get_kernel(sigma):
+@functools.lru_cache(maxsize=10)
+def get_kernel(sigma, kind):
     X = np.array([get_rep(_) for _ in df.sort_values("energy").label.values])
 
-    K = qml.kernels.gaussian_kernel(X, X, sigma)
+    if kind == "gaussian":
+        K = qml.kernels.gaussian_kernel(X, X, sigma)
+    if kind == "laplacian":
+        K = qml.kernels.laplacian_kernel(X, X, sigma)
     return K
     # self._K[np.diag_indices_from(self._K)] += self._parameters["lambda"]
     #    self._alphas = qml.math.cho_solve(self._K, energies)
 
 
-K = get_kernel(10)
+def get_misranks():
+    misranks = {}
+    for method in "PBE PBE0 B3LYP".split():
+        matching = pd.merge(
+            other.query("method==@method"),
+            df,
+            suffixes=("_approx", "_actual"),
+            on="label",
+        ).sort_values("energy_actual")
 
+        misranks[method] = np.arange(len(matching.energy_approx.values)) - np.argsort(
+            matching.energy_approx.values
+        )
+    matching = pd.merge(
+        other.query("method=='xtb'"), df, suffixes=("_approx", "_actual"), on="label"
+    ).sort_values("energy_actual")
+    xtbranks = matching.energy_approx.values - matching.nbn
+    actualranks = matching.energy_actual.values
+    misranks["xtb"] = np.arange(len(actualranks)) - np.argsort(xtbranks)
+
+    apdft_rank = np.loadtxt("naphthalene-standalone/APDFT-ranking.txt")
+    misranks["apdft"] = apdft_rank - np.arange(len(apdft_rank))
+
+    misranks["bc"] = np.loadtxt("bc_misrank.txt")
+    return misranks
+
+
+misranks = get_misranks()
 
 # %%
-def KRR(kernel, lval, tss):
-    score = []
+def KRR(kernel, lval, tss, nfold=2):
+    scores = []
     idx = np.arange(kernel.shape[0])
-    for k in range(2):
+    for k in range(nfold):
         np.random.shuffle(idx)
         train, test = idx[:tss], idx[tss:]
 
@@ -103,12 +137,51 @@ def KRR(kernel, lval, tss):
 
         subset = kernel[test][:, train]
         ranks = np.dot(subset, alphas)
-        plt.scatter(test, ranks)
-        return ranks
+        score = np.abs(test - ranks).mean()
+        scores.append(score)
+    return np.array(scores).mean()
 
 
-KRR(K, 1e-12, 500)
+sigmas = (16, 32, 64, 128, 256, 512, 1024, 2048)
+scores = []
+for kind in "gaussian laplacian".split():
+    for sigma in sigmas:
+        K = get_kernel(sigma, kind)
+        for lval in 1e-7, 1e-9, 1e-11:
+            scores.append(KRR(K, lval, 400))
+            print(kind, sigma, lval, scores[-1])
 
 # %%
+sigma = 512
+K = get_kernel(sigma, "laplacian")
+learning = []
+Ns = (8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+for N in Ns:
+    learning.append(KRR(K, 1e-09, N, 10))
+# %%
+plt.loglog(Ns, learning)
 
+# %%
+# found manually, in seconds
+costs = {
+    "CCSD": 27 * 60,
+    "PBE": 35,
+    "PBE0": 40,
+    "B3LYP": 40,
+    "xtb": 0.065,
+    "bc": 35,  # estimate as cheapest DFT
+    "apdft": (4 * 60 + 5) / 2286,
+}
+for method in "PBE PBE0 B3LYP xtb bc apdft".split():
+    time = 2286 * costs[method]
+    score = np.abs(misranks[method]).mean()
+    plt.scatter(time, score, label=method)
+plt.plot(np.array(Ns) * costs["CCSD"], learning, label="Direct ML")
+plt.legend()
+plt.yscale("log")
+plt.xscale("log")
+
+# %%
+# %%
+misranks
 # %%
