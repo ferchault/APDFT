@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import functools
+import scipy.stats
 
 # %%
 def read_reference_energies():
@@ -75,8 +76,11 @@ def get_rep(label):
     # c.generate_coulomb_matrix(size=18, sorting="row-norm")
     # return c.representation
     charges = np.array([int(_) for _ in str(label)])
-    rep = qml.representations.generate_bob(
-        charges, c.coordinates[:10], "BCN".split(), 10, {"B": 5, "C": 10, "N": 5}
+    # rep = qml.representations.generate_bob(
+    #    charges, c.coordinates[:10], "BCN".split(), 10, {"B": 5, "C": 10, "N": 5}
+    # )
+    rep = qml.representations.generate_fchl_acsf(
+        charges, c.coordinates[:10], elements=[5, 6, 7], pad=10, gradients=False
     )
     return rep
 
@@ -84,14 +88,19 @@ def get_rep(label):
 @functools.lru_cache(maxsize=10)
 def get_kernel(sigma, kind):
     X = np.array([get_rep(_) for _ in df.sort_values("energy").label.values])
+    Q = np.array(
+        [
+            [int(_) for _ in str(label)]
+            for label in df.sort_values("energy").label.values
+        ]
+    )
 
-    if kind == "gaussian":
-        K = qml.kernels.gaussian_kernel(X, X, sigma)
-    if kind == "laplacian":
-        K = qml.kernels.laplacian_kernel(X, X, sigma)
-    return K
-    # self._K[np.diag_indices_from(self._K)] += self._parameters["lambda"]
-    #    self._alphas = qml.math.cho_solve(self._K, energies)
+    # if kind == "gaussian":
+    #    K = qml.kernels.gaussian_kernel(X, X, sigma)
+    # if kind == "laplacian":
+    #    K = qml.kernels.laplacian_kernel(X, X, sigma)
+    # return K
+    return qml.kernels.get_local_symmetric_kernel(X, Q, sigma)
 
 
 def get_misranks():
@@ -124,42 +133,63 @@ def get_misranks():
 misranks = get_misranks()
 
 # %%
-def KRR(kernel, lval, tss, nfold=2):
+def KRR(kernel, lval, tss, nfold=2, baseline=None):
     scores = []
     idx = np.arange(kernel.shape[0])
     for k in range(nfold):
         np.random.shuffle(idx)
         train, test = idx[:tss], idx[tss:]
+        if baseline is None:
+            Y_train = train.copy()
+            Y_test = test.copy()
+        else:
+            base = misranks[baseline]  # + np.arange(len(idx))
+            towards = misranks["B3LYP"]  # + np.arange(len(idx))
+            bmod = base - towards
+            Y_train = bmod[train]
+            Y_test = base[test]
 
         subset = kernel[train][:, train]
         subset[np.diag_indices_from(subset)] += lval
-        alphas = qml.math.cho_solve(subset, train)
+        alphas = qml.math.cho_solve(subset, Y_train)
 
         subset = kernel[test][:, train]
         ranks = np.dot(subset, alphas)
-        score = np.abs(test - ranks).mean()
+        score = np.abs(Y_test - ranks).mean()
+        if baseline == "apdft":
+            pred = np.abs(Y_test - ranks).mean()
+        # score = scipy.stats.spearmanr(Y_test, ranks).correlation
         scores.append(score)
     return np.array(scores).mean()
 
 
-sigmas = (16, 32, 64, 128, 256, 512, 1024, 2048)
+sigmas = (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
 scores = []
 for kind in "gaussian laplacian".split():
     for sigma in sigmas:
         K = get_kernel(sigma, kind)
-        for lval in 1e-7, 1e-9, 1e-11:
-            scores.append(KRR(K, lval, 400))
+        for lval in (1e-11,):  # , 1e-7, 1e-9:
+            scores.append(KRR(K, lval, 200, baseline="apdft"))
             print(kind, sigma, lval, scores[-1])
 
 # %%
-sigma = 512
+sigma = 256
 K = get_kernel(sigma, "laplacian")
-learning = []
+learningdelta = []
 Ns = (8, 16, 32, 64, 128, 256, 512, 1024, 2048)
 for N in Ns:
-    learning.append(KRR(K, 1e-09, N, 10))
+    learningdelta.append(KRR(K, 1e-11, N, 10, baseline="apdft"))
+
+# sigma=256
+# K = get_kernel(sigma, "laplacian")
+# learning = []
+# Ns = (8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+# for N in Ns:
+#    learning.append(KRR(K, 1e-11, N, 10, baseline="apdft"))
+
+
 # %%
-plt.loglog(Ns, learning)
+plt.loglog(Ns, 1 - np.array(learningdelta))
 
 # %%
 # found manually, in seconds
@@ -169,19 +199,44 @@ costs = {
     "PBE0": 40,
     "B3LYP": 40,
     "xtb": 0.065,
-    "bc": 35,  # estimate as cheapest DFT
+    "bc": 27 * 60,  # estimate as ref method
     "apdft": (4 * 60 + 5) / 2286,
+}
+spearmans = {
+    "PBE0": 0.9998,
+    "apdft": 0.9899,
+    "B3LYP": 0.9998,
+    "xtb": 0.9966,
+    "bc": 0.9562,
+    "PBE": 0.9983,
 }
 for method in "PBE PBE0 B3LYP xtb bc apdft".split():
     time = 2286 * costs[method]
     score = np.abs(misranks[method]).mean()
+    # score = spearmans[method]
     plt.scatter(time, score, label=method)
-plt.plot(np.array(Ns) * costs["CCSD"], learning, label="Direct ML")
-plt.legend()
+# plt.plot(np.array(Ns) * costs["CCSD"], 1-np.array(learning), label="Direct ML")
+plt.plot(
+    np.array(Ns) * costs["B3LYP"] + costs["apdft"],
+    np.array(learningdelta),
+    "o-",
+    label="DeltaML",
+)
+plt.legend(ncol=2, frameon=False)
 plt.yscale("log")
 plt.xscale("log")
 
 # %%
+np.abs(misranks["apdft"]).mean()
 # %%
-misranks
+Ns, learningdelta
 # %%
+def change_reference(transform, new_base):
+    return transform - new_base
+
+
+testcase = np.array((0, 1, 4, 3, 2, 5)) - np.arange(6)
+change_reference(testcase, testcase)
+# plt.plot(misranks["apdft"] + np.arange(len(misranks['apdft'])))
+# %%
+
