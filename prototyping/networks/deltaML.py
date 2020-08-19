@@ -306,7 +306,4 @@ predicted, actual  = KRRexclusive(K, 1e-9)
 plt.scatter(predicted, actual, s=1)
 predicted = np.array(predicted)
 actual = np.array(actual)
-np.savetxt("ACE+ML.txt", predicted[np.argsort(actual)])
-# %%
-
-# %%
+np.savetxt("ACE+ML.txt", predicted[np.argsort(actual)].astype(np.int))
