@@ -540,10 +540,10 @@ class APDFT(object):
 		Returns:
 			The total energy. [Hartree]"""
         if is_reference_molecule:
-            return self._calculator.get_total_energy("QM/order-0/site-all-cc")
+            return self._calculator.get_total_energy("%s/QM/order-0/site-all-cc" % self._basepath)
         else:
             return self._calculator.get_total_energy(
-                "QM/comparison-%s" % ("-".join(map(str, nuclear_charges)))
+                "%s/QM/comparison-%s" % (self._basepath, "-".join(map(str, nuclear_charges)))
             )
 
     def get_linear_density_matrix(self, propertyname):
