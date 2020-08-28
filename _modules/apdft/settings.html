@@ -166,6 +166,7 @@
     <span class="n">MRCC</span> <span class="o">=</span> <span class="s2">&quot;MRCC&quot;</span>
     <span class="n">G09</span> <span class="o">=</span> <span class="s2">&quot;G09&quot;</span>
     <span class="n">PYSCF</span> <span class="o">=</span> <span class="s2">&quot;PYSCF&quot;</span>
+    <span class="n">PSI4</span> <span class="o">=</span> <span class="s2">&quot;PSI4&quot;</span>
 
     <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
@@ -182,7 +183,11 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">PYSCF</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">apdft.calculator.pyscf</span> <span class="kn">import</span> <span class="n">PyscfCalculator</span>
 
-            <span class="k">return</span> <span class="n">PyscfCalculator</span></div></div>
+            <span class="k">return</span> <span class="n">PyscfCalculator</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">CodeEnum</span><span class="o">.</span><span class="n">PSI4</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">apdft.calculator.psi4</span> <span class="kn">import</span> <span class="n">Psi4Calculator</span>
+
+            <span class="k">return</span> <span class="n">Psi4Calculator</span></div></div>
 
 
 <div class="viewcode-block" id="intelementrange"><a class="viewcode-back" href="../../apdft.html#apdft.settings.intelementrange">[docs]</a><span class="k">def</span> <span class="nf">intelementrange</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
