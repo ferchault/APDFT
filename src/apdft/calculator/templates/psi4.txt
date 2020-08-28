@@ -1,0 +1,19 @@
+molecule mol {
+{{ghostedatoms}}
+no_reorient
+no_com
+symmetry c1
+{{totalghostcharge}} 1
+}
+
+Chrgfield = QMMM()
+{{pointcharges}}
+psi4.set_global_option_python('EXTERN', Chrgfield.extern)
+
+basis {
+    assign genbas
+[genbas]
+{{basisset}}
+}
+e, wfn = energy('{{method}}', return_wfn=True)
+oeprop(wfn, "ESP_AT_NUCLEI")
