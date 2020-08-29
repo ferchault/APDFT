@@ -1,0 +1,9 @@
+path_classifiers:
+  library:
+    - src
+    - exclude: prototyping
+
+extraction:
+  python:
+    python_setup:
+      version: 3
