@@ -1,4 +1,9 @@
 *.pdf
+*.pkl
+*.tex
+*.g6
+*.npy
+*.tga
 pyscf/results*
 mrcc/validation
 tmp*
