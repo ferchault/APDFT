@@ -55,6 +55,10 @@ class Psi4Calculator(apc.Calculator):
         ] = Psi4Calculator._format_atoms(nuclear_numbers, nuclear_charges, coordinates)
         env["basisset"] = Psi4Calculator._format_basis(nuclear_numbers, self._basisset)
         env["method"] = self._methods[self._method]
+
+        # included atoms
+        if includeonly is None:
+            includeonly = range(len(nuclear_charges))
         env["includeonly"] = ",".join([str(_) for _ in includeonly])
 
         return template.render(**env)
@@ -105,12 +109,13 @@ class Psi4Calculator(apc.Calculator):
             raise ValueError("Incomplete calculation.")
 
         # check that all included sites are in fact present
-        if not set(epns.keys()) == set(includeatoms):
+        try:
+            included_results = [epns[_] + nuclear_epns[_] for _ in includeatoms]
+        except:
             log.log(
                 "Atom selections do not match. Likely the configuration has changed in the meantime.",
                 level="error",
             )
 
-        included_results = [epns[_] + nuclear_epns[_] for _ in includeatoms]
         return included_results
 
