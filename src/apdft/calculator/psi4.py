@@ -10,7 +10,7 @@ import functools
 
 
 class Psi4Calculator(apc.Calculator):
-    _methods = {"PBE": "pbe"}
+    _methods = {"PBE": "pbe", "HF": "scf"}
 
     @staticmethod
     def _format_atoms(nuclear_numbers, nuclear_charges, coordinates):
@@ -55,6 +55,7 @@ class Psi4Calculator(apc.Calculator):
         ] = Psi4Calculator._format_atoms(nuclear_numbers, nuclear_charges, coordinates)
         env["basisset"] = Psi4Calculator._format_basis(nuclear_numbers, self._basisset)
         env["method"] = self._methods[self._method]
+        env["includeonly"] = ",".join([str(_) for _ in includeonly])
 
         return template.render(**env)
 
@@ -76,10 +77,15 @@ class Psi4Calculator(apc.Calculator):
     @staticmethod
     def get_epn(folder, coordinates, includeatoms, nuclear_charges):
         epns = {}
-        with open(f"") as fh:
+        nuclear_epns = {}
+        with open(f"{folder}/run.inp.dat") as fh:
             started = False
             seen_bars = 0
             for line in fh:
+                if line.startswith("NESPAPDFT"):
+                    token, siteid, nepn = line.strip().split()
+                    nuclear_epns[int(siteid)] = float(nepn)
+                    continue
                 if "Electrostatic Potential (a.u.)" in line:
                     started = True
                     continue
@@ -90,20 +96,21 @@ class Psi4Calculator(apc.Calculator):
                         parts = line.strip().split()
                         siteid = int(parts[0]) - 1
                         epn = -float(parts[-1])
-                    if seen_bars > 1:
-                        break
+                        epns[siteid] = epn
 
-        if len(epns.flatten()) == 0:
+                    if seen_bars > 1:
+                        started = False
+
+        if len(epns.items()) == 0:
             raise ValueError("Incomplete calculation.")
 
         # check that all included sites are in fact present
-        included_results = epns[:, 0].astype(np.int)
-        if not set(included_results) == set(includeatoms):
+        if not set(epns.keys()) == set(includeatoms):
             log.log(
                 "Atom selections do not match. Likely the configuration has changed in the meantime.",
                 level="error",
             )
 
-        included_results = list(included_results)
-        return epns[[included_results.index(_) for _ in includeatoms], 1]
+        included_results = [epns[_] + nuclear_epns[_] for _ in includeatoms]
+        return included_results
 
