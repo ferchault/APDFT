@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
 import basis_set_exchange as bse
-import pyscf
-from pyscf import dft
 import apdft
 import os
 import itertools as it
@@ -62,7 +60,7 @@ class Dipoles(object):
 		.. math::
 
 			\\mathbf{p}(\\mathbf{r}) = \\sum_I q_i(\\mathbf{r_i}-\\mathbf{r})
-		
+
 		Args:
 			reference_point:	A 3 array of the reference point :math:`\\mathbf{r}`. [Angstrom]
 			coordinates: 		A (3,N) array of point charge coordinates :math:`\\mathbf{r_i}`. [Angstrom]
@@ -143,7 +141,7 @@ class APDFT(object):
         else:
             included = []
             for part in include_atoms:
-                if type(part) == int:
+                if isinstance(part, int):
                     included.append(part)
                 else:
                     included += list(
@@ -540,10 +538,13 @@ class APDFT(object):
 		Returns:
 			The total energy. [Hartree]"""
         if is_reference_molecule:
-            return self._calculator.get_total_energy("%s/QM/order-0/site-all-cc" % self._basepath)
+            return self._calculator.get_total_energy(
+                "%s/QM/order-0/site-all-cc" % self._basepath
+            )
         else:
             return self._calculator.get_total_energy(
-                "%s/QM/comparison-%s" % (self._basepath, "-".join(map(str, nuclear_charges)))
+                "%s/QM/comparison-%s"
+                % (self._basepath, "-".join(map(str, nuclear_charges)))
             )
 
     def get_linear_density_matrix(self, propertyname):
@@ -669,7 +670,7 @@ class APDFT(object):
                     )
                     comparison_energies[targetidx] = np.nan
                     comparison_dipoles[targetidx] = np.nan
-                    continue                    
+                    continue
 
                 nd = apdft.physics.Dipoles.point_charges(
                     [0, 0, 0], self._coordinates, target
