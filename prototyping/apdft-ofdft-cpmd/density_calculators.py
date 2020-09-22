@@ -138,9 +138,10 @@ class DensityOptimizer():
 
 
 class DensityOptimizerCPMD(DensityOptimizer):
-    
-    def initialize(self, atoms, dt, mu, workdir):
+      
+    def initialize(self, atoms, dt, inpt_name, mu, workdir):
         self.workdir = workdir
+        self.inpt_name = inpt_name
         
         self.dt = dt
         self.mu = mu
@@ -152,6 +153,20 @@ class DensityOptimizerCPMD(DensityOptimizer):
         
         self.X = None
         self.X_m = None
+        
+        # in CPMD coupled to ASE the density propagation is done for only one step during each iteration
+        # the variale self.step counts the actual number of steps in the MD simulation
+        self.step = 0
+        
+    def calculate_dEdX(self, density_file):
+        """
+        calculates dEdX for the density specified in density file
+        """
+        # copy density file to work_dir/density
+        shutil.copy(density_file, os.path.join(self.workdir, 'density'))
+        # run PROFESS-1
+        self.p = self.run_profess()
+        assert self.p.returncode == 0, 'Calculation of forces failed'
     
     
     def optimize(self, nsteps, density_file = None, overwrite = False):
@@ -199,13 +214,14 @@ class DensityOptimizerCPMD(DensityOptimizer):
             
             # update sqrt of density
             self.X = self.X_p
+
     
     def optimize_vv(self, nsteps, density_file = None, overwrite = False):
         for i in range(nsteps):
             
             # do the calculation, find a more elegant way to get the correct density? maybe mv instead of copy
             # create path to density file
-            density_file = os.path.join(self.workdir, f'density_{i}')    
+            density_file = os.path.join(self.workdir, f'density_{self.step}')    
             # calculate gradient for density file
             self.calculate_dEdX(density_file)
             
@@ -216,12 +232,12 @@ class DensityOptimizerCPMD(DensityOptimizer):
             self.dEdX = self.rescale(grad, num_gpt_grad)
             if self.X is None:
                 dens = self.read_density(density_file)
-                num_gpt_dens = len(dens)
-                self.density = self.rescale(dens, num_gpt_dens)
+                self.num_gpt_dens = len(dens)
+                self.density = self.rescale(dens, self.num_gpt_dens)
                 self.X = np.sqrt(self.density)
             
             # read energy
-            self.energies.append(pio.parse_out_file(os.path.join(self.workdir, 'job.out'), 'TOTAL ENERGY'))
+            self.energies.append(pio.parse_out_file(os.path.join(self.workdir, f'{self.inpt_name}.out'), 'TOTAL ENERGY'))
             
             # propagate density
             if self.X_m is not None:
@@ -237,17 +253,25 @@ class DensityOptimizerCPMD(DensityOptimizer):
             # write new density to file
             density_p = np.power(self.X_p,2)
             
-            dV = self.V/num_gpt_dens
+            dV = self.V/self.num_gpt_dens
             
             density_p = density_p/dV
             if overwrite:
                 self.save_density(density_p, os.path.join(self.workdir, f'density'))
             else:
-                self.save_density(density_p, os.path.join(self.workdir, f'density_{i+1}'))
+                self.save_density(density_p, os.path.join(self.workdir, f'density_{self.step+1}'))
             
             # update sqrt of density for previous step
             self.X_m = self.X
             self.X = self.X_p
+              
+            # update step counter
+            self.step += 1
+            
+    def run_profess(self):
+        os.chdir(self.workdir)
+        p = subprocess.run(['/home/misa/software/PROFESS-1/PROFESS', self.inpt_name], capture_output = True,  text=True )
+        return(p)
     
     def vv_step(self):
         self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX    

@@ -106,9 +106,9 @@ class PROFESS_CPMD(PROFESS):
         
         # create and initialize DensityOptimizer
         self.DensOpt = DensityOptimizerCPMD()
-        self.DensOpt.initialize(self.atoms, dt, mu, self.run_dir)
+        self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.run_dir)
     
-    def get_forces_update_density(self):
+    def get_forces(self, atoms=None):
         # write new .ion file
         cell_par = self.atoms.get_cell()
         atom_types = self.atoms.get_chemical_symbols()
@@ -121,10 +121,10 @@ class PROFESS_CPMD(PROFESS):
         
         # optimize density for one single step
         # at this step also the forces are calculated, check that exited normally
-        DensityOptimizerCPMD.optimze_vv(1)
+        self.DensOpt.optimize_vv(1)
         
         # update energy
-        self.energy_zero = DensitzOptimizerCPMD.energies[-1]
+        self.energy_zero = self.DensOpt.energies[-1]
         
         # read forces
         self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
@@ -164,8 +164,8 @@ class PROFESS_old(Calculator):
         new_ion = pio.generate_ion_file(cell_par, atom_types, positions, pos_type, self.pp_names)
         pio.write_file(f'{os.path.join(self.run_dir, self.inpt_name)}.ion', new_ion)
         # call profess
-        completed_p = self.run_profess()
-        assert completed_p.returncode == 0, 'Calculation of forces failed'
+        self.completed_p = self.run_profess()
+        assert self.completed_p.returncode == 0, 'Calculation failed'
         # read forces
         self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
         # ensures that programm crashes if computation of forces fails in next step
