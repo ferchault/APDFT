@@ -137,7 +137,7 @@ class DensityOptimizer():
             f.write(dens_str)
 
 
-Class DensityOptimizerCPMD(DensityOptimizer):
+class DensityOptimizerCPMD(DensityOptimizer):
     
     def initialize(self, atoms, dt, mu, workdir):
         self.workdir = workdir
@@ -152,6 +152,53 @@ Class DensityOptimizerCPMD(DensityOptimizer):
         
         self.X = None
         self.X_m = None
+    
+    
+    def optimize(self, nsteps, density_file = None, overwrite = False):
+        for i in range(nsteps):
+            
+            # do the calculation
+            # improvement: find a more elegant way to get the correct density? maybe mv instead of copy
+            # create path to density file
+            density_file = os.path.join(self.workdir, f'density_{i}')    
+            # calculate gradient for density file
+            self.calculate_dEdX(density_file)
+            
+            # read gradient and density into python
+            grad_file = os.path.join(self.workdir, 'dEdX')
+            grad = self.read_gradient(grad_file)
+            num_gpt_grad = len(grad)
+            self.dEdX = self.rescale(grad, num_gpt_grad)
+            if self.X is None:
+                dens = self.read_density(density_file)
+                num_gpt_dens = len(dens)
+                self.density = self.rescale(dens, num_gpt_dens)
+                self.X = np.sqrt(self.density)
+            
+            # read energy
+            self.energies.append(pio.parse_out_file(os.path.join(self.workdir, 'job.out'), 'TOTAL ENERGY'))
+            
+            # propagate density
+            a = -self.dEdX/self.mu
+            self.X_p = a*self.dt**2 + self.X
+            
+            # enforce that number of electrons is conserved
+            lambda_1, lambda_2 = self.calculate_lambda()
+            self.X_p = self.X_p + self.dt**2/self.mu*lambda_2*self.X
+            
+            # write new density to file
+            density_p = np.power(self.X_p,2)
+            
+            dV = self.V/num_gpt_dens
+            
+            density_p = density_p/dV
+            if overwrite:
+                self.save_density(density_p, os.path.join(self.workdir, f'density'))
+            else:
+                self.save_density(density_p, os.path.join(self.workdir, f'density_{i+1}'))
+            
+            # update sqrt of density
+            self.X = self.X_p
     
     def optimize_vv(self, nsteps, density_file = None, overwrite = False):
         for i in range(nsteps):
@@ -204,5 +251,3 @@ Class DensityOptimizerCPMD(DensityOptimizer):
     
     def vv_step(self):
         self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX    
-
-    
