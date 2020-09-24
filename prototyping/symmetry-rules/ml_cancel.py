@@ -281,7 +281,7 @@ def does_separation_pay(case, betas, k=5):
     j, s = [], []
     for Ntrain in sorted(rows.Ntrain.unique()):
         sigmas = [
-            group.query("Ntrain == @Ntrain").sort_values(_).sigma.values[0]
+            rows[rows.Ntrain == Ntrain].sort_values(_).sigma.values[0]
             for _ in "ABCD"
         ]
         best_joint = (
@@ -311,6 +311,7 @@ def fom(x):
 result = sco.differential_evolution(
     fom, bounds=[(1, 100)] * 4 + [(1.001, 1.01), (0.2, 3), (0.01, 0.3)]
 )
+print ("FINAL", result.x, result.fun)
 
 # %%
 
