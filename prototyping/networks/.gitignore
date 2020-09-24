@@ -1,4 +1,12 @@
 benzene
+naphthalene-standalone
+crystal*
+sqm-compare
+*.out
+concept*
+*.vmd
+*.blend*
+build_colored_graphs
 program.prof
 *.report
 *.svg

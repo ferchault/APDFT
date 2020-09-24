@@ -28,7 +28,6 @@ from find_converged import concatenate_files
 # paths to the compounds
 dirs = concatenate_files(['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/paths_atomic_energies'])
 
-dirs = ['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/dsgdb9nsd_001212/']
 for compound_path in dirs:
     # paths to the cube files
     base = compound_path

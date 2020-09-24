@@ -1,0 +1,26 @@
+molecule mol {
+{{ghostedatoms}}
+no_reorient
+no_com
+symmetry c1
+{{totalghostcharge}} 1
+}
+
+Chrgfield = QMMM()
+{{pointcharges}}
+psi4.set_global_option_python('EXTERN', Chrgfield.extern)
+
+basis {
+    assign genbas
+[genbas]
+{{basisset}}
+}
+e, wfn = energy('{{method}}', return_wfn=True)
+oeprop(wfn, "ESP_AT_NUCLEI")
+distances = mol.distance_matrix()
+for i in ({{includeonly}}):
+    nuc = 0.0
+    for j in range(mol.natom()):
+        if i != j:
+            nuc += mol.Z(j) / distances.np[i,j]
+    psi4.core.print_out("NESPAPDFT {:d} {:15.15f}\n".format(i, nuc))

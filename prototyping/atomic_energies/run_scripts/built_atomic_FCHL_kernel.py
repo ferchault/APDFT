@@ -25,9 +25,8 @@ for i in zip(data, molecule_size):
     reps.append(rep_fchl)
     
 savebase = '/home/misa/APDFT/prototyping/atomic_energies/results/analyse_learning/FCHL/'
-sigmas = np.logspace(-4, -2, 3).tolist()
+sigmas = [0.0075]
 
-#sigmas = [432.8761281083057, 10000]
 for sigma in sigmas:
     print('Computing kernel for sigma = {}'.format(sigma))
     out = qmi2.generate_fchl_atomic_kernel(reps, molecule_size, sigma)

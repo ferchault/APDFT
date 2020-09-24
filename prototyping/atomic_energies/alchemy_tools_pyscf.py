@@ -65,6 +65,11 @@ def make_apdft_calc(deltaZ, dm_restart, includeonly, mol, method = "HF", **kwarg
     returns the density matrix and the total energy
     """
     
+    if 'verbose' in kwargs.keys():
+        verbose = kwargs['verbose']
+    else:
+        verbose = 0
+    
     if method not in ["CCSD", "HF"]:
         raise NotImplementedError("Method %s not supported." % method)
     
@@ -79,14 +84,14 @@ def make_apdft_calc(deltaZ, dm_restart, includeonly, mol, method = "HF", **kwarg
             elif k == 'init_guess':
                 calc.init_guess = kwargs[k]
         if dm_restart is None:
-            hfe = calc.kernel(verbose=0)
+            hfe = calc.kernel(verbose=verbose)
         else:
-            hfe = calc.kernel(dm0 = dm_restart, verbose=0)
+            hfe = calc.kernel(dm0 = dm_restart, verbose=verbose)
         dm1_ao = calc.make_rdm1()
         total_energy = calc.e_tot
 #     if method == "CCSD":
 #         calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
-#         hfe = calc.kernel(verbose=0)
+#         hfe = calc.kernel(verbose=verbose)
 #         mycc = pyscf.cc.CCSD(calc).run()
 #         dm1 = mycc.make_rdm1()
 #         dm1_ao = np.einsum("pi,ij,qj->pq", calc.mo_coeff, dm1, calc.mo_coeff.conj())

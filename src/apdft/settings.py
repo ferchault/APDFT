@@ -9,6 +9,7 @@ class CodeEnum(enum.Enum):
     MRCC = "MRCC"
     G09 = "G09"
     PYSCF = "PYSCF"
+    PSI4 = "PSI4"
 
     def __str__(self):
         return self.value
@@ -26,6 +27,10 @@ class CodeEnum(enum.Enum):
             from apdft.calculator.pyscf import PyscfCalculator
 
             return PyscfCalculator
+        if self.value == CodeEnum.PSI4.value:
+            from apdft.calculator.psi4 import Psi4Calculator
+
+            return Psi4Calculator
 
 
 def intelementrange(val):

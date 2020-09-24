@@ -1,0 +1,40 @@
+ *************************************************
+ DiffiQult 
+ Author: Teresa Tamayo Mendoza 
+ *************************************************
+
+ Starting at Fri Nov  8 08:09:10 2019
+ 
+ Grad single point ...
+ ---Start--- 
+ SCF Initial parameters 
+ Maximum number of SCF: 30
+ Default SCF tolerance: 0.000000
+ Initial density matrix: None
+ Atomic coordinates
+  H 1 1 0.0 0.0 0.20165898
+  H 2 1 0.0 0.0 -1.64601435
+ Basis functions
+  1 0.000000 0.000000 0.201659 s 3.425251 0 0 0
+  2 0.000000 0.000000 -1.646014 s 0.623914 0 0 0
+
+ ---End--- 
+  Exponents:
+  [-1.70470023 -1.70470023] Time 0.6406250 :
+ 
+ Grad single point ...
+ ---Start--- 
+ SCF Initial parameters 
+ Maximum number of SCF: 30
+ Default SCF tolerance: 0.000000
+ Initial density matrix: None
+ Atomic coordinates
+  H 1 1 0.0 0.0 0.20165898
+  H 2 1 0.0 0.0 -1.64601435
+ Basis functions
+  1 0.000000 0.000000 0.201659 s 3.425251 0 0 0
+  2 0.000000 0.000000 -1.646014 s 0.623914 0 0 0
+
+ ---End--- 
+  Exponents:
+  [-1.70470023 -1.70470023] Time 0.4375000 :
