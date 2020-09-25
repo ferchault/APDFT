@@ -303,13 +303,13 @@ def does_separation_pay(case, betas, k=5):
 
 
 def fom(x):
-    f = does_separation_pay(tuple(x[:4]), tuple(x[-3:]), k=10)
+    f = does_separation_pay(tuple(x), (1.01, 3, 0.1), k=50)
     print(-f, x)
     return -f
 
 
 result = sco.differential_evolution(
-    fom, bounds=[(1, 100)] * 4 + [(1.001, 1.01), (0.2, 3), (0.01, 0.3)]
+    fom, bounds=[(1, 100)] * 4 , popsize=32, updating="deferred", workers=32, disp=True
 )
 print ("FINAL", result.x, result.fun)
 
