@@ -322,6 +322,11 @@ def fom(x):
     return -f
 
 
+result = sco.differential_evolution(
+    fom, bounds=[(1, 100)] * 4 , popsize=32, updating="deferred", workers=32, disp=True
+)
+print ("FINAL", result.x, result.fun)
+
 # %%
 fom((10, 1, 1, 1))
 # endregion
