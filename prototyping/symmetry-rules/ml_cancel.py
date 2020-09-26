@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # %%
+# region imports
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.spatial.distance as ssd
@@ -9,7 +10,12 @@ import qml
 import scipy.special as ss
 import scipy.optimize as sco
 
+# endregion
+
 #%%
+# region 1D case#
+
+
 def figure():
     f, axs = plt.subplots(5, 1, sharex=True, figsize=(3, 8))
 
@@ -23,11 +29,11 @@ def figure():
     alpha_5 = 1
     beta_1 = 1.01
     beta_3 = 0.1
-    f1 = alpha_1 * np.cos(xs)
+    f1 = alpha_1 * np.cos(3 * xs)
     axs[0].plot(xs, f1, label="Highly symmetric")
-    f2 = -alpha_1 * np.cos(beta_1 * xs)
-    axs[0].plot(xs, f2, label="Almost canceling")
-    axs[0].plot(xs, f1 + f2, label="Residual")
+    # f2 = -alpha_1 * np.cos(beta_1 * xs)
+    # axs[0].plot(xs, f2, label="Almost canceling")
+    # axs[0].plot(xs, f1, label="Residual")
     # axs[0].legend()
 
     f3 = alpha_2 * 2 * (xs - q * np.pi) ** 2 / (3 * np.pi * q) ** 2
@@ -50,6 +56,8 @@ def figure():
     axs[4].plot(xs, f1 + f2 + f3 + f4 + f5)
     plt.subplots_adjust(hspace=0)
 
+
+figure()
 
 # %%
 # example function
@@ -139,7 +147,7 @@ def model(sigma, Ntrain, func, Ntest=100):
 
 # %%
 def components(xs, alphas, betas):  # =(1.01, 1, 0.1)
-    a = alphas[0] * (np.cos(xs) - np.cos(betas[0] * xs))
+    a = alphas[0] * np.cos(betas[0] * xs)  # (np.cos(xs) - np.cos(betas[0] * xs))
     b = alphas[1] * 2 * (xs - q * np.pi) ** 2 / (3 * np.pi * q) ** 2
     c = alphas[2] * ss.erf(betas[1] * (xs + q * np.pi))
     d = (
@@ -280,10 +288,12 @@ def does_separation_pay(case, betas, k=5):
 
     j, s = [], []
     for Ntrain in sorted(rows.Ntrain.unique()):
-        sigmas = [
-            rows[rows.Ntrain == Ntrain].sort_values(_).sigma.values[0]
-            for _ in "ABCD"
-        ]
+        sigmas = []
+        for _ in "ABCD":
+            sigmas.append(
+                rows.query("Ntrain == @Ntrain").sort_values(_).sigma.values[0]
+            )
+        print(sigmas)
         best_joint = (
             rows.query("alphas==@case & Ntrain == @Ntrain")
             .sort_values("joint")
@@ -295,6 +305,10 @@ def does_separation_pay(case, betas, k=5):
         j.append(best_joint)
         s.append(separate)
 
+    plt.loglog(sorted(rows.Ntrain.unique()), j, label="joint")
+    plt.loglog(sorted(rows.Ntrain.unique()), s, label="separate")
+    plt.legend()
+
     return np.max(np.array(j) / np.array(s))
 
 
@@ -303,7 +317,7 @@ def does_separation_pay(case, betas, k=5):
 
 
 def fom(x):
-    f = does_separation_pay(tuple(x), (1.01, 3, 0.1), k=50)
+    f = does_separation_pay(tuple(x[:4]), (3, 3, 0.1), k=50)
     print(-f, x)
     return -f
 
@@ -314,4 +328,10 @@ result = sco.differential_evolution(
 print ("FINAL", result.x, result.fun)
 
 # %%
+fom((10, 1, 1, 1))
+# endregion
+
+# region 2D case
+
+# endregion
 
