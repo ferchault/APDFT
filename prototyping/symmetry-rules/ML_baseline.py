@@ -173,6 +173,12 @@ def find_all_strict_alchemical_enantiomers():
         """Special to naphthalene in a certain atom order."""
         permA = [3,2,1,0,7,6,5,4,9,8]
         permB = [7,6,5,4,3,2,1,0,8,9]
+        if sum(dz1[[9, 8]]) != 0:
+            return False
+        if sum(dz1[[0,3,4,7]]) != 0:
+            return False
+        if sum(dz1[[1,2,5,6]]) != 0:
+            return False
         if np.abs(dz1 + dz2).sum() == 0:
             return True
         if np.abs(dz1 + dz2[permA]).sum() == 0:
@@ -209,8 +215,104 @@ t.columns="nBN one other oneE".split()
 t = pd.merge(fetch_energies(), t, how="right", left_on="label", right_on="other")["nBN_x one other oneE electronicE".split()]
 t.columns="nBN one other oneE otherE".split()
 t['diff'] = np.abs(t.oneE - t.otherE)
+tele = t
+
+#ttotal = pd.merge(fetch_energies(), find_all_strict_alchemical_enantiomers(), how="right", left_on="label", right_on="one")["nBN one other totalE".split()]
+#ttotal.columns="nBN one other oneE".split()
+#ttotal = pd.merge(fetch_energies(), ttotal, how="right", left_on="label", right_on="other")["nBN_x one other oneE totalE".split()]
+#ttotal.columns="nBN one other oneE otherE".split()
+#ttotal['diff'] = np.abs(ttotal.oneE - ttotal.otherE)
 # %%
-plt.scatter(t.nBN, t["diff"])
+plt.scatter(t.nBN, t["diff"]*630)
 # %%
 len(t.nBN), len(t.diff)
+# %%
+fetch_energies().query("electronicE > -847.15 and electronicE < -847.14")
+# %%
+t.sort_values("diff").tail()
+# %%
+t = ttotal
+plt.hist(t["diff"].values*630, bins=100, histtype="step", density=False,label="Alchemical enantiomers")
+cmps = []
+for name, group in fetch_energies().groupby("nBN"):
+    a = list(group.electronicE.values - min(group.electronicE.values))
+    for i in range(len(a)):
+        for j in range(i+1, len(a)):
+            cmps.append(abs(a[i]-a[j]))
+
+#plt.hist(np.array(cmps)*630, bins=100, histtype="step", density=False, range=(0, 200), label="All molecules")
+plt.xlabel("Energy difference [kcal/mol]")
+plt.ylabel("Density")
+plt.legend()
+
+# %%
+len(cmps)
+# %%
+e = 0
+for i in range(18):
+    for j in range(i+1, 18):
+        d = np.linalg.norm(c.coordinates[i] - c.coordinates[j])*1.8897259886
+        contr = c.nuclear_charges[i] * c.nuclear_charges[j] / d
+        e += contr
+e
+# %%
+456.0965054098055-448.2253796080451, 462.69192515200933-456.0965054098055
+
+
+# %%
+t.sort_values("diff")
+# %%
+def ascii(label):
+    elements = ["     BCN"[int(_)] for _ in str(label)]
+    return f"""   {elements[3]}     {elements[4]}
+ /   \ /   \\
+{elements[2]}     {elements[9]}     {elements[5]}
+|     |     |
+{elements[1]}     {elements[8]}     {elements[6]}
+ \   / \   /
+   {elements[0]}     {elements[7]}"""
+print(ascii(5557755777))
+print ("--------------")
+print(ascii(5775577755))
+# %%
+f, axs = plt.subplots(2, 1, sharex=True)
+axs[0].scatter(t.nBN, t["diff"])
+axs[1].scatter(ttotal.nBN, ttotal["diff"])
+axs[0].set_ylabel("$\Delta E$ electronic [Ha]")
+axs[1].set_ylabel("$\Delta E$ total [Ha]")
+axs[0].set_xlabel("#BN pairs")
+# %%
+t.query("nBN==2").sort_values("diff").head(29)
+# %%
+find_all_strict_alchemical_enantiomers()
+# %%
+print (ascii(5575757757))
+print ("--------------")
+print (ascii(7757575575))
+# %%
+fetch_energies().query("label== 5775577755")
+# %%
+kcal = 627.509474063
+(856.248455-856.251745)*kcal
+# %%
+(401.604422-401.607712)*kcal
+# %%
+(864.018117-849.581069)*kcal
+# %%
+A= np.array((5,5,7,5,7,5,7,7,5,7))
+B = np.array((7,7,5,7,5,7,5,5,7,5))
+C = np.array([6]*10)
+np.outer(A-C, A-C) - np.outer((B-C), B-C)
+# %%
+t = pd.merge(fetch_energies(), find_all_strict_alchemical_enantiomers(), how="right", left_on="label", right_on="one")["nBN one other nuclearE".split()]
+t.columns="nBN one other oneE".split()
+t = pd.merge(fetch_energies(), t, how="right", left_on="label", right_on="other")["nBN_x one other oneE nuclearE".split()]
+t.columns="nBN one other oneE otherE".split()
+t['diff'] = np.abs(t.oneE - t.otherE)
+t
+
+# %%
+t["diff"].min()
+# %%
+(t["diff"]*630).values.mean()
 # %%
