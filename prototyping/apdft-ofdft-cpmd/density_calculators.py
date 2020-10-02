@@ -103,13 +103,28 @@ class DensityOptimizer():
             self.X_m = self.X
             #self.X = self.X_p            
     
+#     def read_density(self, dens_file):
+#         with open(dens_file, 'r') as f:
+#             file = f.readlines()
+#             density_unparsed = file[0][108:]
+#             density = density_unparsed.split()
+#             density = np.array([float(i) for i in density])
+#             #density = density.reshape((16,16,16))
+#             return(density)
+        
     def read_density(self, dens_file):
         with open(dens_file, 'r') as f:
             file = f.readlines()
-            density_unparsed = file[0][108:]
-            density = density_unparsed.split()
+            raw_data = file[0].split()
+            meta_data = raw_data[0:10]
+            density = raw_data[10:]
+
+            self.dens_x = meta_data[1]
+            self.dens_y = meta_data[3]
+            self.dens_z = meta_data[5]
+            self.num_spin = meta_data[-1]
+
             density = np.array([float(i) for i in density])
-            #density = density.reshape((16,16,16))
             return(density)
 
     def read_gradient(self, filep):
@@ -128,7 +143,7 @@ class DensityOptimizer():
         return(p)
     
     def save_density(self, density, density_path):
-        dens_str = '  x-dimension:          16   y-dimension:          16   z-dimension:          16   # of spins:            1 '
+        dens_str = f'  x-dimension:          {self.dens_x}   y-dimension:          {self.dens_y}   z-dimension:          {self.dens_z}   # of spins:            {self.num_spin} '
         for d in density:
             dens_str += "{:.20E} ".format(d)
 
