@@ -191,7 +191,26 @@ def order_cubes(dirs, ordering='old'):
                 os.rename(pcf, new_path)
         
     
+def mv_cubes(p2cs):
+    """
+    p2cs: paths to the cube-files that will be moved to ./dsgdb9nsd_xxxxxx/cube-files, items should have the form ./dsgdb9nsd_xxxxxx/run_x/ve_x/DENSITY.cube
+    """
     
+    for pc in p2cs:
+        # isolate path to compound from full path to cube-file
+        path2compound = pc.split('/')[:-3]
+        path2compound = '/'.join(path2compound)
+        # make ./dsgdb9nsd_xxxxxx/cube-files if not exists
+        if not os.path.exists(os.path.join(path2compound, 'cube-files')):
+            os.mkdir(os.path.join(path2compound, 'cube-files'))
+        else:
+            print('Warning, {} exists already!'.format(os.path.join(path2compound, 'cube-files')))
+        
+        # get lambda value of cube-file expressed in VE
+        num_ve = pc.split('/')[-2]
+        # create new file name and move cube-file
+        new_path = os.path.join(path2compound, 'cube-files/' + num_ve + '.cube')
+        os.rename(pc, new_path)
     
     
     
