@@ -5,7 +5,7 @@
 import numpy as np
 import itertools as it
 
-upz = np.array((-1, 1, 1, -1, 0, 0))
+upz = np.array((1, -1, 0, 0, -1, 1))
 dnz = -upz
 
 
@@ -109,5 +109,108 @@ get_endpoint_differences(4)
 
 
 # %%
-nth_order(2)
+def term_n(n, is_B=True):
+    energy_derivative_order = 2 * n
+    if is_B:
+        energy_derivative_order += 1
+    latex = f"B_{n}&="
+    term = []
+    triviallabels = []
+    simplified = []
+    for j in range(6):
+        for nderivs in it.product(range(6), repeat=energy_derivative_order - 1):
+            sitelabels = list(map(str, nderivs))
+            triviallabel = f"I{j}|{','.join(sitelabels)}"
+            label = canonical_label(triviallabel)
+            lhs_prefactor = upz[j]
+            for idx in nderivs:
+                lhs_prefactor *= upz[idx]
+            if lhs_prefactor != 0:
+                term.append((lhs_prefactor, label))
+                latex += (
+                    "\\int \\dr \\frac{"
+                    + str(lhs_prefactor)
+                    + "}{|\\fatr-\\fatR_"
+                    + str(j)
+                    + "|}\\frac{\\partial^2\\rho}{\\partial Z_"
+                    + str(sitelabels[0])
+                    + "\\partial Z_"
+                    + str(sitelabels[1])
+                    + "}+"
+                )
+                triviallabels.append((lhs_prefactor, triviallabel))
+
+    arr = array_to_dict(term)
+    for k in list(arr.keys()):
+        if arr[k] == 0:
+            del arr[k]
+    print(arr)
+
+
+term_n(1, is_B=True)
+
+
 # %%
+import matplotlib.pyplot as plt
+import findiff
+
+# %%
+# assume everything is an gaussian, and that mixed derivatives are less important
+
+basesigma = 0.4
+
+
+def gaussian(xs, sigma):
+    return 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5 * (xs / sigma) ** 2)
+
+
+def nfd(xs, order):
+    mode = findiff.coefficients(deriv=order, acc=order)["center"]
+    result = xs * 0
+    delta = basesigma / 10
+    for offset, coefficient in zip(mode["offsets"], mode["coefficients"]):
+        result += coefficient * gaussian(xs, basesigma + delta * offset)
+    return result / (delta ** order)
+
+
+xs = np.linspace(0, 5, 500)
+
+ds = (2.6, 4.5, 5.3)
+es = []
+for distance in ds:
+    es.append((nfd(xs + distance, 1) * 4 * np.pi * xs).sum())
+plt.plot(ds, es)
+
+# %%
+
+# %%
+# assuming Kato's cusp
+import scipy.special
+
+
+def nth_derivative(xs, order):
+    result = 0
+    alpha = 0.273
+    beta = 3.56
+    Z = 6
+    for k in range(order + 1):
+        result += (
+            scipy.special.binom(order, k)
+            * alpha
+            * beta ** (order - k)
+            * Z ** (beta - order + k)
+            * (-2 * xs) ** k
+            * np.exp(-2 * Z * xs)
+        )
+    return result
+
+
+r = np.linspace(0, 1)
+d = 4
+plt.plot(r, nth_derivative(r, d))
+plt.plot(-r, nth_derivative(r, d))
+
+# %%
+2.8 * 1.889725988
+# %%
+
