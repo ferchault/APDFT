@@ -11,6 +11,9 @@ import functools
 # test benzene compare to 10.1021/acs.jpclett.8b02805, then do naphthalene
 
 #%%
+basepath = "/mnt/c/Users/guido/workcopies/apdft/prototyping/symmetry-rules"
+
+
 @functools.lru_cache(maxsize=100)
 def get_electronic_energy(basefolder, sitei, sitej, direction):
     if sitei == None and sitej == None:
@@ -27,16 +30,16 @@ def get_electronic_energy(basefolder, sitei, sitej, direction):
     with open(f"{basefolder}/{fn}/run.log") as fh:
         lines = fh.readlines()
         energy = float([_ for _ in lines if _.startswith("TOTAL_ENERGY")][0].split()[1])
-        e_nn = float([_ for _ in lines if _.startswith("NN_ENERGY")][0].split()[1])
-    return energy - e_nn
+        # e_nn = float([_ for _ in lines if _.startswith("NN_ENERGY")][0].split()[1])
+    return energy  # - e_nn
 
 
-def benzene_hessian():
-    basefolder = "/mnt/c/Users/guido/workcopies/apdft/prototyping/symmetry-rules/benzene-apdft/QM/"
+def hessian(molname, natoms):
+    basefolder = f"{basepath}/{molname}-apdft/QM/"
     E = lambda i, j, d: get_electronic_energy(basefolder, i, j, d)
-    hessian = np.zeros((6, 6))
-    for i in range(6):
-        for j in range(i, 6):
+    hessian = np.zeros((natoms, natoms))
+    for i in range(natoms):
+        for j in range(i, natoms):
             if i != j:
                 dE = (
                     E(i, j, "up")
@@ -58,10 +61,20 @@ def benzene_hessian():
 
 
 # %%
-vals, vectors = np.linalg.eig(benzene_hessian())
-for i in range(6):
-    plt.bar(range(6), vectors.T[i], bottom=i)
+np.savetxt(f"{basepath}/naphthalene-apdft/totalhessian.txt", hessian("naphthalene", 10))
+np.savetxt(f"{basepath}/benzene-apdft/totalhessian.txt", hessian("benzene", 6))
+vals, vectors = np.linalg.eig(hessian("naphthalene", 10))
+for i in range(10):
+    plt.bar(range(10), vectors.T[i], bottom=i)
 
 # %%
 vals
+# %%
+dz = np.array((0, 0, 1.0, 0, -1.0, 0))
+plt.bar(range(6), np.dot(vectors.T, dz))
+
+# %%
+
+# %%
+np.dot((1, 0, -1, -1, 0, 1), (1, 0, -1, 1, 0, -1))
 # %%
