@@ -42,6 +42,7 @@ if method == "HF":
     hfe = calc.kernel(verbose=0)
     dm1_ao = calc.make_rdm1()
     total_energy = calc.e_tot
+    Enn = calc.energy_nuc()
 if method == "CCSD":
     calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
     hfe = calc.kernel(verbose=0)
@@ -49,11 +50,13 @@ if method == "CCSD":
     dm1 = mycc.make_rdm1()
     dm1_ao = np.einsum("pi,ij,qj->pq", calc.mo_coeff, dm1, calc.mo_coeff.conj())
     total_energy = mycc.e_tot
+    Enn = calc.energy_nuc()
 
 # GRIDLESS, as things should be ############################
 # Total energy of SCF run
 
 print("TOTAL_ENERGY", total_energy)
+print("NN_ENERGY", Enn)
 
 # Electronic EPN from electron density
 for site in includeonly:
