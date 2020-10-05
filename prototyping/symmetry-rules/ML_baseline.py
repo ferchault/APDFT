@@ -79,6 +79,8 @@ def get_compound(label):
 #%%
 # region non-cached ML
 
+totalanmhessian = np.loadtxt("totalhessian.txt")
+_, totalanmvectors = np.linalg.eig(totalanmhessian)
 anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
 
@@ -168,6 +170,9 @@ def get_representation(mol, repname):
             else:
                 return np.array(list(dz) + [0])
         return np.array((list(A) + [1]))
+    if repname == "tANM":
+        dz = np.array(mol.nuclear_charges[:10])-6
+        return np.dot(totalanmvectors.T, dz)
     if repname == "ANM":
         dz = np.array(mol.nuclear_charges[:10])-6
         return np.dot(anmvectors.T, dz)
@@ -175,7 +180,7 @@ def get_representation(mol, repname):
         return np.array(list(get_representation(mol, "M"))+ list(get_representation(mol, "CM")))
     raise ValueError("Unknown representation")
 #lcs = {}
-for rep in "ANM CM M M2 M3".split(): #
+for rep in "tANM ANM CM M M2 M3".split(): #
     for propname in "atomicE electronicE".split():
         label = f"{propname}@{rep}"
         if label in lcs:
@@ -184,7 +189,7 @@ for rep in "ANM CM M M2 M3".split(): #
 
 # %%
 kcal = 627.509474063
-markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x'}
+markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+'}
 order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE".split()
 for label, lc in lcs.items():
     propname, repname = label.split('@')
