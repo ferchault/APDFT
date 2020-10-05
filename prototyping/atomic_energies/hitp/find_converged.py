@@ -235,8 +235,22 @@ def check_input(input_as_list, entry):
             return(True)
         else:
             return(False)
-    
-    
+        
+
+def correct_inps(paths):
+    """
+    reports if input files contain line '  RESTART WAVEFUNCTION LATEST'
+    paths: paths to run.inp-files
+    """
+    restart_exist = []
+    restart_dexist = []
+    for r in paths:
+        inp=fc.read_list_from_file(r)
+        if fc.check_input(inp, '  RESTART WAVEFUNCTION LATEST'):
+            restart_exist(r)
+        else:
+            restart_dexist(r)
+    return(restart_exist, restart_dexist)
     
 
 
