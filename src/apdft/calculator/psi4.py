@@ -79,10 +79,14 @@ class Psi4Calculator(apc.Calculator):
         return template.render()
 
     @staticmethod
-    def get_epn(folder, coordinates, includeatoms, nuclear_charges):
+    def get_epn(sourcename, coordinates, includeatoms, nuclear_charges):
         epns = {}
         nuclear_epns = {}
-        with open(f"{folder}/run.inp.dat") as fh:
+        if os.path.isdir(sourcename):
+            filename = f"{sourcename}/run.inp.dat"
+        else:
+            filename = sourcename
+        with open(filename) as fh:
             started = False
             seen_bars = 0
             for line in fh:
