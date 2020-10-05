@@ -225,6 +225,17 @@ def write_list_to_file(l, file):
         for line in l:
             f.write(line + '\n')
     
+def check_input(input_as_list, entry):
+    """
+    checks if entry is a line in the list (the input file where every line is an entry)
+    """
+    for item in input_as_list:
+        item_without_comment = item.split('#')[0]
+        if entry == item_without_comment:
+            return(True)
+        else:
+            return(False)
+    
     
     
 
