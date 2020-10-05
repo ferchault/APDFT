@@ -245,8 +245,8 @@ def correct_inps(paths):
     restart_exist = []
     restart_dexist = []
     for r in paths:
-        inp=fc.read_list_from_file(r)
-        if fc.check_input(inp, '  RESTART WAVEFUNCTION LATEST'):
+        inp=read_list_from_file(r)
+        if check_input(inp, '  RESTART WAVEFUNCTION LATEST'):
             restart_exist(r)
         else:
             restart_dexist(r)
