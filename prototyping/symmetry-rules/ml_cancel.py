@@ -13,7 +13,7 @@ import scipy.optimize as sco
 # endregion
 
 #%%
-# region 1D case#
+# region 1D case
 
 
 def figure():
@@ -47,7 +47,7 @@ def figure():
     f5 = (
         alpha_5
         * xs
-        * np.exp(-(beta_3 * xs) ** 2)
+        * np.exp(-((beta_3 * xs) ** 2))
         / (np.exp(-0.5) / (beta_3 * np.sqrt(2)))
     )
     axs[3].plot(xs, f5, label="Hard to approximate\nwith polynomials")
@@ -153,7 +153,7 @@ def components(xs, alphas, betas):  # =(1.01, 1, 0.1)
     d = (
         alphas[3]
         * xs
-        * np.exp(-(betas[2] * xs) ** 2)
+        * np.exp(-((betas[2] * xs) ** 2))
         / (np.exp(-0.5) / (betas[2] * np.sqrt(2)))
     )
     return a, b, c, d, a + b + c + d
@@ -323,15 +323,135 @@ def fom(x):
 
 
 result = sco.differential_evolution(
-    fom, bounds=[(1, 100)] * 4 , popsize=32, updating="deferred", workers=32, disp=True
+    fom, bounds=[(1, 100)] * 4, popsize=32, updating="deferred", workers=32, disp=True
 )
-print ("FINAL", result.x, result.fun)
+print("FINAL", result.x, result.fun)
 
 # %%
 fom((10, 1, 1, 1))
 # endregion
 
+#%%
 # region 2D case
+# idea: scaled space
+def testfunc(rep):
+    return np.sin(rep[:, 0]) + np.sin(10 * rep[:, 1])
+
+
+def figure():
+    x = y = np.linspace(0, 10 * 2 * np.pi, 50)
+    X, Y = np.meshgrid(x, y)
+    Z = testfunc(np.vstack((X.flatten(), Y.flatten())).T)
+    Z = Z.reshape(X.shape)
+    f, ax = plt.subplots(1, 1)
+    ax.set_aspect("equal", adjustable="box")
+    ax.contourf(X, Y, Z, 10, cmap=plt.cm.RdBu)
+
+
+#figure()
+
+
+def get_learning_curves(prefactors):
+    ntotal = 800
+    dimensions = len(prefactors)
+    pts = np.random.uniform(
+        low=0, high=10 * 2 * np.pi, size=ntotal * dimensions
+    ).reshape(-1, dimensions)
+    pts[:, 1] *= 1000
+    prefactors[1] /= 1000
+    Y = np.array([np.sin(prefactors[_] * pts[:, _]) for _ in range(dimensions)])
+    Y_total = np.sum(Y, axis=0)
+    print(Y_total.shape)
+
+    rows = []
+    totalidx = np.arange(ntotal, dtype=np.int)
+    for sigma in 2.0 ** np.arange(-5, 15):
+        print(sigma)
+        Ktotal = qml.kernels.gaussian_kernel(pts, pts, sigma)
+
+        for lval in (1e-7, 1e-9, 1e-11, 1e-13):
+            for ntrain in (4, 8, 16, 32, 64, 128, 256, 512):
+                maes_total, maes_separate = [], {_: [] for _ in range(dimensions)}
+                for k in range(1):
+                    np.random.shuffle(totalidx)
+                    train, test = totalidx[:ntrain], totalidx[ntrain:]
+
+                    K_subset = Ktotal[np.ix_(train, train)]
+                    K_subset[np.diag_indices_from(K_subset)] += lval
+
+                    # combined
+                    alphas = qml.math.cho_solve(K_subset, Y_total[train])
+                    K_test = Ktotal[np.ix_(train, test)]
+                    pred = np.dot(K_test.transpose(), alphas)
+                    actual = Y_total[test]
+                    maes_total.append(np.abs(pred - actual).mean())
+
+                    # separate
+                    for dimension in range(dimensions):
+                        alphas = qml.math.cho_solve(K_subset, Y[dimension][train])
+                        K_test = Ktotal[np.ix_(train, test)]
+                        pred = np.dot(K_test.transpose(), alphas)
+                        actual = Y[dimension][test]
+                        maes_separate[dimension].append(np.abs(pred - actual).mean())
+
+                rows.append(
+                    {
+                        "sigma": sigma,
+                        "lval": lval,
+                        "ntrain": ntrain,
+                        "mae": np.array(maes_total).mean(),
+                        "mode": "sum",
+                    }
+                )
+                for k, v in maes_separate.items():
+                    rows.append(
+                        {
+                            "sigma": sigma,
+                            "lval": lval,
+                            "ntrain": ntrain,
+                            "mae": np.array(v).mean(),
+                            "mode": f"D{k}",
+                        }
+                    )
+
+    rows = pd.DataFrame(rows)
+    return rows
+
+
+q = get_learning_curves([0.1,0.1])
+q
+
+
+# model(prefactors)
 
 # endregion
 
+
+# %%
+plt.loglog(q.query("mode=='sum'").groupby("ntrain").min()["mae"])
+plt.loglog(q.query("mode=='D0'").groupby("ntrain").min()["mae"])
+plt.loglog(q.query("mode=='D1'").groupby("ntrain").min()["mae"])
+print(q.query("mode=='D0' & ntrain==512").sort_values("mae").head(1).sigma.values)
+print(q.query("mode=='D1' & ntrain==512").sort_values("mae").head(1).sigma.values)
+
+# %%
+prefactors = [1, 1]
+ntotal = 10
+dimensions = 2
+pts = np.random.uniform(
+    low=0, high=10 * 2 * np.pi, size=ntotal * dimensions
+).reshape(-1, dimensions)
+pts[:, 1] = pts[:, 0].copy()
+pts[:, 1] *= 100
+prefactors[1] /= 100
+
+Y = np.array([np.sin(prefactors[_] * pts[:, _]) for _ in range(dimensions)])
+Y_total = np.sum(Y, axis=0)
+# %%
+Y
+# %%
+# %%
+Y
+# %%
+q.query("mode=='D0'").groupby("ntrain").min()["mae"].values/q.query("mode=='sum'").groupby("ntrain").min()["mae"].values
+# %%
