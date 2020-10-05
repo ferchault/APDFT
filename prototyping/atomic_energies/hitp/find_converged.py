@@ -221,7 +221,7 @@ def read_list_from_file(file):
     return(list_items)
 
 def write_list_to_file(l, file):
-    with open(file, 'r') as f:
+    with open(file, 'w') as f:
         for line in l:
             f.write(line + '\n')
     
@@ -229,13 +229,15 @@ def check_input(input_as_list, entry):
     """
     checks if entry is a line in the list (the input file where every line is an entry)
     """
+    in_file = None
     for item in input_as_list:
         item_without_comment = item.split('#')[0]
         if entry == item_without_comment:
-            return(True)
+            in_file = True
+            break
         else:
-            return(False)
-        
+            in_file = False
+    return(in_file)
 
 def correct_inps(paths):
     """
@@ -247,9 +249,9 @@ def correct_inps(paths):
     for r in paths:
         inp=read_list_from_file(r)
         if check_input(inp, '  RESTART WAVEFUNCTION LATEST'):
-            restart_exist(r)
+            restart_exist.append(r)
         else:
-            restart_dexist(r)
+            restart_dexist.append(r)
     return(restart_exist, restart_dexist)
     
 
