@@ -211,7 +211,19 @@ def mv_cubes(p2cs):
         # create new file name and move cube-file
         new_path = os.path.join(path2compound, 'cube-files/' + num_ve + '.cube')
         os.rename(pc, new_path)
-    
+        
+def read_list_from_file(file):
+    list_items = []
+    with open(file, 'r') as f:
+        for line in f:
+            list_items.append(line.strip('\n'))
+            
+    return(list_items)
+
+def write_list_to_file(l, file):
+    with open(file, 'r') as f:
+        for line in l:
+            f.write(line + '\n')
     
     
     
