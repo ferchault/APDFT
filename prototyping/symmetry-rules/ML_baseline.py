@@ -78,6 +78,10 @@ def get_compound(label):
 
 #%%
 # region non-cached ML
+
+anmhessian = np.loadtxt("hessian.txt")
+_, anmvectors = np.linalg.eig(anmhessian)
+
 def get_learning_curve(df, repname, propname):
     X = np.array([get_representation(get_compound(_), repname) for _ in df.label.values])
     Y = df[propname].values
@@ -111,6 +115,34 @@ def get_learning_curve(df, repname, propname):
     return rows.groupby("ntrain").min()['mae']
 #endregion
 
+def are_strict_alchemical_enantiomers(dz1, dz2):
+    """Special to naphthalene in a certain atom order."""
+    permA = [3,2,1,0,7,6,5,4,9,8]
+    permB = [7,6,5,4,3,2,1,0,8,9]
+    if sum(dz1[[9, 8]]) != 0:
+        return False
+    if sum(dz1[[0,3,4,7]]) != 0:
+        return False
+    if sum(dz1[[1,2,5,6]]) != 0:
+        return False
+    if np.abs(dz1 + dz2).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permB]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA][permB]).sum() == 0:
+        return True
+    return False
+def canonicalize(dz):
+    A = dz
+    C = A[[3,2,1,0,7,6,5,4,9,8]]
+    E = A[[7,6,5,4,3,2,1,0,8,9]]
+    G = E[[3,2,1,0,7,6,5,4,9,8]]
+    reps = np.array((A, C,E,G))
+    dz = reps[np.lexsort(np.vstack(reps).T)[0]]
+    return dz
+
 def get_representation(mol, repname):
     if repname == "CM":
         mol.generate_coulomb_matrix(size=20, sorting="row-norm")
@@ -123,23 +155,28 @@ def get_representation(mol, repname):
         return np.array((sum(dz[[1,2,5,6]] != 0), sum(dz[[8,9]] != 0), sum(dz[[0,3,4,7]] != 0)))
     if repname == "M2":
         dz = np.array(mol.nuclear_charges[:10])-6
-        A = dz
-        B = -A
-        C = A[[3,2,1,0,7,6,5,4,9,8]]
-        D = -C
-        E = A[[7,6,5,4,3,2,1,0,8,9]]
-        F = -E
-        G = E[[3,2,1,0,7,6,5,4,9,8]]
-        H = -G
-        reps = (A, B,C,D,E,F,G,H)
-        return reps[np.lexsort(np.vstack(reps).T)[0]]
+        return canonicalize(dz)
+    if repname == "M3":
+        dz = np.array(mol.nuclear_charges[:10])-6
+        A = canonicalize(dz)
+        if are_strict_alchemical_enantiomers(dz, -dz):
+            B = canonicalize(-dz)
+            reps = np.array((A, B))
+            dz = reps[np.lexsort(np.vstack(reps).T)[0]]
+            if np.allclose(dz, B):
+                return np.array(list(dz) + [1])
+            else:
+                return np.array(list(dz) + [0])
+        return np.array((list(A) + [1]))
+    if repname == "ANM":
+        dz = np.array(mol.nuclear_charges[:10])-6
+        return np.dot(anmvectors.T, dz)
     if repname == "M+CM":
         return np.array(list(get_representation(mol, "M"))+ list(get_representation(mol, "CM")))
     raise ValueError("Unknown representation")
-
 #lcs = {}
-for rep in "M CM M+CM".split():
-    for propname in "electronicE".split():
+for rep in "ANM CM M M2 M3".split(): #
+    for propname in "atomicE electronicE".split():
         label = f"{propname}@{rep}"
         if label in lcs:
             continue
@@ -147,22 +184,16 @@ for rep in "M CM M+CM".split():
 
 # %%
 kcal = 627.509474063
-markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^'}
+markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x'}
 order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE".split()
 for label, lc in lcs.items():
-    if not label.startswith("electronic"):
-        continue
     propname, repname = label.split('@')
+    if repname not in "CM M ANM M3".split():
+        continue
     plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
 plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
 plt.xlabel("Training set size")
 plt.ylabel("MAE [kcal/mol]")
-
-
-# %%
-# dressed atom: fit e_i for C, BN
-
-# %%
 
 # %%
 # find all labels which are strict alchemical enantiomers of each other
@@ -209,110 +240,29 @@ def find_all_strict_alchemical_enantiomers():
                     rels.append({'one': i, 'other': j})
     return pd.DataFrame(rels)
 
-# %%
-t = pd.merge(fetch_energies(), find_all_strict_alchemical_enantiomers(), how="right", left_on="label", right_on="one")["nBN one other electronicE".split()]
-t.columns="nBN one other oneE".split()
-t = pd.merge(fetch_energies(), t, how="right", left_on="label", right_on="other")["nBN_x one other oneE electronicE".split()]
-t.columns="nBN one other oneE otherE".split()
-t['diff'] = np.abs(t.oneE - t.otherE)
-tele = t
-
-#ttotal = pd.merge(fetch_energies(), find_all_strict_alchemical_enantiomers(), how="right", left_on="label", right_on="one")["nBN one other totalE".split()]
-#ttotal.columns="nBN one other oneE".split()
-#ttotal = pd.merge(fetch_energies(), ttotal, how="right", left_on="label", right_on="other")["nBN_x one other oneE totalE".split()]
-#ttotal.columns="nBN one other oneE otherE".split()
-#ttotal['diff'] = np.abs(ttotal.oneE - ttotal.otherE)
-# %%
-plt.scatter(t.nBN, t["diff"]*630)
-# %%
-len(t.nBN), len(t.diff)
-# %%
-fetch_energies().query("electronicE > -847.15 and electronicE < -847.14")
-# %%
-t.sort_values("diff").tail()
-# %%
-t = ttotal
-plt.hist(t["diff"].values*630, bins=100, histtype="step", density=False,label="Alchemical enantiomers")
-cmps = []
-for name, group in fetch_energies().groupby("nBN"):
-    a = list(group.electronicE.values - min(group.electronicE.values))
-    for i in range(len(a)):
-        for j in range(i+1, len(a)):
-            cmps.append(abs(a[i]-a[j]))
-
-#plt.hist(np.array(cmps)*630, bins=100, histtype="step", density=False, range=(0, 200), label="All molecules")
-plt.xlabel("Energy difference [kcal/mol]")
-plt.ylabel("Density")
-plt.legend()
+#%%
 
 # %%
-len(cmps)
+get_representation(get_compound(5566676766), "M2")-get_representation(get_compound(5656667766), "M2")
+	
 # %%
-e = 0
-for i in range(18):
-    for j in range(i+1, 18):
-        d = np.linalg.norm(c.coordinates[i] - c.coordinates[j])*1.8897259886
-        contr = c.nuclear_charges[i] * c.nuclear_charges[j] / d
-        e += contr
-e
-# %%
-456.0965054098055-448.2253796080451, 462.69192515200933-456.0965054098055
-
-
-# %%
-t.sort_values("diff")
-# %%
-def ascii(label):
-    elements = ["     BCN"[int(_)] for _ in str(label)]
-    return f"""   {elements[3]}     {elements[4]}
- /   \ /   \\
-{elements[2]}     {elements[9]}     {elements[5]}
-|     |     |
-{elements[1]}     {elements[8]}     {elements[6]}
- \   / \   /
-   {elements[0]}     {elements[7]}"""
-print(ascii(5557755777))
-print ("--------------")
-print(ascii(5775577755))
-# %%
-f, axs = plt.subplots(2, 1, sharex=True)
-axs[0].scatter(t.nBN, t["diff"])
-axs[1].scatter(ttotal.nBN, ttotal["diff"])
-axs[0].set_ylabel("$\Delta E$ electronic [Ha]")
-axs[1].set_ylabel("$\Delta E$ total [Ha]")
-axs[0].set_xlabel("#BN pairs")
-# %%
-t.query("nBN==2").sort_values("diff").head(29)
-# %%
-find_all_strict_alchemical_enantiomers()
-# %%
-print (ascii(5575757757))
-print ("--------------")
-print (ascii(7757575575))
-# %%
-fetch_energies().query("label== 5775577755")
-# %%
-kcal = 627.509474063
-(856.248455-856.251745)*kcal
-# %%
-(401.604422-401.607712)*kcal
-# %%
-(864.018117-849.581069)*kcal
-# %%
-A= np.array((5,5,7,5,7,5,7,7,5,7))
-B = np.array((7,7,5,7,5,7,5,5,7,5))
-C = np.array([6]*10)
-np.outer(A-C, A-C) - np.outer((B-C), B-C)
-# %%
-t = pd.merge(fetch_energies(), find_all_strict_alchemical_enantiomers(), how="right", left_on="label", right_on="one")["nBN one other nuclearE".split()]
-t.columns="nBN one other oneE".split()
-t = pd.merge(fetch_energies(), t, how="right", left_on="label", right_on="other")["nBN_x one other oneE nuclearE".split()]
-t.columns="nBN one other oneE otherE".split()
-t['diff'] = np.abs(t.oneE - t.otherE)
-t
-
-# %%
-t["diff"].min()
-# %%
-(t["diff"]*630).values.mean()
+def distancediffplot(repname):
+    for nBN, group  in fetch_energies().groupby("nBN"):
+        distances = []
+        differences = []
+        labels = group.label.values
+        energies = group.electronicE.values
+        for i, lbl in enumerate(labels):
+            for j in range(i+1, len(labels)):
+                r1 = get_representation(get_compound(lbl), repname)
+                r2 = get_representation(get_compound(labels[j]), repname)
+                distances.append(np.linalg.norm(r1-r2))
+                differences.append(np.abs(energies[i] - energies[j]))
+                if len(differences) > 1000:
+                    break
+            if len(differences) > 1000:
+                    break
+        
+        plt.scatter(distances, differences)
+distancediffplot("M2")
 # %%
