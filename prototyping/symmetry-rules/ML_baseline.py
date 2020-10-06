@@ -44,8 +44,66 @@ def fetch_energies():
     coeff = np.linalg.lstsq(A, df.totalE.values)
     df['dressedtotalE'] = df.totalE.values - np.dot(A, coeff[0])
 
+    # twobody
+    @functools.lru_cache(maxsize=1)
+    def twobody_subsets():
+        import scipy.spatial.distance as ssd
+        dm = ssd.squareform(ssd.pdist(get_compound(6666666666).coordinates[:10]).round(6))
+        subsets = []
+        for distance in set(dm.reshape(-1)):
+            if distance < 1e-3:
+                continue
+            subset = []
+            for i in range(10):
+                for j in range(i+1, 10):
+                    if abs(dm[i,j]  - distance) > 1e-3:
+                        continue
+                    subset.append((i+1, j+1))
+            subsets.append(subset)
+        return subsets
 
-    df = df['label nBN totalE nuclearE electronicE atomicE dressedtotalE dressedelectronicE'.split()].copy()
+    def bonds_from_subset(label, subset):
+        # target structure
+        kinds = {}
+        for i in (5,6,7,):
+            for j in (5,6,7):
+                a, b = sorted((i, j))
+                kinds[f"{a}{b}"] = 0
+        bonds = subset
+
+        # build entries
+        label = str(label)
+        for i, j in bonds:
+            a, b = sorted((label[i-1], label[j-1]))
+            kinds[f"{a}{b}"] += 1
+
+        return np.array([kinds[_] for _ in sorted(kinds.keys())])
+
+    def twobody_from_label(label):
+        coeffs = [bonds_from_subset(label, _) for _ in twobody_subsets()]
+        label = str(label)
+        kinds = {'15': 0, '16': 0, '17': 0}
+        for a in label[2:]:
+            kinds[f"1{a}"] += 1
+        coeffs.append(np.array([kinds[_] for _ in sorted(kinds.keys())]))
+        return np.concatenate(coeffs)
+
+
+    def leftover(df):
+        BONDS = np.array([twobody_from_label(_) for _ in df['label']])
+        
+        nC = 10-2*df.nBN.values
+        nBN = df.nBN.values
+        ATOMS = np.array((nC, nBN)).T
+
+        A = np.hstack((ATOMS,BONDS))
+        coeff = np.linalg.lstsq(A, df.totalE.values)
+
+        return df.totalE.values - np.dot(A, coeff[0])
+
+    df['twobodyE'] = leftover(df)
+
+    df = df['label nBN totalE nuclearE electronicE atomicE dressedtotalE dressedelectronicE twobodyE'.split()].copy()
     return df
 
 @functools.lru_cache(maxsize=1)
@@ -117,6 +175,15 @@ def get_learning_curve(df, repname, propname):
     return rows.groupby("ntrain").min()['mae']
 #endregion
 
+from sklearn import decomposition
+from sklearn import datasets
+from sklearn.preprocessing import StandardScaler
+pca = decomposition.PCA(n_components=10)
+s= fetch_energies()
+A = np.array([get_representation(get_compound(_), "M3")**2 for _ in s['label']])
+x_std = StandardScaler().fit_transform(A)
+pca.fit(x_std)
+
 def are_strict_alchemical_enantiomers(dz1, dz2):
     """Special to naphthalene in a certain atom order."""
     permA = [3,2,1,0,7,6,5,4,9,8]
@@ -176,6 +243,13 @@ def get_representation(mol, repname):
     if repname == "ANM":
         dz = np.array(mol.nuclear_charges[:10])-6
         return np.dot(anmvectors.T, dz)
+    if repname == "cANM":
+        dz = np.array(mol.nuclear_charges[:10])-6
+        A = canonicalize(dz)
+        return np.dot(anmvectors.T, A)
+    if repname == "PCA":
+        rep = get_representation(mol, "M3")
+        return pca.transform(np.array([rep]))
     if repname == "M+CM":
         return np.array(list(get_representation(mol, "M"))+ list(get_representation(mol, "CM")))
     raise ValueError("Unknown representation")
@@ -185,7 +259,7 @@ try:
     lcs = {column: q[column] for column in q.columns}
 except:
     lcs = {}
-for rep in "tANM ANM CM M M2 M3".split(): #
+for rep in "PCA cANM tANM ANM CM M M2 M3".split(): #
     for propname in "atomicE electronicE".split():
         label = f"{propname}@{rep}"
         if label in lcs:
@@ -195,11 +269,11 @@ pd.DataFrame(lcs).to_pickle("lcs.cache")
 
 # %%
 kcal = 627.509474063
-markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+'}
+markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+', 'cANM': 's', 'PCA': '*'}
 order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE".split()
 for label, lc in lcs.items():
     propname, repname = label.split('@')
-    if repname not in "CM tANM ANM M3".split():
+    if repname not in "CM tANM ANM M3 cANM PCA".split():
         continue
     plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
 plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
@@ -251,11 +325,6 @@ def find_all_strict_alchemical_enantiomers():
                     rels.append({'one': i, 'other': j})
     return pd.DataFrame(rels)
 
-#%%
-
-# %%
-get_representation(get_compound(5566676766), "M2")-get_representation(get_compound(5656667766), "M2")
-	
 # %%
 def distancediffplot(repname):
     for nBN, group  in fetch_energies().groupby("nBN"):
@@ -276,3 +345,12 @@ def distancediffplot(repname):
         
         plt.scatter(distances, differences)
 distancediffplot("M2")
+
+#%%
+def baselinehistograms():
+    opts = {'cumulative': True, 'range': (-0.8, 0.8), 'bins': 100}
+    o = fetch_energies()['atomicE']
+    plt.hist(o-o.mean(), histtype="step", label="atomic", **opts)
+    plt.hist(fetch_energies()['dressedtotalE'], histtype="step", label="dressed", **opts)
+    plt.hist(fetch_energies()['twobodyE'], histtype="step", label="atom+twobody", **opts)
+    plt.legend()
