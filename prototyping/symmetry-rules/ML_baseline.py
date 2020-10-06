@@ -79,6 +79,8 @@ def get_compound(label):
 #%%
 # region non-cached ML
 
+totalanmhessian = np.loadtxt("totalhessian.txt")
+_, totalanmvectors = np.linalg.eig(totalanmhessian)
 anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
 
@@ -168,27 +170,36 @@ def get_representation(mol, repname):
             else:
                 return np.array(list(dz) + [0])
         return np.array((list(A) + [1]))
+    if repname == "tANM":
+        dz = np.array(mol.nuclear_charges[:10])-6
+        return np.dot(totalanmvectors.T, dz)
     if repname == "ANM":
         dz = np.array(mol.nuclear_charges[:10])-6
         return np.dot(anmvectors.T, dz)
     if repname == "M+CM":
         return np.array(list(get_representation(mol, "M"))+ list(get_representation(mol, "CM")))
     raise ValueError("Unknown representation")
-#lcs = {}
-for rep in "ANM CM M M2 M3".split(): #
+
+try:
+    q = pd.read_pickle("lcs.cache")
+    lcs = {column: q[column] for column in q.columns}
+except:
+    lcs = {}
+for rep in "tANM ANM CM M M2 M3".split(): #
     for propname in "atomicE electronicE".split():
         label = f"{propname}@{rep}"
         if label in lcs:
             continue
         lcs[label] = get_learning_curve(fetch_energies(), rep, propname)
+pd.DataFrame(lcs).to_pickle("lcs.cache")
 
 # %%
 kcal = 627.509474063
-markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x'}
+markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+'}
 order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE".split()
 for label, lc in lcs.items():
     propname, repname = label.split('@')
-    if repname not in "CM M ANM M3".split():
+    if repname not in "CM tANM ANM M3".split():
         continue
     plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
 plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
@@ -265,4 +276,3 @@ def distancediffplot(repname):
         
         plt.scatter(distances, differences)
 distancediffplot("M2")
-# %%
