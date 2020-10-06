@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import scipy.spatial.distance as ssd
 
 # %%
+# region AD testing
 def to_learn(xs):
     return xs ** 2 + xs + 4
 
@@ -62,7 +63,6 @@ pred += baseline(xs, *baseline_params)
 
 plt.plot(xs, pred, label="ML")
 plt.legend()
+# endregion
 
-# %%
-refalphas, alphas
 # %%
