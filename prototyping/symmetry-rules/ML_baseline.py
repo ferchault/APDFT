@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 import functools
 import requests
 import numpy as np
+from sklearn import decomposition
+from sklearn import datasets
+from sklearn.preprocessing import StandardScaler
+
 #endregion
 # region data preparation
 @functools.lru_cache(maxsize=1)
@@ -175,14 +179,6 @@ def get_learning_curve(df, repname, propname):
     return rows.groupby("ntrain").min()['mae']
 #endregion
 
-from sklearn import decomposition
-from sklearn import datasets
-from sklearn.preprocessing import StandardScaler
-pca = decomposition.PCA(n_components=10)
-s= fetch_energies()
-A = np.array([get_representation(get_compound(_), "M3")**2 for _ in s['label']])
-x_std = StandardScaler().fit_transform(A)
-pca.fit(x_std)
 
 def are_strict_alchemical_enantiomers(dz1, dz2):
     """Special to naphthalene in a certain atom order."""
@@ -254,13 +250,19 @@ def get_representation(mol, repname):
         return np.array(list(get_representation(mol, "M"))+ list(get_representation(mol, "CM")))
     raise ValueError("Unknown representation")
 
+pca = decomposition.PCA(n_components=10)
+s= fetch_energies()
+A = np.array([get_representation(get_compound(_), "M3")**2 for _ in s['label']])
+x_std = StandardScaler().fit_transform(A)
+pca.fit(x_std)
+
 try:
     q = pd.read_pickle("lcs.cache")
     lcs = {column: q[column] for column in q.columns}
 except:
     lcs = {}
-for rep in "PCA cANM tANM ANM CM M M2 M3".split(): #
-    for propname in "atomicE electronicE".split():
+for rep in "CM M3 ANM".split(): #PCA cANM tANM ANM CM M M2 M3
+    for propname in "twobodyE dressedtotalE atomicE electronicE".split():
         label = f"{propname}@{rep}"
         if label in lcs:
             continue
@@ -270,11 +272,15 @@ pd.DataFrame(lcs).to_pickle("lcs.cache")
 # %%
 kcal = 627.509474063
 markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+', 'cANM': 's', 'PCA': '*'}
-order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE".split()
+order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE twobodyE".split()
 for label, lc in lcs.items():
     propname, repname = label.split('@')
-    if repname not in "CM tANM ANM M3 cANM PCA".split():
+    if label not in "atomicE@CM twobodyE@CM dressedtotalE@CM atomicE@ANM twobodyE@ANM".split():
         continue
+    #if repname not in "CM".split():
+    #    continue
+    #if propname not in "twobodyE atomicE":
+    #    continue
     plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
 plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
 plt.xlabel("Training set size")
