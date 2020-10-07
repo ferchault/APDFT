@@ -6,15 +6,24 @@
 
 #%%
 # region imports
+# ML
 import qml
+from sklearn import decomposition
+from sklearn import datasets
+from sklearn.preprocessing import StandardScaler
+
+# AD
+import jax
+import jax.numpy as jnp
+
+# Helper
 import pandas as pd
 import matplotlib.pyplot as plt
 import functools
 import requests
 import numpy as np
-from sklearn import decomposition
-from sklearn import datasets
-from sklearn.preprocessing import StandardScaler
+import itertools as it
+import scipy.spatial.distance as ssd
 
 #endregion
 # region data preparation
@@ -303,10 +312,6 @@ def baselinehistograms():
     plt.legend()
 
 #%%
-import jax
-import jax.numpy as jnp
-import itertools as it
-import scipy.spatial.distance as ssd
 
 class VDWBaseline:
     """ Hard-coded for the naphthalene case."""
@@ -316,45 +321,120 @@ class VDWBaseline:
         coordinates = get_compound(6666666666).coordinates
         dm = ssd.squareform(ssd.pdist(coordinates))
 
-        @jax.jit                    
-        def _vdw(Q):
+        def _vdwonelabel(epsilons, sigmas):
+            print ("new onelabel compile")
+            energy = 0
+            for i in range(18):
+                ei = epsilons[i]*epsilons[i]
+                oi = sigmas[i]*sigmas[i]
+                for j in range(i+1, 18):
+                    ej = epsilons[j]*epsilons[j]
+                    oj = sigmas[j]*sigmas[j]
+                    e = jnp.sqrt(ei*ej)
+                    o = (oi+oj)/2
+                    q = (o/dm[i, j])**6
+                    energy += e*(q**2-q)
+            return energy
+        _vdwonelabel = jax.jit(_vdwonelabel)
+
+        def _vdw(Q, labels, dm):
             energies = jnp.zeros(len(labels))
-            print ("new eval")
+            print ("new vdw compile")
             for labelidx in range(len(labels)):
-                label = str(labels[labelidx])
-                for i, j in it.combinations(range(len(coordinates)), 2):
-                    pos_i = 0
-                    if i < 10:
-                        pos_i = '1567'.index(label[i])
-                    pos_j = 0
-                    if j < 10:
-                        pos_j = '1567'.index(label[j])
-                    epsilon_i = Q[pos_i]*Q[pos_i]
-                    epsilon_j = Q[pos_j]*Q[pos_j]
-                    sigma_i = Q[pos_i+4]*Q[pos_i+4]
-                    sigma_j = Q[pos_j+4]*Q[pos_j+4]
-                    sigma = (sigma_i + sigma_j)/2
-                    epsilon = jnp.sqrt(epsilon_i*epsilon_j)
-                    r = dm[i, j]
-                    energies = energies.at[labelidx].add(epsilon*((sigma/r)**12-(sigma/r)**6))
+                epsilons = Q[labels[labelidx, :18]]
+                sigmas = Q[labels[labelidx, 18:]]
+                energies = energies.at[labelidx].set(_vdwonelabel(sigmas, epsilons))
             
             return jnp.linalg.norm(energies - properties)/energies.shape[0]
+        _vdw = jax.jit(_vdw, static_argnums=(1,2))
         gradf = jax.grad(_vdw)
-        for i in range(10):
-            print (parameters)
-            print ("iteration", _vdw(parameters))
-            print ("v")
-            parameters -= gradf(parameters)*1e-6
-            print ("^")
+        for i in range(20):
+            #print (parameters)
+            print ("iteration", _vdw(parameters, labels, dm))
+            #print ("v")
+            g = gradf(parameters, labels, dm)
+            g /= np.linalg.norm(q)
+            g *= 0.1
+            parameters -= g
+            #print ("^")
         return (parameters)
 
+def label2es(label):
+    label = str(label)
+    result = np.zeros(18*2, dtype=int)
+    for i in range(10):
+        result[i] = {'5': 1, '6': 2, '7': 3}[label[i]]
+        result[i+18] = {'5': 1+4, '6': 2+4, '7': 3+4}[label[i]]
+    return result
+
 b = VDWBaseline()
-labels = fetch_energies().label.head(2).values
-properties = fetch_energies().atomicE.head(2).values
+labels = np.array([label2es(_) for _ in fetch_energies().label.head(3).values])
+properties = fetch_energies().atomicE.head(3).values
 b.fit(labels, properties)
 
 # %%
-fetch_energies().label.head().values
+def build_matrices(labels):
+    coordinates = get_compound(6666666666).coordinates
+    dm = ssd.squareform(ssd.pdist(coordinates))
+    
+    kinds = []
+    for i in (1, 5,6,7,):
+        for j in (1, 5,6,7):
+            a, b = sorted((i, j))
+            kinds.append(f"{a}{b}")
+    kinds = sorted(set(kinds))
+
+    mat6 = np.zeros((len(labels), len(kinds)))
+    mat12 = np.zeros((len(labels), len(kinds)))
+    for labelidx in range(len(labels)):
+        label = str(labels[labelidx]) + "11111111"
+        for i in range(18):
+            for j in range(i+1, 18):
+                a, b = sorted((label[i], label[j]))
+                mat6[labelidx, kinds.index(f"{a}{b}")] += 1/dm[i, j]**6
+                mat12[labelidx, kinds.index(f"{a}{b}")] += 1/dm[i, j]**12
+    return kinds, mat6, mat12
+kinds, mat6, mat12 = build_matrices(fetch_energies().label.values[100:])
+        
+#%%
+parameters = jnp.array([0.06788786,  0.9530318,  0.12076921,  0.99212635, 1.3718097,   1.7186185, 1.3297557,   1.953924  ])
+
+@jax.jit
+def predict(parameters):
+    order = "1567"
+    sigmas = jnp.zeros(10)
+    epsilons = jnp.zeros(10)
+    for kidx, kind in enumerate(kinds):
+        e1 = order.index(kind[0])
+        e2 = order.index(kind[1])
+        eps1 = parameters[e1]*parameters[e1]
+        eps2 = parameters[e2]*parameters[e2]
+        sig1 = parameters[e1+4]*parameters[e1+4]
+        sig2 = parameters[e2+4]*parameters[e2+4]
+        epsilons = epsilons.at[kidx].set(jnp.sqrt(eps1*eps2))
+        sigmas = sigmas.at[kidx].set((sig1+sig2)/2)
+    pred = jnp.dot(mat12* sigmas**12 -mat6* sigmas**6, epsilons)
+    return pred
+
+@jax.jit
+def residuals(parameters):
+    expected = fetch_energies().atomicE.values[100:]
+    pred = predict(parameters)
+    return jnp.linalg.norm(pred-expected)
+x0 = jnp.array([2,2,2,2,0.5, 0.5, 0.5, 0.5])
+result = sco.minimize(residuals, x0=jnp.ones(8), jac=jax.grad(residuals), method="CG")
+print (result.x, result.fun)
+
+#%%
+q = fetch_energies().atomicE.values
+qq= {'range': (0, 0.7), 'bins': 100, 'cumulative': True, 'histtype': 'step', 'density': True}
+plt.hist(np.abs(q - np.average(q)), label="atomic", **qq)
+q=predict([1.3210275, 1.4704485, 1.2422168 ,1.0012943 ,0.7454262 ,1.0606761 ,1.1231637, 1.1754208])
+plt.hist(np.abs(q - np.average(q)), label="reduced", **qq)
+plt.legend()
+
+#%%
+
 
 #%%
 @functools.lru_cache(maxsize=1)
