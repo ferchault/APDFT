@@ -48,66 +48,7 @@ def fetch_energies():
     coeff = np.linalg.lstsq(A, df.totalE.values)
     df['dressedtotalE'] = df.totalE.values - np.dot(A, coeff[0])
 
-    # twobody
-    @functools.lru_cache(maxsize=1)
-    def twobody_subsets():
-        import scipy.spatial.distance as ssd
-        dm = ssd.squareform(ssd.pdist(get_compound(6666666666).coordinates[:10]).round(6))
-        subsets = []
-        for distance in set(dm.reshape(-1)):
-            if distance < 1e-3:
-                continue
-            subset = []
-            for i in range(10):
-                for j in range(i+1, 10):
-                    if abs(dm[i,j]  - distance) > 1e-3:
-                        continue
-                    subset.append((i+1, j+1))
-            subsets.append(subset)
-        return subsets
-
-    def bonds_from_subset(label, subset):
-        # target structure
-        kinds = {}
-        for i in (5,6,7,):
-            for j in (5,6,7):
-                a, b = sorted((i, j))
-                kinds[f"{a}{b}"] = 0
-        bonds = subset
-
-        # build entries
-        label = str(label)
-        for i, j in bonds:
-            a, b = sorted((label[i-1], label[j-1]))
-            kinds[f"{a}{b}"] += 1
-
-        return np.array([kinds[_] for _ in sorted(kinds.keys())])
-
-    def twobody_from_label(label):
-        coeffs = [bonds_from_subset(label, _) for _ in twobody_subsets()]
-        label = str(label)
-        kinds = {'15': 0, '16': 0, '17': 0}
-        for a in label[2:]:
-            kinds[f"1{a}"] += 1
-        coeffs.append(np.array([kinds[_] for _ in sorted(kinds.keys())]))
-        return np.concatenate(coeffs)
-
-
-    def leftover(df):
-        BONDS = np.array([twobody_from_label(_) for _ in df['label']])
-        
-        nC = 10-2*df.nBN.values
-        nBN = df.nBN.values
-        ATOMS = np.array((nC, nBN)).T
-
-        A = np.hstack((ATOMS,BONDS))
-        coeff = np.linalg.lstsq(A, df.totalE.values)
-
-        return df.totalE.values - np.dot(A, coeff[0])
-
-    df['twobodyE'] = leftover(df)
-
-    df = df['label nBN totalE nuclearE electronicE atomicE dressedtotalE dressedelectronicE twobodyE'.split()].copy()
+    df = df['label nBN totalE nuclearE electronicE atomicE dressedtotalE dressedelectronicE'.split()].copy()
     return df
 
 @functools.lru_cache(maxsize=1)
@@ -360,3 +301,123 @@ def baselinehistograms():
     plt.hist(fetch_energies()['dressedtotalE'], histtype="step", label="dressed", **opts)
     plt.hist(fetch_energies()['twobodyE'], histtype="step", label="atom+twobody", **opts)
     plt.legend()
+
+#%%
+import jax
+import jax.numpy as jnp
+import itertools as it
+import scipy.spatial.distance as ssd
+
+class VDWBaseline:
+    """ Hard-coded for the naphthalene case."""
+    def fit(self, labels, properties):
+        #parameters = np.array((1,1,1,1,2,2,2,2), dtype=np.float)
+        parameters = np.array([0.06788786,  0.9530318,  0.12076921,  0.99212635, 1.3718097,   1.7186185, 1.3297557,   1.953924  ])
+        coordinates = get_compound(6666666666).coordinates
+        dm = ssd.squareform(ssd.pdist(coordinates))
+
+        @jax.jit                    
+        def _vdw(Q):
+            energies = jnp.zeros(len(labels))
+            print ("new eval")
+            for labelidx in range(len(labels)):
+                label = str(labels[labelidx])
+                for i, j in it.combinations(range(len(coordinates)), 2):
+                    pos_i = 0
+                    if i < 10:
+                        pos_i = '1567'.index(label[i])
+                    pos_j = 0
+                    if j < 10:
+                        pos_j = '1567'.index(label[j])
+                    epsilon_i = Q[pos_i]*Q[pos_i]
+                    epsilon_j = Q[pos_j]*Q[pos_j]
+                    sigma_i = Q[pos_i+4]*Q[pos_i+4]
+                    sigma_j = Q[pos_j+4]*Q[pos_j+4]
+                    sigma = (sigma_i + sigma_j)/2
+                    epsilon = jnp.sqrt(epsilon_i*epsilon_j)
+                    r = dm[i, j]
+                    energies = energies.at[labelidx].add(epsilon*((sigma/r)**12-(sigma/r)**6))
+            
+            return jnp.linalg.norm(energies - properties)/energies.shape[0]
+        gradf = jax.grad(_vdw)
+        for i in range(10):
+            print (parameters)
+            print ("iteration", _vdw(parameters))
+            print ("v")
+            parameters -= gradf(parameters)*1e-6
+            print ("^")
+        return (parameters)
+
+b = VDWBaseline()
+labels = fetch_energies().label.head(2).values
+properties = fetch_energies().atomicE.head(2).values
+b.fit(labels, properties)
+
+# %%
+fetch_energies().label.head().values
+
+#%%
+@functools.lru_cache(maxsize=1)
+    def twobody_subsets():
+        
+        dm = 
+        subsets = []
+        for distance in set(dm.reshape(-1)):
+            if distance < 1e-3:
+                continue
+            subset = []
+            for i in range(10):
+                for j in range(i+1, 10):
+                    if abs(dm[i,j]  - distance) > 1e-3:
+                        continue
+                    subset.append((i+1, j+1))
+            subsets.append(subset)
+        return subsets
+
+    def bonds_from_subset(label, subset):
+        # target structure
+        kinds = {}
+        for i in (5,6,7,):
+            for j in (5,6,7):
+                a, b = sorted((i, j))
+                kinds[f"{a}{b}"] = 0
+        bonds = subset
+
+        # build entries
+        label = str(label)
+        for i, j in bonds:
+            a, b = sorted((label[i-1], label[j-1]))
+            kinds[f"{a}{b}"] += 1
+
+        return np.array([kinds[_] for _ in sorted(kinds.keys())])
+
+    def twobody_from_label(label):
+        coeffs = [bonds_from_subset(label, _) for _ in twobody_subsets()]
+        label = str(label)
+        kinds = {'15': 0, '16': 0, '17': 0}
+        for a in label[2:]:
+            kinds[f"1{a}"] += 1
+        coeffs.append(np.array([kinds[_] for _ in sorted(kinds.keys())]))
+        return np.concatenate(coeffs)
+
+
+    def fit(X, Y):
+        components = 
+
+        BONDS = np.array([twobody_from_label(_) for _ in df['label']])
+        
+        nC = 10-2*df.nBN.values
+        nBN = df.nBN.values
+        ATOMS = np.array((nC, nBN)).T
+
+        A = np.hstack((ATOMS,BONDS))
+        coeff = np.linalg.lstsq(A, df.totalE.values)
+
+        return df.totalE.values - np.dot(A, coeff[0])
+
+
+    def fit(X, Y):
+
+    df['twobodyE'] = leftover(df)
+    def transform(X):
+
