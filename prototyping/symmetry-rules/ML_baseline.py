@@ -57,18 +57,7 @@ def fetch_energies():
     atoms = (10 - 2 * df.nBN.values) * C + df.nBN.values * (B + N)
     df["atomicE"] = df.totalE.values - atoms
 
-    # dressed atom
-    nC = 10 - 2 * df.nBN.values
-    nBN = df.nBN.values
-    A = np.array((nC, nBN)).T
-    coeff = np.linalg.lstsq(A, df.electronicE.values)
-    df["dressedelectronicE"] = df.electronicE.values - np.dot(A, coeff[0])
-    coeff = np.linalg.lstsq(A, df.totalE.values)
-    df["dressedtotalE"] = df.totalE.values - np.dot(A, coeff[0])
-
-    df = df[
-        "label nBN totalE nuclearE electronicE atomicE dressedtotalE dressedelectronicE".split()
-    ].copy()
+    df = df["label nBN totalE nuclearE electronicE atomicE".split()].copy()
     return df
 
 
@@ -113,7 +102,7 @@ anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
 
 
-def get_learning_curve(df, repname, propname):
+def get_learning_curve(df, repname, propname, baselineclass):
     X = np.array(
         [get_representation(get_compound(_), repname) for _ in df.label.values]
     )
@@ -126,18 +115,23 @@ def get_learning_curve(df, repname, propname):
         Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
 
         for lval in (1e-7, 1e-9, 1e-11, 1e-13):
-            for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
+            # for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
+            for ntrain in (8, 32, 128, 512, 2048):
                 maes = []
-                for k in range(5):
+                for k in range(2):
                     np.random.shuffle(totalidx)
                     train, test = totalidx[:ntrain], totalidx[ntrain:]
+                    baseline = baselineclass()
+                    b = baseline.fit(X[train], Y[train])
 
                     K_subset = Ktotal[np.ix_(train, train)]
                     K_subset[np.diag_indices_from(K_subset)] += lval
-                    alphas = qml.math.cho_solve(K_subset, Y[train])
+                    alphas = qml.math.cho_solve(K_subset, Y[train] - b)
 
                     K_subset = Ktotal[np.ix_(train, test)]
-                    pred = np.dot(K_subset.transpose(), alphas)
+                    pred = np.dot(K_subset.transpose(), alphas) + baseline.transform(
+                        X[test]
+                    )
                     actual = Y[test]
 
                     maes.append(np.abs(pred - actual).mean())
@@ -299,6 +293,9 @@ def are_strict_alchemical_enantiomers(dz1, dz2):
 
 # endregion
 
+#%%
+get_learning_curve(fetch_energies(), "CM", "atomicE", DressedBaseline)
+
 # %%
 # region visualisation
 def learning_curves():
@@ -374,9 +371,44 @@ def baselinehistograms():
 # endregion
 
 #%%
+# region baselines
+
+
+class IdentityBaseline:
+    LABEL = ""
+
+    def fit(self, labels, properties, hint=None):
+        return properties * 0
+
+    def transform(self, labels):
+        return np.zeros(len(labels))
+
+
+class DressedBaseline:
+    LABEL = "Dressed"
+
+    def fit(self, labels, properties, hint=None):
+        nC, nBN = [], []
+        for label in labels:
+            label = str(label)
+            nC.append(len([_ for _ in label if _ == "6"]))
+            nBN.append((10 - nC[-1]) / 2)
+        A = np.array((nC, nBN)).T
+        self._coeff = np.linalg.lstsq(A, properties)[0]
+        return np.dot(A, self._coeff)
+
+    def transform(self, labels):
+        nC, nBN = [], []
+        for label in labels:
+            label = str(label)
+            nC.append(len([_ for _ in label if _ == "6"]))
+            nBN.append((10 - nC[-1]) / 2)
+        A = np.array((nC, nBN)).T
+        return np.dot(A, self._coeff)
 
 
 class VDWBaseline:
+    LABEL = "vdW"
     """ Hard-coded for the naphthalene case."""
 
     def _build_matrices(self, labels):
@@ -510,11 +542,7 @@ class VDWBaseline:
         return np.linalg.norm(self._predict_np(parameters) - self._expected)
 
 
-v = VDWBaseline()
-p = v.fit(fetch_energies().label[:100].values, fetch_energies().atomicE[:100].values)
-p2 = v.transform(fetch_energies().label[:100].values)
-pp = v.transform(fetch_energies().label[100:].values)
-
+# endregion
 
 #%%
 # @functools.lru_cache(maxsize=1)
