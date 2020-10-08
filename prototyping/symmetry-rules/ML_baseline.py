@@ -13,8 +13,16 @@ from sklearn import datasets
 from sklearn.preprocessing import StandardScaler
 
 # AD
+# keep jax config first
+from jax.config import config
+
+config.update("jax_enable_x64", True)
 import jax
 import jax.numpy as jnp
+
+# Test for double precision import
+x = jax.random.uniform(jax.random.PRNGKey(0), (1,), dtype=jnp.float64)
+assert x.dtype == jnp.dtype("float64"), "JAX not in double precision mode"
 
 # Helper
 import pandas as pd
@@ -408,8 +416,10 @@ class VDWBaseline:
             element_i_id = order.index(label[i])
             for j in range(i + 1, 18):
                 element_j_id = order.index(label[j])
-                epsilon = np.sqrt(epsilons[element_i_id] * epsilons[element_j_id])
-                sigma = (sigmas[element_i_id] * sigmas[element_j_id]) / 2
+                epsilon = np.sqrt(
+                    epsilons[element_i_id] ** 2 * epsilons[element_j_id] ** 2
+                )
+                sigma = (sigmas[element_i_id] ** 2 + sigmas[element_j_id] ** 2) / 2
                 r = dm[i, j]
                 energy += epsilon * ((sigma / r) ** 12 - (sigma / r) ** 6)
         return energy
@@ -428,19 +438,38 @@ class VDWBaseline:
         # predict
         v = VDWBaseline()
         v.fit(labels, true_energies)
-        # print (np.linalg.norm(c.predict(labels) - true_energies))
 
-    def fit(self, labels, properties):
+    def fit(self, labels, properties, hint=None):
+        if hint is None:
+            hint = jnp.ones(8)
+        else:
+            hine = jnp.array(hint)
         self._build_matrices(labels)
         self._expected = properties
 
-        result = sco.minimize(
-            self._residuals, x0=jnp.ones(8), jac=jax.grad(self._residuals), method="CG"
+        result = sco.differential_evolution(
+            self._residuals_np,
+            bounds=(
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+                (0.5, 2),
+            ),
         )
-        print(result.x, result.fun)
+        pred = self._predict_np(result.x)
+        self._best_params = result.x
+        return pred
+
+    def transform(self, labels):
+        self._build_matrices(labels)
+        return self._predict_np(self._best_params)
 
     @functools.partial(jax.jit, static_argnums=(0,))
-    def _predict(self, parameters):
+    def _predict_ad(self, parameters):
         order = "1567"
         sigmas = jnp.zeros(10)
         epsilons = jnp.zeros(10)
@@ -457,62 +486,34 @@ class VDWBaseline:
         return pred
 
     @functools.partial(jax.jit, static_argnums=(0,))
-    def _residuals(self, parameters):
-        pred = self._predict(parameters)
+    def _residuals_ad(self, parameters):
+        pred = self._predict_ad(parameters)
         return jnp.linalg.norm(pred - self._expected)
 
+    def _predict_np(self, parameters):
+        order = "1567"
+        sigmas = np.zeros(10)
+        epsilons = np.zeros(10)
+        for kidx, kind in enumerate(self._kinds):
+            e1 = order.index(kind[0])
+            e2 = order.index(kind[1])
+            eps1 = parameters[e1] * parameters[e1]
+            eps2 = parameters[e2] * parameters[e2]
+            sig1 = parameters[e1 + 4] * parameters[e1 + 4]
+            sig2 = parameters[e2 + 4] * parameters[e2 + 4]
+            epsilons[kidx] = np.sqrt(eps1 * eps2)
+            sigmas[kidx] = (sig1 + sig2) / 2
+        pred = np.dot(self._mat12 * sigmas ** 12 - self._mat6 * sigmas ** 6, epsilons)
+        return pred
 
-VDWBaseline.test()
-# %%
-
-
-# kinds, mat6, mat12 = build_matrices(fetch_energies().label.values[100:])
-
-#%%
-parameters = jnp.array(
-    [
-        0.06788786,
-        0.9530318,
-        0.12076921,
-        0.99212635,
-        1.3718097,
-        1.7186185,
-        1.3297557,
-        1.953924,
-    ]
-)
+    def _residuals_np(self, parameters):
+        return np.linalg.norm(self._predict_np(parameters) - self._expected)
 
 
-x0 = jnp.array([2, 2, 2, 2, 0.5, 0.5, 0.5, 0.5])
-result = sco.minimize(residuals, x0=jnp.ones(8), jac=jax.grad(residuals), method="CG")
-print(result.x, result.fun)
-
-#%%
-q = fetch_energies().atomicE.values
-qq = {
-    "range": (0, 0.7),
-    "bins": 100,
-    "cumulative": True,
-    "histtype": "step",
-    "density": True,
-}
-plt.hist(np.abs(q - np.average(q)), label="atomic", **qq)
-q = predict(
-    [
-        1.3210275,
-        1.4704485,
-        1.2422168,
-        1.0012943,
-        0.7454262,
-        1.0606761,
-        1.1231637,
-        1.1754208,
-    ]
-)
-plt.hist(np.abs(q - np.average(q)), label="reduced", **qq)
-plt.legend()
-
-#%%
+v = VDWBaseline()
+p = v.fit(fetch_energies().label[:100].values, fetch_energies().atomicE[:100].values)
+p2 = v.transform(fetch_energies().label[:100].values)
+pp = v.transform(fetch_energies().label[100:].values)
 
 
 #%%
