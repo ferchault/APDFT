@@ -24,6 +24,7 @@ import requests
 import numpy as np
 import itertools as it
 import scipy.spatial.distance as ssd
+import scipy.optimize as sco
 
 # endregion
 # region data preparation
@@ -349,9 +350,6 @@ def distancediffplot(repname):
         plt.scatter(distances, differences)
 
 
-# endregion
-
-#%%
 def baselinehistograms():
     opts = {"cumulative": True, "range": (-0.8, 0.8), "bins": 100}
     o = fetch_energies()["atomicE"]
@@ -365,114 +363,110 @@ def baselinehistograms():
     plt.legend()
 
 
+# endregion
+
 #%%
 
 
 class VDWBaseline:
     """ Hard-coded for the naphthalene case."""
 
-    def fit(self, labels, properties):
-        # parameters = np.array((1,1,1,1,2,2,2,2), dtype=np.float)
-        parameters = np.array(
-            [
-                0.06788786,
-                0.9530318,
-                0.12076921,
-                0.99212635,
-                1.3718097,
-                1.7186185,
-                1.3297557,
-                1.953924,
-            ]
-        )
+    def _build_matrices(self, labels):
         coordinates = get_compound(6666666666).coordinates
         dm = ssd.squareform(ssd.pdist(coordinates))
 
-        def _vdwonelabel(epsilons, sigmas):
-            print("new onelabel compile")
-            energy = 0
+        kinds = []
+        for i in (1, 5, 6, 7):
+            for j in (1, 5, 6, 7):
+                a, b = sorted((i, j))
+                kinds.append(f"{a}{b}")
+        kinds = sorted(set(kinds))
+
+        mat6 = np.zeros((len(labels), len(kinds)))
+        mat12 = np.zeros((len(labels), len(kinds)))
+        for labelidx in range(len(labels)):
+            label = str(labels[labelidx]) + "11111111"
             for i in range(18):
-                ei = epsilons[i] * epsilons[i]
-                oi = sigmas[i] * sigmas[i]
                 for j in range(i + 1, 18):
-                    ej = epsilons[j] * epsilons[j]
-                    oj = sigmas[j] * sigmas[j]
-                    e = jnp.sqrt(ei * ej)
-                    o = (oi + oj) / 2
-                    q = (o / dm[i, j]) ** 6
-                    energy += e * (q ** 2 - q)
-            return energy
+                    a, b = sorted((label[i], label[j]))
+                    mat6[labelidx, kinds.index(f"{a}{b}")] += 1 / dm[i, j] ** 6
+                    mat12[labelidx, kinds.index(f"{a}{b}")] += 1 / dm[i, j] ** 12
 
-        _vdwonelabel = jax.jit(_vdwonelabel)
+        self._kinds = kinds
+        self._mat6 = mat6
+        self._mat12 = mat12
 
-        def _vdw(Q, labels, dm):
-            energies = jnp.zeros(len(labels))
-            print("new vdw compile")
-            for labelidx in range(len(labels)):
-                epsilons = Q[labels[labelidx, :18]]
-                sigmas = Q[labels[labelidx, 18:]]
-                energies = energies.at[labelidx].set(_vdwonelabel(sigmas, epsilons))
-
-            return jnp.linalg.norm(energies - properties) / energies.shape[0]
-
-        _vdw = jax.jit(_vdw, static_argnums=(1, 2))
-        gradf = jax.grad(_vdw)
-        for i in range(20):
-            # print (parameters)
-            print("iteration", _vdw(parameters, labels, dm))
-            # print ("v")
-            g = gradf(parameters, labels, dm)
-            g /= np.linalg.norm(q)
-            g *= 0.1
-            parameters -= g
-            # print ("^")
-        return parameters
-
-
-def label2es(label):
-    label = str(label)
-    result = np.zeros(18 * 2, dtype=int)
-    for i in range(10):
-        result[i] = {"5": 1, "6": 2, "7": 3}[label[i]]
-        result[i + 18] = {"5": 1 + 4, "6": 2 + 4, "7": 3 + 4}[label[i]]
-    return result
-
-
-b = VDWBaseline()
-labels = np.array([label2es(_) for _ in fetch_energies().label.head(3).values])
-properties = fetch_energies().atomicE.head(3).values
-b.fit(labels, properties)
-
-# %%
-def build_matrices(labels):
-    coordinates = get_compound(6666666666).coordinates
-    dm = ssd.squareform(ssd.pdist(coordinates))
-
-    kinds = []
-    for i in (
-        1,
-        5,
-        6,
-        7,
-    ):
-        for j in (1, 5, 6, 7):
-            a, b = sorted((i, j))
-            kinds.append(f"{a}{b}")
-    kinds = sorted(set(kinds))
-
-    mat6 = np.zeros((len(labels), len(kinds)))
-    mat12 = np.zeros((len(labels), len(kinds)))
-    for labelidx in range(len(labels)):
-        label = str(labels[labelidx]) + "11111111"
+    @staticmethod
+    def _vdw_energy(params, label):
+        coordinates = get_compound(6666666666).coordinates
+        dm = ssd.squareform(ssd.pdist(coordinates))
+        epsilons, sigmas = params[:4], params[4:]
+        energy = 0
+        label = str(label) + "11111111"
+        order = "1567"
         for i in range(18):
+            element_i_id = order.index(label[i])
             for j in range(i + 1, 18):
-                a, b = sorted((label[i], label[j]))
-                mat6[labelidx, kinds.index(f"{a}{b}")] += 1 / dm[i, j] ** 6
-                mat12[labelidx, kinds.index(f"{a}{b}")] += 1 / dm[i, j] ** 12
-    return kinds, mat6, mat12
+                element_j_id = order.index(label[j])
+                epsilon = np.sqrt(epsilons[element_i_id] * epsilons[element_j_id])
+                sigma = (sigmas[element_i_id] * sigmas[element_j_id]) / 2
+                r = dm[i, j]
+                energy += epsilon * ((sigma / r) ** 12 - (sigma / r) ** 6)
+        return energy
+
+    @staticmethod
+    def test():
+        true_parameters = np.ones(8) + np.random.normal(size=8) / 10
+        print(true_parameters)
+
+        # calculate vdW energies
+        labels = fetch_energies().label.values
+        true_energies = np.array(
+            [VDWBaseline._vdw_energy(true_parameters, _) for _ in labels]
+        )
+
+        # predict
+        v = VDWBaseline()
+        v.fit(labels, true_energies)
+        # print (np.linalg.norm(c.predict(labels) - true_energies))
+
+    def fit(self, labels, properties):
+        self._build_matrices(labels)
+        self._expected = properties
+
+        result = sco.minimize(
+            self._residuals, x0=jnp.ones(8), jac=jax.grad(self._residuals), method="CG"
+        )
+        print(result.x, result.fun)
+
+    @functools.partial(jax.jit, static_argnums=(0,))
+    def _predict(self, parameters):
+        order = "1567"
+        sigmas = jnp.zeros(10)
+        epsilons = jnp.zeros(10)
+        for kidx, kind in enumerate(self._kinds):
+            e1 = order.index(kind[0])
+            e2 = order.index(kind[1])
+            eps1 = parameters[e1] * parameters[e1]
+            eps2 = parameters[e2] * parameters[e2]
+            sig1 = parameters[e1 + 4] * parameters[e1 + 4]
+            sig2 = parameters[e2 + 4] * parameters[e2 + 4]
+            epsilons = epsilons.at[kidx].set(jnp.sqrt(eps1 * eps2))
+            sigmas = sigmas.at[kidx].set((sig1 + sig2) / 2)
+        pred = jnp.dot(self._mat12 * sigmas ** 12 - self._mat6 * sigmas ** 6, epsilons)
+        return pred
+
+    @functools.partial(jax.jit, static_argnums=(0,))
+    def _residuals(self, parameters):
+        pred = self._predict(parameters)
+        return jnp.linalg.norm(pred - self._expected)
 
 
-kinds, mat6, mat12 = build_matrices(fetch_energies().label.values[100:])
+VDWBaseline.test()
+# %%
+
+
+# kinds, mat6, mat12 = build_matrices(fetch_energies().label.values[100:])
 
 #%%
 parameters = jnp.array(
@@ -487,31 +481,6 @@ parameters = jnp.array(
         1.953924,
     ]
 )
-
-
-@jax.jit
-def predict(parameters):
-    order = "1567"
-    sigmas = jnp.zeros(10)
-    epsilons = jnp.zeros(10)
-    for kidx, kind in enumerate(kinds):
-        e1 = order.index(kind[0])
-        e2 = order.index(kind[1])
-        eps1 = parameters[e1] * parameters[e1]
-        eps2 = parameters[e2] * parameters[e2]
-        sig1 = parameters[e1 + 4] * parameters[e1 + 4]
-        sig2 = parameters[e2 + 4] * parameters[e2 + 4]
-        epsilons = epsilons.at[kidx].set(jnp.sqrt(eps1 * eps2))
-        sigmas = sigmas.at[kidx].set((sig1 + sig2) / 2)
-    pred = jnp.dot(mat12 * sigmas ** 12 - mat6 * sigmas ** 6, epsilons)
-    return pred
-
-
-@jax.jit
-def residuals(parameters):
-    expected = fetch_energies().atomicE.values[100:]
-    pred = predict(parameters)
-    return jnp.linalg.norm(pred - expected)
 
 
 x0 = jnp.array([2, 2, 2, 2, 0.5, 0.5, 0.5, 0.5])
