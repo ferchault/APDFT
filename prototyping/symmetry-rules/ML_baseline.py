@@ -90,7 +90,7 @@ def get_compound(label):
 
 #%%
 # region non-cached ML
-
+kcal = 627.509474063
 totalanmhessian = np.loadtxt("totalhessian.txt")
 _, totalanmvectors = np.linalg.eig(totalanmhessian)
 anmhessian = np.loadtxt("hessian.txt")
@@ -127,28 +127,7 @@ def get_learning_curve(df, repname, propname):
     
     rows = pd.DataFrame(rows)
     return rows.groupby("ntrain").min()['mae']
-#endregion
 
-
-def are_strict_alchemical_enantiomers(dz1, dz2):
-    """Special to naphthalene in a certain atom order."""
-    permA = [3,2,1,0,7,6,5,4,9,8]
-    permB = [7,6,5,4,3,2,1,0,8,9]
-    if sum(dz1[[9, 8]]) != 0:
-        return False
-    if sum(dz1[[0,3,4,7]]) != 0:
-        return False
-    if sum(dz1[[1,2,5,6]]) != 0:
-        return False
-    if np.abs(dz1 + dz2).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permA]).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permB]).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permA][permB]).sum() == 0:
-        return True
-    return False
 def canonicalize(dz):
     A = dz
     C = A[[3,2,1,0,7,6,5,4,9,8]]
@@ -218,25 +197,8 @@ for rep in "CM M3 ANM".split(): #PCA cANM tANM ANM CM M M2 M3
             continue
         lcs[label] = get_learning_curve(fetch_energies(), rep, propname)
 pd.DataFrame(lcs).to_pickle("lcs.cache")
-
-# %%
-kcal = 627.509474063
-markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+', 'cANM': 's', 'PCA': '*'}
-order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE twobodyE".split()
-for label, lc in lcs.items():
-    propname, repname = label.split('@')
-    if label not in "atomicE@CM twobodyE@CM dressedtotalE@CM atomicE@ANM twobodyE@ANM".split():
-        continue
-    #if repname not in "CM".split():
-    #    continue
-    #if propname not in "twobodyE atomicE":
-    #    continue
-    plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
-plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
-plt.xlabel("Training set size")
-plt.ylabel("MAE [kcal/mol]")
-
-# %%
+#endregion
+# region alchemy
 # find all labels which are strict alchemical enantiomers of each other
 # strategy: test whether any symmetry opertations cancels the dz vectors
 @functools.lru_cache(maxsize=1)
@@ -280,8 +242,47 @@ def find_all_strict_alchemical_enantiomers():
                 if are_strict_alchemical_enantiomers(dz1, dz2):
                     rels.append({'one': i, 'other': j})
     return pd.DataFrame(rels)
+    
+def are_strict_alchemical_enantiomers(dz1, dz2):
+    """Special to naphthalene in a certain atom order."""
+    permA = [3,2,1,0,7,6,5,4,9,8]
+    permB = [7,6,5,4,3,2,1,0,8,9]
+    if sum(dz1[[9, 8]]) != 0:
+        return False
+    if sum(dz1[[0,3,4,7]]) != 0:
+        return False
+    if sum(dz1[[1,2,5,6]]) != 0:
+        return False
+    if np.abs(dz1 + dz2).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permB]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA][permB]).sum() == 0:
+        return True
+    return False
+
+#endregion
 
 # %%
+# region visualisation
+def learning_curves():
+    markers = {'CM': 'o', 'M': 's', 'MS': 'v', 'M2': ">", 'M+CM': '^', 'M3': '<', 'ANM': 'x', 'tANM': '+', 'cANM': 's', 'PCA': '*'}
+    order = "totalE atomicE electronicE nuclearE dressedtotalE dressedelectronicE twobodyE".split()
+    for label, lc in lcs.items():
+        propname, repname = label.split('@')
+        if label not in "atomicE@CM twobodyE@CM dressedtotalE@CM atomicE@ANM twobodyE@ANM".split():
+            continue
+        #if repname not in "CM".split():
+        #    continue
+        #if propname not in "twobodyE atomicE":
+        #    continue
+        plt.loglog(lc.index, lc.values*kcal, f"{markers[repname]}-", label=label, color=f"C{order.index(propname)}")
+    plt.legend(bbox_to_anchor=(0,1,1,0.1),ncol=2)
+    plt.xlabel("Training set size")
+    plt.ylabel("MAE [kcal/mol]")
+
 def distancediffplot(repname):
     for nBN, group  in fetch_energies().groupby("nBN"):
         distances = []
@@ -300,7 +301,8 @@ def distancediffplot(repname):
                     break
         
         plt.scatter(distances, differences)
-distancediffplot("M2")
+
+# endregion
 
 #%%
 def baselinehistograms():
