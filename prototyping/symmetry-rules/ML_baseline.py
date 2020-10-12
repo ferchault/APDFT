@@ -109,6 +109,7 @@ def get_learning_curve(df, repname, propname, baselineclass):
     Y = df[propname].values
 
     rows = []
+    baseline = baselineclass(df)
     totalidx = np.arange(len(X), dtype=np.int)
     for sigma in 2.0 ** np.arange(-2, 10):
         print(sigma)
@@ -121,8 +122,7 @@ def get_learning_curve(df, repname, propname, baselineclass):
                 for k in range(2):
                     np.random.shuffle(totalidx)
                     train, test = totalidx[:ntrain], totalidx[ntrain:]
-                    baseline = baselineclass()
-                    b = baseline.fit(X[train], Y[train])
+                    b = baseline.fit(train, propname)
 
                     K_subset = Ktotal[np.ix_(train, train)]
                     K_subset[np.diag_indices_from(K_subset)] += lval
@@ -130,7 +130,7 @@ def get_learning_curve(df, repname, propname, baselineclass):
 
                     K_subset = Ktotal[np.ix_(train, test)]
                     pred = np.dot(K_subset.transpose(), alphas) + baseline.transform(
-                        X[test]
+                        test
                     )
                     actual = Y[test]
 
@@ -294,7 +294,7 @@ def are_strict_alchemical_enantiomers(dz1, dz2):
 # endregion
 
 #%%
-get_learning_curve(fetch_energies(), "CM", "atomicE", DressedBaseline)
+get_learning_curve(fetch_energies(), "CM", "atomicE", VDWBaseline)
 
 # %%
 # region visualisation
@@ -374,42 +374,60 @@ def baselinehistograms():
 # region baselines
 
 
-class IdentityBaseline:
+class Baseline:
+    def __init__(self, df):
+        pass
+
+    def fit(self, trainidx, propertyname):
+        pass
+
+    def transform(self, testidx):
+        pass
+
+
+class IdentityBaseline(Baseline):
     LABEL = ""
 
-    def fit(self, labels, properties, hint=None):
-        return properties * 0
+    def __init__(self, df):
+        self._df = df
 
-    def transform(self, labels):
-        return np.zeros(len(labels))
+    def fit(self, trainidx, propertyname):
+        return len(self._df) * 0
+
+    def transform(self, testidx):
+        return np.zeros(len(testidx))
 
 
-class DressedBaseline:
+class DressedBaseline(Baseline):
     LABEL = "Dressed"
 
-    def fit(self, labels, properties, hint=None):
+    def __init__(self, df):
+        self._df = df
         nC, nBN = [], []
-        for label in labels:
+        for label in df.label.values:
             label = str(label)
             nC.append(len([_ for _ in label if _ == "6"]))
             nBN.append((10 - nC[-1]) / 2)
-        A = np.array((nC, nBN)).T
+        self._A = np.array((nC, nBN)).T
+
+    def fit(self, trainidx, propertyname):
+        properties = self._df[propertyname].values[trainidx]
+        A = self._A[trainidx, :]
         self._coeff = np.linalg.lstsq(A, properties)[0]
         return np.dot(A, self._coeff)
 
-    def transform(self, labels):
-        nC, nBN = [], []
-        for label in labels:
-            label = str(label)
-            nC.append(len([_ for _ in label if _ == "6"]))
-            nBN.append((10 - nC[-1]) / 2)
-        A = np.array((nC, nBN)).T
+    def transform(self, testidx):
+        A = self._A[testidx, :]
         return np.dot(A, self._coeff)
 
 
 class VDWBaseline:
     LABEL = "vdW"
     """ Hard-coded for the naphthalene case."""
+
+    def __init__(self, df):
+        self._df = df
+        self._build_matrices(df.label.values)
 
     def _build_matrices(self, labels):
         coordinates = get_compound(6666666666).coordinates
@@ -471,14 +489,11 @@ class VDWBaseline:
         v = VDWBaseline()
         v.fit(labels, true_energies)
 
-    def fit(self, labels, properties, hint=None):
-        if hint is None:
-            hint = jnp.ones(8)
-        else:
-            hine = jnp.array(hint)
-        self._build_matrices(labels)
-        self._expected = properties
+    def fit(self, trainidx, propertyname):
+        hint = jnp.ones(8)
+        self._expected = self._df[propertyname].values[trainidx]
 
+        self._restrict = trainidx
         result = sco.differential_evolution(
             self._residuals_np,
             bounds=(
@@ -496,8 +511,8 @@ class VDWBaseline:
         self._best_params = result.x
         return pred
 
-    def transform(self, labels):
-        self._build_matrices(labels)
+    def transform(self, testidx):
+        self._restrict = testidx
         return self._predict_np(self._best_params)
 
     @functools.partial(jax.jit, static_argnums=(0,))
@@ -535,7 +550,11 @@ class VDWBaseline:
             sig2 = parameters[e2 + 4] * parameters[e2 + 4]
             epsilons[kidx] = np.sqrt(eps1 * eps2)
             sigmas[kidx] = (sig1 + sig2) / 2
-        pred = np.dot(self._mat12 * sigmas ** 12 - self._mat6 * sigmas ** 6, epsilons)
+        pred = np.dot(
+            self._mat12[self._restrict, :] * sigmas ** 12
+            - self._mat6[self._restrict, :] * sigmas ** 6,
+            epsilons,
+        )
         return pred
 
     def _residuals_np(self, parameters):
@@ -608,3 +627,14 @@ class VDWBaseline:
 
 #     df['twobodyE'] = leftover(df)
 #     def transform(X):
+
+#%%
+xs = (8, 32, 128, 512, 2048)
+cm = np.array((0.089137, 0.069463, 0.041231, 0.024067, 0.013137))
+cmbl = np.array((0.031417, 0.023576, 0.019008, 0.014052, 0.009398))
+plt.loglog(xs, cm * kcal, "o-", label="CM atomisation E")
+plt.loglog(xs, cmbl * kcal, "s-", label="CM atomisation E+vdW baseline")
+plt.legend()
+plt.xlabel("Training set size")
+plt.ylabel("MAE [kcal/mol]")
+# %%
