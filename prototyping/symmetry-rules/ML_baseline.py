@@ -93,6 +93,30 @@ def get_compound(label):
 
 # endregion
 
+# region helpers
+
+def are_strict_alchemical_enantiomers(dz1, dz2):
+    """Special to naphthalene in a certain atom order."""
+    permA = [3, 2, 1, 0, 7, 6, 5, 4, 9, 8]
+    permB = [7, 6, 5, 4, 3, 2, 1, 0, 8, 9]
+    if sum(dz1[[9, 8]]) != 0:
+        return False
+    if sum(dz1[[0, 3, 4, 7]]) != 0:
+        return False
+    if sum(dz1[[1, 2, 5, 6]]) != 0:
+        return False
+    if np.abs(dz1 + dz2).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permB]).sum() == 0:
+        return True
+    if np.abs(dz1 + dz2[permA][permB]).sum() == 0:
+        return True
+    return False
+
+# endregion
+
 #%%
 # region non-cached ML
 kcal = 627.509474063
@@ -269,26 +293,6 @@ def find_all_strict_alchemical_enantiomers():
                     rels.append({"one": i, "other": j})
     return pd.DataFrame(rels)
 
-
-def are_strict_alchemical_enantiomers(dz1, dz2):
-    """Special to naphthalene in a certain atom order."""
-    permA = [3, 2, 1, 0, 7, 6, 5, 4, 9, 8]
-    permB = [7, 6, 5, 4, 3, 2, 1, 0, 8, 9]
-    if sum(dz1[[9, 8]]) != 0:
-        return False
-    if sum(dz1[[0, 3, 4, 7]]) != 0:
-        return False
-    if sum(dz1[[1, 2, 5, 6]]) != 0:
-        return False
-    if np.abs(dz1 + dz2).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permA]).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permB]).sum() == 0:
-        return True
-    if np.abs(dz1 + dz2[permA][permB]).sum() == 0:
-        return True
-    return False
 
 
 # endregion
