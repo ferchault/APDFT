@@ -169,6 +169,65 @@ class DressedBaseline(Baseline):
         return np.dot(A, self._coeff)
 
 
+class MorseBaseline:
+    LABEL = "Morse"
+    """ Hard-coded for the naphthalene case.
+    Tested, works for both bonds and all interactions, but slow due to non-regressive nature of terms. Not substantially different from LJ."""
+
+    def __init__(self, df):
+        self._df = df
+        coordinates = get_compound(6666666666).coordinates
+        self._dm = ssd.squareform(ssd.pdist(coordinates))
+        self._order = "55 56 57 66 67 77".split()
+
+    def _energy(self, coefficients, label):
+        label = str(label)
+        energy = 0.0
+        # bonds = ((0,1), (1,3), (3,7), (6,7), (6,2), (2,0), (0,4), (4,8), (8,9), (9,5), (1,5))
+        # for i, j in bonds:
+        for i in range(10):
+            for j in range(i + 1, 10):
+                element_i = label[i]
+                element_j = label[j]
+                if element_i > element_j:
+                    kind = self._order.index(element_j + element_i)
+                else:
+                    kind = self._order.index(element_i + element_j)
+                de, ke, re = coefficients[kind * 3 : (kind + 1) * 3]
+                de = de * de
+                ke = ke * ke
+                re = re * re
+                dr = self._dm[i, j] - re
+                a = np.sqrt(ke / (2 * de))
+                q = np.exp(-a * dr)
+                energy += de * (q ** 2 - 2 * q)
+        return energy
+
+    def fit(self, trainidx, propertyname):
+        self._expected = self._df[propertyname].values[trainidx]
+
+        self._restrict = trainidx
+        result = sco.differential_evolution(
+            self._residuals_np, bounds=[(0.5, 2)] * 6 * 3, workers=30
+        )
+        pred = self._predict_np(result.x)
+        self._best_params = result.x
+        return pred
+
+    def transform(self, testidx):
+        self._restrict = testidx
+        return self._predict_np(self._best_params)
+
+    def _predict_np(self, parameters):
+        pred = np.array(
+            [self._energy(parameters, _) for _ in self._df.label.values[self._restrict]]
+        )
+        return pred
+
+    def _residuals_np(self, parameters):
+        return np.linalg.norm(self._predict_np(parameters) - self._expected)
+
+
 class VDWBaseline:
     LABEL = "vdW"
     """ Hard-coded for the naphthalene case."""
@@ -630,69 +689,11 @@ morse_potential(6666666657, np.ones(6 * 3))
 
 
 # %%
-class MorseBaseline:
-    LABEL = "Morse"
-    """ Hard-coded for the naphthalene case.
-    Tested, works for both bonds and all interactions, but slow due to non-regressive nature of terms. Not substantially different from LJ."""
-
-    def __init__(self, df):
-        self._df = df
-        coordinates = get_compound(6666666666).coordinates
-        self._dm = ssd.squareform(ssd.pdist(coordinates))
-        self._order = "55 56 57 66 67 77".split()
-
-    def _energy(self, coefficients, label):
-        label = str(label)
-        energy = 0.0
-        # bonds = ((0,1), (1,3), (3,7), (6,7), (6,2), (2,0), (0,4), (4,8), (8,9), (9,5), (1,5))
-        # for i, j in bonds:
-        for i in range(10):
-            for j in range(i + 1, 10):
-                element_i = label[i]
-                element_j = label[j]
-                if element_i > element_j:
-                    kind = self._order.index(element_j + element_i)
-                else:
-                    kind = self._order.index(element_i + element_j)
-                de, ke, re = coefficients[kind * 3 : (kind + 1) * 3]
-                de = de * de
-                ke = ke * ke
-                re = re * re
-                dr = self._dm[i, j] - re
-                a = np.sqrt(ke / (2 * de))
-                q = np.exp(-a * dr)
-                energy += de * (q ** 2 - 2 * q)
-        return energy
-
-    def fit(self, trainidx, propertyname):
-        self._expected = self._df[propertyname].values[trainidx]
-
-        self._restrict = trainidx
-        result = sco.differential_evolution(
-            self._residuals_np, bounds=[(0.5, 2)] * 6 * 3, workers=30
-        )
-        pred = self._predict_np(result.x)
-        self._best_params = result.x
-        return pred
-
-    def transform(self, testidx):
-        self._restrict = testidx
-        return self._predict_np(self._best_params)
-
-    def _predict_np(self, parameters):
-        pred = np.array(
-            [self._energy(parameters, _) for _ in self._df.label.values[self._restrict]]
-        )
-        return pred
-
-    def _residuals_np(self, parameters):
-        return np.linalg.norm(self._predict_np(parameters) - self._expected)
 
 
 m = MorseBaseline(fetch_energies())
 d = m.fit(np.arange(200), "atomicE")
 # %%
-plt.hist(d - fetch_energies()["atomicE"].values[:200], label="morse")
 plt.hist(q - fetch_energies()["atomicE"].values[:200], label="lj")
 plt.legend()
 # %%
