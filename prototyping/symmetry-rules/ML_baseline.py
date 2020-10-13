@@ -238,7 +238,6 @@ class VDWBaseline:
         v.fit(labels, true_energies)
 
     def fit(self, trainidx, propertyname):
-        hint = jnp.ones(8)
         self._expected = self._df[propertyname].values[trainidx]
 
         self._restrict = trainidx
@@ -254,6 +253,7 @@ class VDWBaseline:
                 (0.5, 2),
                 (0.5, 2),
             ),
+            workers=-1,
         )
         pred = self._predict_np(result.x)
         self._best_params = result.x
@@ -333,29 +333,34 @@ def get_learning_curve(df, repname, propname, baselineclass):
         print(sigma)
         Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
 
-        for lval in (1e-7, 1e-9, 1e-11, 1e-13):
-            for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
-                # for ntrain in (8, 32, 128, 512, 2048):
-                maes = []
-                for k in range(2):
-                    np.random.shuffle(totalidx)
-                    train, test = totalidx[:ntrain], totalidx[ntrain:]
-                    b = baseline.fit(train, propname)
+        # for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
+        for ntrain in (8, 32, 128, 512, 2048):
+            maes = {}
+            for k in range(2):
+                np.random.shuffle(totalidx)
+                train, test = totalidx[:ntrain], totalidx[ntrain:]
+                btrain = baseline.fit(train, propname)
+                btest = baseline.transform(test)
 
+                for lexp in (-7, -9, -11, -13):
+                    lval = 10 ** lexp
                     K_subset = Ktotal[np.ix_(train, train)]
                     K_subset[np.diag_indices_from(K_subset)] += lval
-                    alphas = qml.math.cho_solve(K_subset, Y[train] - b)
+                    alphas = qml.math.cho_solve(K_subset, Y[train] - btrain)
 
                     K_subset = Ktotal[np.ix_(train, test)]
-                    pred = np.dot(K_subset.transpose(), alphas) + baseline.transform(
-                        test
-                    )
+                    pred = np.dot(K_subset.transpose(), alphas) + btest
                     actual = Y[test]
 
-                    maes.append(np.abs(pred - actual).mean())
-                mae = sum(maes) / len(maes)
+                    thismae = np.abs(pred - actual).mean()
+                    if lexp not in maes:
+                        maes[lexp] = []
+                    maes[lexp].append(thismae)
+
+            for lexp in maes.keys():
+                mae = sum(maes[lexp]) / len(maes[lexp])
                 rows.append(
-                    {"sigma": sigma, "lval": lval, "ntrain": ntrain, "mae": mae}
+                    {"sigma": sigma, "lexp": lexp, "ntrain": ntrain, "mae": mae}
                 )
 
     rows = pd.DataFrame(rows)
@@ -493,7 +498,7 @@ def find_all_strict_alchemical_enantiomers():
 # endregion
 
 #%%
-get_learning_curve(fetch_energies(), "CM", "atomicE", IdentityBaseline)
+get_learning_curve(fetch_energies(), "CM", "atomicE", VDWBaseline)
 
 # %%
 # region visualisation
@@ -576,11 +581,122 @@ def baselinehistograms():
 xs = (8, 32, 128, 512, 2048)
 cm = np.array((0.089137, 0.069463, 0.041231, 0.024067, 0.013137))
 cmbl = np.array((0.031417, 0.023576, 0.019008, 0.014052, 0.009398))
+xs2full = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+cmtotaldressed = np.array(
+    (
+        0.100986,
+        0.093765,
+        0.081472,
+        0.064613,
+        0.056111,
+        0.042031,
+        0.032675,
+        0.024401,
+        0.017347,
+        0.013315,
+    )
+)
+q = lcs["totalE@CM"]
+plt.loglog(q.index, q.values * kcal, "o-", label="CM total E")
 plt.loglog(xs, cm * kcal, "o-", label="CM atomisation E")
-plt.loglog(xs, cmbl * kcal, "s-", label="CM atomisation E+vdW baseline")
+plt.loglog(xs, cmbl * kcal, "s-", label="CM atomic E+vdW baseline")
+plt.loglog(xs2full, cmtotaldressed * kcal, "s-", label="CM total E+dressed baseline")
 plt.legend()
 plt.xlabel("Training set size")
 plt.ylabel("MAE [kcal/mol]")
 # %%
-lcs["atomicE@CM"]
+
+# %%
+v = VDWBaseline(fetch_energies())
+v.fit(np.arange(200), "atomicE")
+q = v.transform(np.arange(200))
+# %%
+plt.hist(
+    fetch_energies()["atomicE"].values[:500]
+    - fetch_energies()["atomicE"].values[:500].mean()
+)
+# plt.hist(fetch_energies()["atomicE"].values[:500] - q)
+# %%
+coordinates = get_compound(6666666666).coordinates
+dm = ssd.squareform(ssd.pdist(coordinates))
+
+# %%
+def morse_potential(label, coefficients):
+
+    return energy
+
+
+morse_potential(6666666657, np.ones(6 * 3))
+
+
+# %%
+class MorseBaseline:
+    LABEL = "Morse"
+    """ Hard-coded for the naphthalene case.
+    Tested, works for both bonds and all interactions, but slow due to non-regressive nature of terms. Not substantially different from LJ."""
+
+    def __init__(self, df):
+        self._df = df
+        coordinates = get_compound(6666666666).coordinates
+        self._dm = ssd.squareform(ssd.pdist(coordinates))
+        self._order = "55 56 57 66 67 77".split()
+
+    def _energy(self, coefficients, label):
+        label = str(label)
+        energy = 0.0
+        # bonds = ((0,1), (1,3), (3,7), (6,7), (6,2), (2,0), (0,4), (4,8), (8,9), (9,5), (1,5))
+        # for i, j in bonds:
+        for i in range(10):
+            for j in range(i + 1, 10):
+                element_i = label[i]
+                element_j = label[j]
+                if element_i > element_j:
+                    kind = self._order.index(element_j + element_i)
+                else:
+                    kind = self._order.index(element_i + element_j)
+                de, ke, re = coefficients[kind * 3 : (kind + 1) * 3]
+                de = de * de
+                ke = ke * ke
+                re = re * re
+                dr = self._dm[i, j] - re
+                a = np.sqrt(ke / (2 * de))
+                q = np.exp(-a * dr)
+                energy += de * (q ** 2 - 2 * q)
+        return energy
+
+    def fit(self, trainidx, propertyname):
+        self._expected = self._df[propertyname].values[trainidx]
+
+        self._restrict = trainidx
+        result = sco.differential_evolution(
+            self._residuals_np, bounds=[(0.5, 2)] * 6 * 3, workers=30
+        )
+        pred = self._predict_np(result.x)
+        self._best_params = result.x
+        return pred
+
+    def transform(self, testidx):
+        self._restrict = testidx
+        return self._predict_np(self._best_params)
+
+    def _predict_np(self, parameters):
+        pred = np.array(
+            [self._energy(parameters, _) for _ in self._df.label.values[self._restrict]]
+        )
+        return pred
+
+    def _residuals_np(self, parameters):
+        return np.linalg.norm(self._predict_np(parameters) - self._expected)
+
+
+m = MorseBaseline(fetch_energies())
+d = m.fit(np.arange(200), "atomicE")
+# %%
+plt.hist(d - fetch_energies()["atomicE"].values[:200], label="morse")
+plt.hist(q - fetch_energies()["atomicE"].values[:200], label="lj")
+plt.legend()
+# %%
+d
+# %%
+q
 # %%
