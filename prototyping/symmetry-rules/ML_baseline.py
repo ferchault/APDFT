@@ -380,9 +380,16 @@ _, anmvectors = np.linalg.eig(anmhessian)
 
 
 def get_learning_curve(df, repname, propname, baselineclass):
-    X = np.array(
-        [get_representation(get_compound(_), repname) for _ in df.label.values]
-    )
+    if repname == "FCHL19":
+        combined = [
+            get_representation(get_compound(_), repname) for _ in df.label.values
+        ]
+        X = np.array([_[0] for _ in combined])
+        Q = np.array([_[1] for _ in combined])
+    else:
+        X = np.array(
+            [get_representation(get_compound(_), repname) for _ in df.label.values]
+        )
     Y = df[propname].values
 
     rows = []
@@ -390,7 +397,10 @@ def get_learning_curve(df, repname, propname, baselineclass):
     totalidx = np.arange(len(X), dtype=np.int)
     for sigma in 2.0 ** np.arange(-2, 10):
         print(sigma)
-        Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
+        if repname == "FCHL19":
+            Ktotal = qml.kernels.get_local_symmetric_kernel(X, Q, sigma)
+        else:
+            Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
 
         # for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
         for ntrain in (8, 32, 128, 512, 2048):
@@ -480,6 +490,16 @@ def get_representation(mol, repname):
     if repname == "PCA":
         rep = get_representation(mol, "M3")
         return pca.transform(np.array([rep]))
+    if repname == "FCHL19":
+        rep = qml.representations.generate_fchl_acsf(
+            mol.nuclear_charges,
+            mol.coordinates,
+            elements=[1, 5, 6, 7],
+            pad=18,
+            gradients=False,
+        )
+        qs = mol.nuclear_charges
+        return rep, qs
     if repname == "M+CM":
         return np.array(
             list(get_representation(mol, "M")) + list(get_representation(mol, "CM"))
@@ -557,7 +577,7 @@ def find_all_strict_alchemical_enantiomers():
 # endregion
 
 #%%
-get_learning_curve(fetch_energies(), "CM", "atomicE", VDWBaseline)
+get_learning_curve(fetch_energies(), "ANM", "atomicE", VDWBaseline)
 
 # %%
 # region visualisation
@@ -668,7 +688,7 @@ plt.ylabel("MAE [kcal/mol]")
 # %%
 v = VDWBaseline(fetch_energies())
 v.fit(np.arange(200), "atomicE")
-q = v.transform(np.arange(200))
+qexcluded = v.transform(np.arange(200))
 # %%
 plt.hist(
     fetch_energies()["atomicE"].values[:500]
@@ -680,24 +700,166 @@ coordinates = get_compound(6666666666).coordinates
 dm = ssd.squareform(ssd.pdist(coordinates))
 
 # %%
-def morse_potential(label, coefficients):
-
-    return energy
-
-
-morse_potential(6666666657, np.ones(6 * 3))
-
-
-# %%
-
-
-m = MorseBaseline(fetch_energies())
-d = m.fit(np.arange(200), "atomicE")
-# %%
-plt.hist(q - fetch_energies()["atomicE"].values[:200], label="lj")
-plt.legend()
-# %%
-d
-# %%
 q
+# %%
+def bondcounts(label):
+    """ turns out to be less effective"""
+    bonds = [
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 9),
+        (8, 9),
+        (8, 0),
+        (7, 8),
+        (6, 7),
+        (5, 6),
+        (4, 5),
+        (4, 9),
+    ]
+    label = str(label)
+    order = "15 16 17 55 56 57 66 67 77".split()
+    counts = np.zeros(len(order))
+    for i, j in bonds:
+        a, b = sorted((label[i], label[j]))
+        counts[order.index(a + b)] += 1
+
+    # for i in range(8):
+    #    counts[order.index("1" + label[i])] += 1
+    return counts
+
+
+def shielded_coulomb(labels):
+    coordinates = get_compound(6666666666).coordinates
+    dm = ssd.squareform(ssd.pdist(coordinates))
+
+    kinds = []
+    for i in (1, 5, 6, 7):
+        for j in (1, 5, 6, 7):
+            a, b = sorted((i, j))
+            kinds.append(f"{a}{b}")
+    kinds = sorted(set(kinds))
+
+    mat = np.zeros((len(labels), len(kinds)))
+    for labelidx in range(len(labels)):
+        label = str(labels[labelidx]) + "11111111"
+        for i in range(18):
+            for j in range(i + 1, 18):
+                a, b = sorted((label[i], label[j]))
+                mat[labelidx, kinds.index(f"{a}{b}")] += 1 / dm[i, j] ** 1
+    return kinds, mat
+
+
+kinds, mat = shielded_coulomb(fetch_energies().label.values[:200])
+expected = fetch_energies()["atomicE"].values[:200] - q
+
+
+def predict(params):
+    base = "1567"
+    t = []
+    for kind in kinds:
+        i = base.index(kind[0])
+        j = base.index(kind[1])
+        t.append(params[i] * params[j])
+    return np.dot(mat, t)
+
+
+def dresiduals(params):
+    t = predict(params)
+    return np.linalg.norm(expected - t)
+
+
+def explainrest():
+
+    result = sco.differential_evolution(
+        dresiduals,
+        bounds=(
+            (-20, 20),
+            (-20, 20),
+            (-20, 20),
+            (-20, 20),
+        ),
+        workers=-1,
+    )
+    return predict(result.x)
+
+
+qmod = explainrest()
+
+
+# A = np.array([bondcounts(_) for _ in fetch_energies().label.values[:200]])
+# coeff = np.linalg.lstsq(A, fetch_energies()["atomicE"].values[:200]-qexcluded)[0]
+# coeff
+# %%
+# plt.hist(fetch_energies()["atomicE"].values[:200] - fetch_energies()["atomicE"].values[:200].mean(), histtype="step", bins=100, cumulative=True, label="atomic")
+p = np.dot(A, coeff)
+plt.hist(
+    fetch_energies()["atomicE"].values[:200] - q,
+    histtype="step",
+    range=(-0.1, 0.1),
+    bins=100,
+    cumulative=True,
+    label="allnonbonded",
+)
+plt.hist(
+    fetch_energies()["atomicE"].values[:200] - q - qmod,
+    histtype="step",
+    range=(-0.1, 0.1),
+    bins=100,
+    cumulative=True,
+    label="dbg",
+)
+plt.hist(
+    fetch_energies()["atomicE"].values[:200] - qexcluded,
+    histtype="step",
+    range=(-0.1, 0.1),
+    bins=100,
+    cumulative=True,
+    label="nonbonded",
+)
+
+plt.hist(
+    fetch_energies()["atomicE"].values[:200] - qexcluded - p,
+    histtype="step",
+    range=(-0.1, 0.1),
+    bins=100,
+    cumulative=True,
+    label="nonbonded+bonded",
+)
+plt.legend()
+
+# %%
+plt.hist(p)
+# %%
+coeff
+# %%
+fetch_energies().label.values[:200][
+    np.argsort(fetch_energies()["atomicE"].values[:200] - q)
+][-10:]
+# %%
+coordinates
+# %%
+dm[1, 3]
+# %%
+
+bonds = []
+for parts in "1-2 2-3 3-4 4-10 9-10 9-1 8-9 7-8 6-7 5-6 5-10".split():
+    a, b = parts.split("-")
+    bonds.append(((int(a) - 1, int(b) - 1)))
+print(bonds)
+# %%
+coeff
+# %%
+xs = (8, 32, 128, 512, 2048)
+fchl_id = np.array((0.031325, 0.017925, 0.015072, 0.008195, 0.00484)) * kcal
+fchl_lj = np.array((0.029810, 0.019111, 0.012034, 0.007158, 0.004074)) * kcal
+anm_lj = np.array((0.035546, 0.020728, 0.016307, 0.012154, 0.007119)) * kcal
+plt.loglog(xs, fchl_id, "o-", label="FCHL19")
+plt.loglog(xs, fchl_lj, "o-", label="FCHL19+LJ")
+a = lcs["atomicE@ANM"]
+plt.loglog(a.index, a.values * kcal, "o-", label="ANM")
+plt.loglog(xs, anm_lj, "o-", label="ANM+LJ")
+a = lcs["atomicE@CM"]
+plt.loglog(a.index, a.values * kcal, "o-", label="CM")
+plt.legend()
 # %%
