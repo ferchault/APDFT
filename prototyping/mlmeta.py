@@ -142,11 +142,14 @@ def get_KRR_learning_curve(
     rows = []
     totalidx = np.arange(len(X), dtype=np.int)
     maxtrainingset = np.floor(np.log(len(X)) / np.log(2))
-    for sigma in tqdm.tqdm(2.0 ** np.arange(-2, 10), desc="Sigmas"):
+    allsigmas = 2.0 ** np.arange(-2, 10)
+    for sigmaidx, sigma in enumerate(tqdm.tqdm(allsigmas, desc="Sigmas")):
         if representation == "FCHL19":
-            Ktotal = qml.kernels.get_local_symmetric_kernel(X, Q, sigma)
+            if sigmaidx == 0:
+                Ktotalcache = qml.kernels.get_local_symmetric_kernels(X, Q, allsigmas)
+            Ktotal = Ktotalcache[sigmaidx]
         else:
-            Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
+            Ktotal = qml.kernels.gaussian_kernel_symmetric(X, sigma)
 
         for ntrain in 2 ** np.arange(2, maxtrainingset + 1).astype(np.int):
             maes = {}
