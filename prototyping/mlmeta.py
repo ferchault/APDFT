@@ -10,6 +10,7 @@ import requests
 import io
 import gzip
 import tarfile
+import tqdm
 
 # endregion
 
@@ -125,7 +126,7 @@ def get_representation(mol, repname, **repkwargs):
 
 
 def get_KRR_learning_curve(
-    molecules, representation, Y, transformation=None, k=5, repkwargs={}
+    molecules, representation, Y, transformation=None, k=5, **repkwargs
 ):
     if representation == "FCHL19":
         combined = [
@@ -134,17 +135,20 @@ def get_KRR_learning_curve(
         X = np.array([_[0] for _ in combined])
         Q = np.array([_[1] for _ in combined])
     else:
-        X = np.array([get_representation(_, repname, **repkwargs) for _ in molecules])
+        X = np.array(
+            [get_representation(_, representation, **repkwargs) for _ in molecules]
+        )
 
     rows = []
     totalidx = np.arange(len(X), dtype=np.int)
-    for sigma in 2.0 ** np.arange(-2, 10):
-        if repname == "FCHL19":
+    maxtrainingset = np.floor(np.log(len(X)) / np.log(2))
+    for sigma in tqdm.tqdm(2.0 ** np.arange(-2, 10), desc="Sigmas"):
+        if representation == "FCHL19":
             Ktotal = qml.kernels.get_local_symmetric_kernel(X, Q, sigma)
         else:
             Ktotal = qml.kernels.gaussian_kernel(X, X, sigma)
 
-        for ntrain in (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048):
+        for ntrain in 2 ** np.arange(2, maxtrainingset + 1).astype(np.int):
             maes = {}
             for fold in range(k):
                 np.random.shuffle(totalidx)
