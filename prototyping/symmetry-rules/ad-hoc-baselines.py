@@ -2,10 +2,15 @@
 #%%
 import sys
 import functools
+import importlib
+import itertools as it
+
 import numpy as np
+import matplotlib.pyplot as plt
+import scipy.spatial.distance as ssd
+import scipy.optimize as sco
 
 sys.path.append("..")
-import importlib
 import mlmeta
 
 importlib.reload(mlmeta)
@@ -59,7 +64,6 @@ class DressedAtom(Baseline):
         for mol in self._mols:
             elements = elements | set(mol.nuclear_charges)
         elements = sorted(elements)
-        print(elements)
 
         self._A = np.zeros((len(self._mols), len(elements)))
         for molidx, mol in enumerate(self._mols):
@@ -67,10 +71,12 @@ class DressedAtom(Baseline):
                 self._A[molidx, elements.index(Z)] += 1
 
     def __call__(self, trainidx, testidx, Y):
+        # fit
         A = self._A[trainidx, :]
         coeff = np.linalg.lstsq(A, Y[trainidx])[0]
         trainresiduals = np.dot(A, coeff)
 
+        # transform
         A = self._A[testidx, :]
         testresiduals = np.dot(A, coeff)
         return trainresiduals, testresiduals
@@ -81,22 +87,41 @@ class BondCounting(Baseline):
 
 
 class LennardJonesLorentzBerthelot(Baseline):
-    pass
+    def _build_cache(self):
+        elements = set()
+        for mol in self._mols:
+            elements = elements | set(mol.nuclear_charges)
+        elements = sorted(elements)
+        combos = it.combinations_with_replacement(elements, r=2)
+        kinds = ["-".join(map(str, _)) for _ in combos]
+
+        mat6 = np.zeros((len(self._mols), len(kinds)))
+        mat12 = np.zeros((len(self._mols), len(kinds)))
+        for idx, mol in enumerate(self._mols):
+            dm = ssd.squareform(ssd.pdist(mol.coordinates))
+            for i in range(mol.natoms):
+                for j in range(i + 1, mol.natoms):
+                    a, b = sorted((mol.nuclear_charges[i], mol.nuclear_charges[j]))
+                    mat6[labelidx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 6
+                    mat12[labelidx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 12
+
+        self._kinds = kinds
+        self._mat6 = mat6
+        self._mat12 = mat12
+
+    def __call__(self, trainidx, testidx, Y):
+        pass
 
 
 class D3(Baseline):
     pass
 
 
-# endregion
-#%%
-compounds, energies = mlmeta.database_naphtalene()
-# mlmeta.get_KRR_learning_curve(
-#    compounds, "FCHL19", energies, k=10, elements=[1, 5, 6, 7], pad=18
-# )
-b = DressedAtom(compounds)
-mlmeta.get_KRR_learning_curve(compounds, "CM", energies, transformation=b)
+class NuclearNuclear(Baseline):
+    pass
 
+
+# endregion
 # %%
 @functools.lru_cache(maxsize=1000)
 def learning_curve(dataset, repname, transformations):
@@ -123,5 +148,34 @@ def learning_curve(dataset, repname, transformations):
 
 
 # %%
-learning_curve("qm9:100", "CM", "Identity|DressedAtom")
+kcal = 627.509474063
+flavors = "Identity Identity|DressedAtom".split()
+for flavor in flavors:
+    xs, maes, stds = learning_curve("qm9:100", "CM", flavor)
+    plt.errorbar(
+        x=xs,
+        y=maes * kcal,
+        fmt="o-",
+        yerr=stds * kcal,
+        label=flavor,
+        markersize=10,
+        markeredgecolor="white",
+        markeredgewidth=3,
+    )
+plt.xscale("log")
+plt.xticks(xs, xs)
+plt.minorticks_off()
+plt.yscale("log", subsy=range(2, 10))
+plt.legend()
+plt.xlabel("Training set size")
+plt.ylabel("MAE [kcal/mol]")
+# %%
+
+# %%
+
+# %%
+compounds, energies = mlmeta.database_qm9(random_limit=100)
+dir(compounds[0])
+# %%
+
 # %%
