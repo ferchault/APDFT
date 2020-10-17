@@ -26,7 +26,7 @@ class MockXYZ(object):
 
 
 @functools.lru_cache(maxsize=1)
-def database_naphtalene():
+def database_naphthalene():
     """ Reads the BN-doped naphthalene database from network, https://arxiv.org/abs/2008.02784."""
     # energies
     df = pd.read_csv("https://zenodo.org/record/3994178/files/reference.csv?download=1")
@@ -159,7 +159,7 @@ def get_KRR_learning_curve(
                 if transformation is None:
                     btrain, btest = 0, 0
                 else:
-                    btrain, btest = transformation(trin, test)
+                    btrain, btest = transformation(train, test, Y)
 
                 for lexp in (-7, -9, -11, -13):
                     lval = 10 ** lexp
