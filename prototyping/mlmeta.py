@@ -177,10 +177,27 @@ def get_KRR_learning_curve(
                     maes[lexp].append(thismae)
 
             for lexp in maes.keys():
-                mae = sum(maes[lexp]) / len(maes[lexp])
+                mae = np.average(maes[lexp])
+                std = np.std(maes[lexp])
                 rows.append(
-                    {"sigma": sigma, "lexp": lexp, "ntrain": ntrain, "mae": mae}
+                    {
+                        "sigma": sigma,
+                        "lexp": lexp,
+                        "ntrain": ntrain,
+                        "mae": mae,
+                        "std": std,
+                    }
                 )
 
     rows = pd.DataFrame(rows)
-    return rows.groupby("ntrain").min()["mae"]
+    ns, maes, stds = [], [], []
+    for name, group in rows.groupby("ntrain"):
+        bestcase = group.sort_values("mae")
+        ns.append(name)
+        maes.append(bestcase["mae"].values[0])
+        stds.append(bestcase["std"].values[0])
+    ns = np.array(ns)
+    maes = np.array(maes)
+    stds = np.array(stds)
+    order = np.argsort(ns)
+    return ns[order], maes[order], stds[order]
