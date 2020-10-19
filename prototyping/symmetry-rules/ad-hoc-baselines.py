@@ -86,16 +86,16 @@ class DressedAtom(Baseline):
 
 class BondCounting(Baseline):
     def _perceive_bonds(self, compound):
-        u = mda.Universe.empty(n_atoms=c.natoms, trajectory=True)
+        u = mda.Universe.empty(n_atoms=compound.natoms, trajectory=True)
         labels = [
             bse.lut.element_sym_from_Z(_).capitalize() for _ in compound.nuclear_charges
         ]
         u.add_TopologyAttr("type", labels)
-        for atom in range(c.natoms):
+        for atom in range(compound.natoms):
             a = mda.core.groups.Atom(atom, u)
             a.position = compound.coordinates[atom]
 
-        return mda.topology.guessers.guess_bonds(u.atoms, c.coordinates)
+        return mda.topology.guessers.guess_bonds(u.atoms, compound.coordinates)
 
     def _build_cache(self):
         # bond perception
@@ -105,7 +105,7 @@ class BondCounting(Baseline):
             bs = self._perceive_bonds(mol)
             mol_kinds = {}
             for bond in bs:
-                a, b = sorted(([mol.nuclear_charges(_) for _ in bond]))
+                a, b = sorted(([mol.nuclear_charges[_] for _ in bond]))
                 kind = f"{a}-{b}"
                 kinds.add(kind)
                 if kind not in mol_kinds:
@@ -123,7 +123,8 @@ class BondCounting(Baseline):
     def __call__(self, trainidx, testidx, Y):
         # fit
         A = self._A[trainidx, :]
-        coeff = np.linalg.lstsq(A, Y[trainidx])[0]
+        A2 = A.T.dot(A) + 1e-7 * np.identity(A.shape[1])
+        coeff = np.linalg.lstsq(A2, A.T.dot(Y[trainidx]))[0]
         trainresiduals = np.dot(A, coeff)
 
         # transform
@@ -220,17 +221,25 @@ def learning_curve(dataset, repname, transformations):
     transformations = [globals()[_] for _ in transformations]
     ts = Pipeline(compounds, transformations)
 
-    return mlmeta.get_KRR_learning_curve(
-        compounds, repname, energies, transformation=ts, **repkwargs
+    # determine null model for this transformation
+    btrain, _ = ts(np.arange(len(energies)), [], energies)
+    residuals = energies - btrain
+    nullmodel = np.average(np.abs(np.median(residuals) - residuals))
+
+    res = mlmeta.get_KRR_learning_curve(
+        compounds, repname, energies, k=100, transformation=ts, **repkwargs
     )
+    return *res, nullmodel
 
 
 # %%
 kcal = 627.509474063
 repname = "CM"
-flavors = "Identity Identity|DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
-for flavor in flavors:
-    xs, maes, stds = learning_curve("qm9:100", repname, flavor)
+flavors = "Identity DressedAtom DressedAtom|BondCounting BondCounting".split()
+maxnull = 0
+for fidx, flavor in enumerate(flavors):
+    xs, maes, stds, nullmodel = learning_curve("qm9:100", repname, flavor)
+    maxnull = max(maxnull, nullmodel)
     label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
     label = f"{label}@{repname}"
     plt.errorbar(
@@ -242,19 +251,25 @@ for flavor in flavors:
         markersize=10,
         markeredgecolor="white",
         markeredgewidth=3,
+        color=f"C{fidx}",
     )
 plt.xscale("log")
 plt.xticks(xs, xs)
 plt.minorticks_off()
 plt.yscale("log", subsy=range(2, 10))
-plt.legend(frameon=False)
 plt.xlabel("Training set size")
 plt.ylabel("MAE [kcal/mol]")
-# %%
+plt.axhline(maxnull * kcal, label="Null model", color="grey")
+plt.legend(frameon=False)
+plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
+# plt.xlim(64, max(xs))
 
 # %%
 
+# %%
+cs, es = mlmeta.database_qm9(random_limit=1000)
 
 # %%
+
 
 # %%
