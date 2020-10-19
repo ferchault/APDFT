@@ -181,22 +181,26 @@ class LennardJonesLorentzBerthelot(Baseline):
         return pred
 
     def __call__(self, trainidx, testidx, Y):
+        shift = 10  # necessarily positive, as only negative numbers can be reliably modeled with LJ
+        if max(Y) > shift:
+            print("WARNING: Possibly positive value, check LJ baseline implementation")
         result = sco.differential_evolution(
             self._residuals,
             bounds=[(0.5, 2)] * len(self._elements * 2),
-            workers=8,
-            args=(trainidx, Y[trainidx]),
+            workers=1,
+            args=(trainidx, Y[trainidx] - shift),
         )
-        btrain = self._predict(trainidx, result.x)
-        btest = self._predict(testidx, result.x)
+        self._best_params = result.x
+        btrain = self._predict(trainidx, result.x) + shift
+        btest = self._predict(testidx, result.x) + shift
         return btrain, btest
 
 
-class D3(Baseline):
+class NuclearNuclear(Baseline):
     pass
 
 
-class NuclearNuclear(Baseline):
+class D3(Baseline):
     pass
 
 
@@ -242,7 +246,7 @@ def learning_curve(dataset, repname, transformations):
 
 # %%
 kcal = 627.509474063
-repname = "CM"
+repname = "FCHL19"
 flavors = "Identity DressedAtom DressedAtom|LennardJonesLorentzBerthelot LennardJonesLorentzBerthelot BondCounting".split()
 maxnull = 0
 for fidx, flavor in enumerate(flavors):
@@ -271,13 +275,3 @@ plt.axhline(maxnull * kcal, label="Null model", color="grey")
 plt.legend(frameon=False)
 plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
 # plt.xlim(64, max(xs))
-
-# %%
-
-# %%
-cs, es = mlmeta.database_qm9(random_limit=1000)
-
-# %%
-
-
-# %%
