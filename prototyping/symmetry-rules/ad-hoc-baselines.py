@@ -186,7 +186,7 @@ class LennardJonesLorentzBerthelot(Baseline):
             print("WARNING: Possibly positive value, check LJ baseline implementation")
         result = sco.differential_evolution(
             self._residuals,
-            bounds=[(0.5, 2)] * len(self._elements * 2),
+            bounds=[(0.5, 2)] * len(self._elements) * 2,
             workers=1,
             args=(trainidx, Y[trainidx] - shift),
         )
@@ -247,11 +247,13 @@ def learning_curve(dataset, repname, transformations):
 # %%
 kcal = 627.509474063
 repname = "FCHL19"
+dbbname = "naphthalene"
 flavors = "Identity DressedAtom DressedAtom|LennardJonesLorentzBerthelot LennardJonesLorentzBerthelot BondCounting".split()
 maxnull = 0
 for fidx, flavor in enumerate(flavors):
-    xs, maes, stds, nullmodel = learning_curve("naphthalene", repname, flavor)
+    xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
     maxnull = max(maxnull, nullmodel)
+    print(flavor, repname, maxnull)
     label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
     label = f"{label}@{repname}"
     plt.errorbar(
@@ -265,6 +267,7 @@ for fidx, flavor in enumerate(flavors):
         markeredgewidth=3,
         color=f"C{fidx}",
     )
+plt.title(dbname)
 plt.xscale("log")
 plt.xticks(xs, xs)
 plt.minorticks_off()
@@ -275,3 +278,34 @@ plt.axhline(maxnull * kcal, label="Null model", color="grey")
 plt.legend(frameon=False)
 plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
 # plt.xlim(64, max(xs))
+
+# %%
+# hyperparameters scanned large enough space?
+# residual norm for DA|LJLB - since learning seems worse
+# larger tss
+# cache last DE results
+cs, es = mlmeta.database_naphthalene()
+xs = np.arange(len(cs)).astype(np.int)
+da = DressedAtom(cs)
+captured, _ = da(xs, [], es)
+
+
+# %%
+import time
+
+lj = LennardJonesLorentzBerthelot(cs)
+
+# %%
+from pyinstrument import Profiler
+
+profiler = Profiler()
+profiler.start()
+capturedlj, _ = lj(xs, [], es - captured)
+profiler.stop()
+
+print(profiler.output_text(unicode=True, color=True))
+
+
+# %%
+lj._best_params
+# %%
