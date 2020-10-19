@@ -9,11 +9,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as ssd
 import scipy.optimize as sco
+import MDAnalysis as mda
+import basis_set_exchange as bse
 
 sys.path.append("..")
 import mlmeta
 
-importlib.reload(mlmeta)
+# importlib.reload(mlmeta)
 
 #%%
 # region Baselines
@@ -83,7 +85,51 @@ class DressedAtom(Baseline):
 
 
 class BondCounting(Baseline):
-    pass
+    def _perceive_bonds(self, compound):
+        u = mda.Universe.empty(n_atoms=c.natoms, trajectory=True)
+        labels = [
+            bse.lut.element_sym_from_Z(_).capitalize() for _ in compound.nuclear_charges
+        ]
+        u.add_TopologyAttr("type", labels)
+        for atom in range(c.natoms):
+            a = mda.core.groups.Atom(atom, u)
+            a.position = compound.coordinates[atom]
+
+        return mda.topology.guessers.guess_bonds(u.atoms, c.coordinates)
+
+    def _build_cache(self):
+        # bond perception
+        kinds = set()
+        bonds = []
+        for mol in self._mols:
+            bs = self._perceive_bonds(mol)
+            mol_kinds = {}
+            for bond in bs:
+                a, b = sorted(([mol.nuclear_charges(_) for _ in bond]))
+                kind = f"{a}-{b}"
+                kinds.add(kind)
+                if kind not in mol_kinds:
+                    mol_kinds[kind] = 0
+                mol_kinds[kind] += 1
+            bonds.append(mol_kinds)
+
+        # build cache matrix
+        kinds = sorted(kinds)
+        self._A = np.zeros((len(self._mols), len(kinds)))
+        for molidx, molbonds in enumerate(bonds):
+            for b in molbonds:
+                self._A[molidx, kinds.index(b)] += 1
+
+    def __call__(self, trainidx, testidx, Y):
+        # fit
+        A = self._A[trainidx, :]
+        coeff = np.linalg.lstsq(A, Y[trainidx])[0]
+        trainresiduals = np.dot(A, coeff)
+
+        # transform
+        A = self._A[testidx, :]
+        testresiduals = np.dot(A, coeff)
+        return trainresiduals, testresiduals
 
 
 class LennardJonesLorentzBerthelot(Baseline):
@@ -102,8 +148,8 @@ class LennardJonesLorentzBerthelot(Baseline):
             for i in range(mol.natoms):
                 for j in range(i + 1, mol.natoms):
                     a, b = sorted((mol.nuclear_charges[i], mol.nuclear_charges[j]))
-                    mat6[labelidx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 6
-                    mat12[labelidx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 12
+                    mat6[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 6
+                    mat12[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 12
 
         self._kinds = kinds
         self._mat6 = mat6
@@ -112,12 +158,12 @@ class LennardJonesLorentzBerthelot(Baseline):
     def _residuals(self, params, trainidx, Y):
         return np.linalg.norm(self._predict(trainidx, params) - Y)
 
-    def _predict(self, trainidx, params):
+    def _predict(self, trainidx, parameters):
         order = self._elements
         sigmas = np.zeros(len(self._kinds))
         epsilons = np.zeros(len(self._kinds))
         for kidx, kind in enumerate(self._kinds):
-            kind = kind.split("-")
+            kind = [int(_) for _ in kind.split("-")]
             e1 = order.index(kind[0])
             e2 = order.index(kind[1])
             eps1 = parameters[e1] * parameters[e1]
@@ -136,13 +182,14 @@ class LennardJonesLorentzBerthelot(Baseline):
     def __call__(self, trainidx, testidx, Y):
         result = sco.differential_evolution(
             self._residuals,
-            bounds=[(0.5, 2)]*len(self._elements*2),
-            workers=-1,
-            args={'trainidx': trainidx, 'Y': Y[trainidx]}
+            bounds=[(0.5, 2)] * len(self._elements * 2),
+            workers=1,
+            args=(trainidx, Y[trainidx]),
         )
         btrain = self._predict(trainidx, result.x)
         btest = self._predict(testidx, result.x)
         return btrain, btest
+
 
 class D3(Baseline):
     pass
@@ -180,15 +227,18 @@ def learning_curve(dataset, repname, transformations):
 
 # %%
 kcal = 627.509474063
-flavors = "Identity Identity|DressedAtom".split()
+repname = "CM"
+flavors = "Identity Identity|DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
 for flavor in flavors:
-    xs, maes, stds = learning_curve("qm9:100", "CM", flavor)
+    xs, maes, stds = learning_curve("qm9:100", repname, flavor)
+    label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
+    label = f"{label}@{repname}"
     plt.errorbar(
         x=xs,
         y=maes * kcal,
         fmt="o-",
         yerr=stds * kcal,
-        label=flavor,
+        label=label,
         markersize=10,
         markeredgecolor="white",
         markeredgewidth=3,
@@ -197,16 +247,14 @@ plt.xscale("log")
 plt.xticks(xs, xs)
 plt.minorticks_off()
 plt.yscale("log", subsy=range(2, 10))
-plt.legend()
+plt.legend(frameon=False)
 plt.xlabel("Training set size")
 plt.ylabel("MAE [kcal/mol]")
 # %%
 
 # %%
 
-# %%
-compounds, energies = mlmeta.database_qm9(random_limit=100)
-dir(compounds[0])
+
 # %%
 
 # %%
