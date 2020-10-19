@@ -184,7 +184,7 @@ class LennardJonesLorentzBerthelot(Baseline):
         result = sco.differential_evolution(
             self._residuals,
             bounds=[(0.5, 2)] * len(self._elements * 2),
-            workers=1,
+            workers=8,
             args=(trainidx, Y[trainidx]),
         )
         btrain = self._predict(trainidx, result.x)
@@ -210,11 +210,19 @@ def learning_curve(dataset, repname, transformations):
         dataset, cutoff = dataset.split(":")
         dbargs["random_limit"] = int(cutoff)
 
+    # load dataset and determine representation parameters accordigly
     compounds, energies = getattr(mlmeta, f"database_{dataset}")(**dbargs)
+    elements = set()
+    maxlen = 0
+    for mol in compounds:
+        elements = elements | set(mol.nuclear_charges)
+        maxlen = max(maxlen, mol.natoms)
+    elements = sorted(elements)
+
     if repname == "FCHL19":
-        repkwargs = {"elements": [1, 5, 6, 7], "pad": 18}
+        repkwargs = {"elements": elements, "pad": maxlen}
     if repname == "CM":
-        repkwargs = {"size": 35}
+        repkwargs = {"size": maxlen}
 
     # transformation
     transformations = transformations.split("|")
@@ -227,7 +235,7 @@ def learning_curve(dataset, repname, transformations):
     nullmodel = np.average(np.abs(np.median(residuals) - residuals))
 
     res = mlmeta.get_KRR_learning_curve(
-        compounds, repname, energies, k=100, transformation=ts, **repkwargs
+        compounds, repname, energies, k=1, transformation=ts, **repkwargs
     )
     return *res, nullmodel
 
@@ -235,10 +243,10 @@ def learning_curve(dataset, repname, transformations):
 # %%
 kcal = 627.509474063
 repname = "CM"
-flavors = "Identity DressedAtom DressedAtom|BondCounting BondCounting".split()
+flavors = "Identity DressedAtom DressedAtom|LennardJonesLorentzBerthelot LennardJonesLorentzBerthelot BondCounting".split()
 maxnull = 0
 for fidx, flavor in enumerate(flavors):
-    xs, maes, stds, nullmodel = learning_curve("qm9:100", repname, flavor)
+    xs, maes, stds, nullmodel = learning_curve("naphthalene", repname, flavor)
     maxnull = max(maxnull, nullmodel)
     label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
     label = f"{label}@{repname}"
