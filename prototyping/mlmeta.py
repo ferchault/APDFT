@@ -201,3 +201,14 @@ def get_KRR_learning_curve(
     stds = np.array(stds)
     order = np.argsort(ns)
     return ns[order], maes[order], stds[order]
+
+
+def profile(function):
+    from pyinstrument import Profiler
+
+    profiler = Profiler()
+    profiler.start()
+    function()
+    profiler.stop()
+
+    print(profiler.output_text(unicode=True, color=True))
