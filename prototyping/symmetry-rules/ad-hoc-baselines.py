@@ -91,8 +91,8 @@ class LennardJonesLorentzBerthelot(Baseline):
         elements = set()
         for mol in self._mols:
             elements = elements | set(mol.nuclear_charges)
-        elements = sorted(elements)
-        combos = it.combinations_with_replacement(elements, r=2)
+        self._elements = sorted(elements)
+        combos = it.combinations_with_replacement(self._elements, r=2)
         kinds = ["-".join(map(str, _)) for _ in combos]
 
         mat6 = np.zeros((len(self._mols), len(kinds)))
@@ -109,9 +109,40 @@ class LennardJonesLorentzBerthelot(Baseline):
         self._mat6 = mat6
         self._mat12 = mat12
 
-    def __call__(self, trainidx, testidx, Y):
-        pass
+    def _residuals(self, params, trainidx, Y):
+        return np.linalg.norm(self._predict(trainidx, params) - Y)
 
+    def _predict(self, trainidx, params):
+        order = self._elements
+        sigmas = np.zeros(len(self._kinds))
+        epsilons = np.zeros(len(self._kinds))
+        for kidx, kind in enumerate(self._kinds):
+            kind = kind.split("-")
+            e1 = order.index(kind[0])
+            e2 = order.index(kind[1])
+            eps1 = parameters[e1] * parameters[e1]
+            eps2 = parameters[e2] * parameters[e2]
+            sig1 = parameters[e1 + 4] * parameters[e1 + 4]
+            sig2 = parameters[e2 + 4] * parameters[e2 + 4]
+            epsilons[kidx] = np.sqrt(eps1 * eps2)
+            sigmas[kidx] = (sig1 + sig2) / 2
+        pred = np.dot(
+            self._mat12[trainidx, :] * sigmas ** 12
+            - self._mat6[trainidx, :] * sigmas ** 6,
+            epsilons,
+        )
+        return pred
+
+    def __call__(self, trainidx, testidx, Y):
+        result = sco.differential_evolution(
+            self._residuals,
+            bounds=[(0.5, 2)]*len(self._elements*2),
+            workers=-1,
+            args={'trainidx': trainidx, 'Y': Y[trainidx]}
+        )
+        btrain = self._predict(trainidx, result.x)
+        btest = self._predict(testidx, result.x)
+        return btrain, btest
 
 class D3(Baseline):
     pass
