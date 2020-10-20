@@ -157,26 +157,22 @@ class LennardJonesLorentzBerthelot(Baseline):
         self._mat12 = mat12
 
     def _residuals(self, params, trainidx, Y):
-        return np.linalg.norm(self._predict(trainidx, params) - Y)
+        q = self._predict(trainidx, params)
+        return np.linalg.norm(q - Y)
 
     def _predict(self, trainidx, parameters):
-        order = self._elements
-        sigmas = np.zeros(len(self._kinds))
-        epsilons = np.zeros(len(self._kinds))
         for kidx, kind in enumerate(self._kinds):
-            kind = [int(_) for _ in kind.split("-")]
-            e1 = order.index(kind[0])
-            e2 = order.index(kind[1])
-            eps1 = parameters[e1] * parameters[e1]
-            eps2 = parameters[e2] * parameters[e2]
-            sig1 = parameters[e1 + 4] * parameters[e1 + 4]
-            sig2 = parameters[e2 + 4] * parameters[e2 + 4]
-            epsilons[kidx] = np.sqrt(eps1 * eps2)
-            sigmas[kidx] = (sig1 + sig2) / 2
+            kind = kind.split("-")
+            e1 = self._elements.index(int(kind[0]))
+            e2 = self._elements.index(int(kind[1]))
+            self._epsilons[kidx] = parameters[e1] * parameters[e2]
+            self._sigmas[kidx] = (parameters[e1 + 4] + parameters[e2 + 4]) / 2
+        self._sigmas = self._sigmas ** 6
+        self._epsilons = np.sqrt(self._epsilons)
         pred = np.dot(
-            self._mat12[trainidx, :] * sigmas ** 12
-            - self._mat6[trainidx, :] * sigmas ** 6,
-            epsilons,
+            self._mat12[trainidx, :] * (self._sigmas * self._sigmas)
+            - self._mat6[trainidx, :] * self._sigmas,
+            self._epsilons,
         )
         return pred
 
@@ -184,9 +180,12 @@ class LennardJonesLorentzBerthelot(Baseline):
         shift = 10  # necessarily positive, as only negative numbers can be reliably modeled with LJ
         if max(Y) > shift:
             print("WARNING: Possibly positive value, check LJ baseline implementation")
+
+        self._sigmas = np.zeros(len(self._kinds))
+        self._epsilons = np.zeros(len(self._kinds))
         result = sco.differential_evolution(
             self._residuals,
-            bounds=[(0.5, 2)] * len(self._elements) * 2,
+            bounds=[(0.25, 4)] * len(self._elements) * 2,
             workers=1,
             args=(trainidx, Y[trainidx] - shift),
         )
@@ -283,29 +282,3 @@ plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
 # hyperparameters scanned large enough space?
 # residual norm for DA|LJLB - since learning seems worse
 # larger tss
-# cache last DE results
-cs, es = mlmeta.database_naphthalene()
-xs = np.arange(len(cs)).astype(np.int)
-da = DressedAtom(cs)
-captured, _ = da(xs, [], es)
-
-
-# %%
-import time
-
-lj = LennardJonesLorentzBerthelot(cs)
-
-# %%
-from pyinstrument import Profiler
-
-profiler = Profiler()
-profiler.start()
-capturedlj, _ = lj(xs, [], es - captured)
-profiler.stop()
-
-print(profiler.output_text(unicode=True, color=True))
-
-
-# %%
-lj._best_params
-# %%
