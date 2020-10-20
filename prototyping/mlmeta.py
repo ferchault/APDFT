@@ -212,3 +212,13 @@ def profile(function):
     profiler.stop()
 
     print(profiler.output_text(unicode=True, color=True))
+
+
+def line_profile(cmd, functions=[]):
+    import line_profiler
+
+    p = line_profiler.LineProfiler()
+    for function in functions:
+        p.add_function(function)
+    p.run(cmd)
+    p.print_stats()
