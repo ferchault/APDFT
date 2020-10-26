@@ -265,34 +265,42 @@ repname = "FCHL19"
 dbname = "qm9:500"
 flavors = "Identity DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
 maxnull = 0
-for fidx, flavor in enumerate(flavors):
-    xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
-    maxnull = max(maxnull, nullmodel)
-    plt.axhline(nullmodel * kcal, xmin=0, xmax=0.2, color=f"C{fidx}")
-    print(flavor, nullmodel * kcal)
-    label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
-    label = f"{label}@{repname}"
-    plt.errorbar(
-        x=xs,
-        y=maes * kcal,
-        fmt="o-",
-        yerr=stds * kcal,
-        label=label,
-        markersize=10,
-        markeredgecolor="white",
-        markeredgewidth=3,
-        color=f"C{fidx}",
-    )
-plt.title(dbname)
-plt.xscale("log")
-plt.xticks(xs, xs)
-plt.minorticks_off()
-plt.yscale("log", subsy=range(2, 10))
-plt.xlabel("Training set size")
-plt.ylabel("MAE [kcal/mol]")
-plt.axhline(maxnull * kcal, label="Null model", color="grey")
-plt.legend(frameon=False)
-plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
+f, axs = plt.subplots(2, 1, sharex=True, figsize=(4, 10))
+bigpicture, relevant = axs
+for panel in axs:
+    for fidx, flavor in enumerate(flavors):
+        xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
+        maxnull = max(maxnull, nullmodel)
+        panel.axhline(nullmodel * kcal, xmin=0, xmax=0.2, color=f"C{fidx}")
+        print(flavor, nullmodel * kcal)
+        label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
+        label = f"{label}@{repname}"
+        panel.errorbar(
+            x=xs,
+            y=maes * kcal,
+            fmt="o-",
+            yerr=stds * kcal,
+            label=label,
+            markersize=10,
+            markeredgecolor="white",
+            markeredgewidth=3,
+            color=f"C{fidx}",
+        )
+bigpicture.set_title(dbname)
+for panel in axs:
+    panel.set_xscale("log")
+    panel.set_xticks(xs)
+    panel.set_xticklabels(xs)
+    panel.minorticks_off()
+    panel.set_yscale("log", subsy=range(2, 10))
+
+    panel.set_ylabel("MAE [kcal/mol]")
+    panel.axhline(maxnull * kcal, label="Null model", color="grey")
+    panel.legend(frameon=False)
+relevant.set_xlabel("Training set size")
+bigpicture.set_ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
+relevant.set_ylim(1, 20)
+plt.subplots_adjust(hspace=0, wspace=0)
 # plt.xlim(64, max(xs))
 
 # %%
