@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as ssd
 import scipy.optimize as sco
+import scipy.stats as sts
 import MDAnalysis as mda
 import basis_set_exchange as bse
 
@@ -44,9 +45,17 @@ class Pipeline:
         Ytest = 0
         Ytrain = 0
         Y = np.array(Y).copy()
+
+        # prohibit index clashes
+        if len(set(trainidx) & set(testidx)) > 0:
+            raise ValueError(
+                "Index duplication not allowed between train and test sets in query."
+            )
+
         for stage in self._stages:
             btrain, btest = stage(trainidx, testidx, Y)
             Y[trainidx] -= btrain
+            Y[testidx] -= btest
             Ytest += btest
             Ytrain += btrain
         return Ytrain, Ytest
@@ -57,7 +66,7 @@ class Identity(Baseline):
         pass
 
     def __call__(self, trainidx, testidx, Y):
-        return 0, 0
+        return np.zeros(len(trainidx)), np.zeros(len(testidx))
 
 
 class DressedAtom(Baseline):
@@ -177,29 +186,36 @@ class LennardJonesLorentzBerthelot(Baseline):
         return pred
 
     def __call__(self, trainidx, testidx, Y):
-        shift = 10  # necessarily positive, as only negative numbers can be reliably modeled with LJ
-        if max(Y) > shift:
-            print("WARNING: Possibly positive value, check LJ baseline implementation")
+        # adjust mean and variance to make it easier for LJ to fit the data
+        orig_Ytrain = Y[trainidx].copy()
+        shift = Y[trainidx].mean()
+        Y = Y.copy()
+        Y -= shift
+        std = np.std(Y[trainidx])
+        Y /= std
+        Y -= 1
 
+        # actual fit
         self._sigmas = np.zeros(len(self._kinds))
         self._epsilons = np.zeros(len(self._kinds))
         result = sco.differential_evolution(
             self._residuals,
-            bounds=[(0.25, 4)] * len(self._elements) * 2,
+            bounds=[(0.01, 100)] * len(self._elements) * 2,
             workers=1,
-            args=(trainidx, Y[trainidx] - shift),
+            args=(trainidx, Y[trainidx]),
         )
         self._best_params = result.x
-        btrain = self._predict(trainidx, result.x) + shift
-        btest = self._predict(testidx, result.x) + shift
+        btrain = (self._predict(trainidx, result.x) + 1) * std + shift
+        btest = (self._predict(testidx, result.x) + 1) * std + shift
+
+        # linear regression to fix scaling issues
+        poly = np.poly1d(np.polyfit(btrain, orig_Ytrain, deg=1))
+        btrain = poly(btrain)
+        btest = poly(btest)
         return btrain, btest
 
 
 class NuclearNuclear(Baseline):
-    pass
-
-
-class D3(Baseline):
     pass
 
 
@@ -238,7 +254,7 @@ def learning_curve(dataset, repname, transformations):
     nullmodel = np.average(np.abs(np.median(residuals) - residuals))
 
     res = mlmeta.get_KRR_learning_curve(
-        compounds, repname, energies, k=1, transformation=ts, **repkwargs
+        compounds, repname, energies, k=5, transformation=ts, **repkwargs
     )
     return *res, nullmodel
 
@@ -246,13 +262,14 @@ def learning_curve(dataset, repname, transformations):
 # %%
 kcal = 627.509474063
 repname = "FCHL19"
-dbbname = "naphthalene"
-flavors = "Identity DressedAtom DressedAtom|LennardJonesLorentzBerthelot LennardJonesLorentzBerthelot BondCounting".split()
+dbname = "qm9:500"
+flavors = "Identity DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
 maxnull = 0
 for fidx, flavor in enumerate(flavors):
     xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
     maxnull = max(maxnull, nullmodel)
-    print(flavor, repname, maxnull)
+    plt.axhline(nullmodel * kcal, xmin=0, xmax=0.2, color=f"C{fidx}")
+    print(flavor, nullmodel * kcal)
     label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
     label = f"{label}@{repname}"
     plt.errorbar(
@@ -279,6 +296,3 @@ plt.ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
 # plt.xlim(64, max(xs))
 
 # %%
-# hyperparameters scanned large enough space?
-# residual norm for DA|LJLB - since learning seems worse
-# larger tss
