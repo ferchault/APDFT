@@ -187,35 +187,35 @@ class LennardJonesLorentzBerthelot(Baseline):
         return pred
 
     def __call__(self, trainidx, testidx, Y):
-        # adjust mean and variance to make it easier for LJ to fit the data
-        # orig_Ytrain = Y[trainidx].copy()
-        # shift = Y[trainidx].mean()
-        # Y = Y.copy()
-        # Y -= shift
-        # std = np.std(Y[trainidx])
-        # Y /= std
-        # Y -= 1
-        shift = 10
+        baseshift = Y[trainidx].mean()  # remove mean
 
-        # actual fit
-        self._sigmas = np.zeros(len(self._kinds))
-        self._epsilons = np.zeros(len(self._kinds))
-        result = sco.differential_evolution(
-            self._residuals,
-            bounds=[(0.01, 100)] * len(self._elements) * 2,
-            workers=1,
-            args=(trainidx, Y[trainidx] - shift),
+        best_score = None
+        with open("ljsolutions.txt", "a") as fh:
+            for shift in (5, 10, 15, 20, 25):
+                # actual fit
+                self._sigmas = np.zeros(len(self._kinds))
+                self._epsilons = np.zeros(len(self._kinds))
+                result = sco.differential_evolution(
+                    self._residuals,
+                    bounds=[(0.01, 100)] * len(self._elements) * 2,
+                    workers=1,
+                    args=(trainidx, Y[trainidx] - baseshift - shift),
+                )
+                thisparams = list(result.x) + [shift]
+                if best_score is None or best_score > result.fun:
+                    self._best_params = thisparams
+                np.savetxt(fh, np.array([thisparams]))
+        btrain = (
+            self._predict(trainidx, self._best_params[:-1])
+            + baseshift
+            + self._best_params[-1]
         )
-        self._best_params = result.x
-        # btrain = (self._predict(trainidx, result.x) + 1) * std + shift
-        # btest = (self._predict(testidx, result.x) + 1) * std + shift
-        btrain = self._predict(trainidx, result.x) + shift
-        btest = self._predict(testidx, result.x) + shift
+        btest = (
+            self._predict(testidx, self._best_params[:-1])
+            + baseshift
+            + self._best_params[-1]
+        )
 
-        # linear regression to fix scaling issues
-        # poly = np.poly1d(np.polyfit(btrain, orig_Ytrain, deg=1))
-        # btrain = poly(btrain)
-        # btest = poly(btest)
         return btrain, btest
 
 
@@ -258,178 +258,85 @@ def learning_curve(dataset, repname, transformations):
     nullmodel = np.average(np.abs(np.median(residuals) - residuals))
 
     res = mlmeta.get_KRR_learning_curve(
-        compounds, repname, energies, k=5, transformation=ts, **repkwargs
+        compounds, repname, energies, k=1, transformation=ts, **repkwargs
     )
     return *res, nullmodel
 
 
 # %%
-kcal = 627.509474063
-repname = "FCHL19"
-dbname = "qm9:500"
-flavors = "Identity DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
-flavors = "Identity DressedAtom DressedAtom|BondCounting".split()
-maxnull = 0
-f, axs = plt.subplots(2, 1, sharex=True, figsize=(4, 10))
-bigpicture, relevant = axs
-for panel in axs:
-    for fidx, flavor in enumerate(flavors):
-        xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
-        maxnull = max(maxnull, nullmodel)
-        panel.axhline(nullmodel * kcal, xmin=0, xmax=0.2, color=f"C{fidx}")
-        print(flavor, nullmodel * kcal)
-        label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
-        label = f"{label}@{repname}"
-        panel.errorbar(
-            x=xs,
-            y=maes * kcal,
-            fmt="o-",
-            yerr=stds * kcal,
-            label=label,
-            markersize=10,
-            markeredgecolor="white",
-            markeredgewidth=3,
-            color=f"C{fidx}",
-        )
-bigpicture.set_title(dbname)
-for panel in axs:
-    panel.set_xscale("log")
-    panel.set_xticks(xs)
-    panel.set_xticklabels(xs)
-    panel.minorticks_off()
-    panel.set_yscale("log", subsy=range(2, 10))
+def do_lc():
+    kcal = 627.509474063
+    repname = "CM"
+    dbname = "naphthalene"
+    flavors = "Identity DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
+    # flavors = "Identity DressedAtom DressedAtom|BondCounting".split()
+    maxnull = 0
+    f, axs = plt.subplots(2, 1, sharex=True, figsize=(4, 10))
+    bigpicture, relevant = axs
+    for panel in axs:
+        for fidx, flavor in enumerate(flavors):
+            xs, maes, stds, nullmodel = learning_curve(dbname, repname, flavor)
+            maxnull = max(maxnull, nullmodel)
+            panel.axhline(nullmodel * kcal, xmin=0, xmax=0.2, color=f"C{fidx}")
+            print(flavor, nullmodel * kcal)
+            label = "".join([_ for _ in flavor if _.isupper() or _ in "|"])
+            label = f"{label}@{repname}"
+            panel.errorbar(
+                x=xs,
+                y=maes * kcal,
+                fmt="o-",
+                yerr=stds * kcal,
+                label=label,
+                markersize=10,
+                markeredgecolor="white",
+                markeredgewidth=3,
+                color=f"C{fidx}",
+            )
+    bigpicture.set_title(dbname)
+    for panel in axs:
+        panel.set_xscale("log")
+        panel.set_xticks(xs)
+        panel.set_xticklabels(xs)
+        panel.minorticks_off()
+        panel.set_yscale("log", subsy=range(2, 10))
 
-    panel.set_ylabel("MAE [kcal/mol]")
-    panel.axhline(maxnull * kcal, label="Null model", color="grey")
-    panel.legend(frameon=False)
-relevant.set_xlabel("Training set size")
-bigpicture.set_ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
-relevant.set_ylim(1, 20)
-plt.subplots_adjust(hspace=0, wspace=0)
-
-
-# %%
-import random
-from deap import base
-from deap import creator
-from deap import tools
+        panel.set_ylabel("MAE [kcal/mol]")
+        panel.axhline(maxnull * kcal, label="Null model", color="grey")
+        panel.legend(frameon=False)
+    relevant.set_xlabel("Training set size")
+    bigpicture.set_ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
+    relevant.set_ylim(1, 20)
+    plt.subplots_adjust(hspace=0, wspace=0)
 
 
-@functools.lru_cache(maxsize=1)
-def setup_problem():
-    cs, es = mlmeta.database_naphthalene()
-    da = Pipeline(cs, [DressedAtom])
-    xs = np.arange(len(es)).astype(np.int)
-    btrain, btest = da(xs, [], es)
+#%%
+def build_lj_cache():
+    for dataset in "naphthalene qm9:4000 qm9rxn".split():
+        # base setup
+        dbargs = {}
+        if dataset.startswith("qm9"):
+            dataset, cutoff = dataset.split(":")
+            dbargs["random_limit"] = int(cutoff)
 
-    elements = set()
-    for mol in cs:
-        elements = elements | set(mol.nuclear_charges)
-    elements = sorted(elements)
-    combos = it.combinations_with_replacement(elements, r=2)
-    kinds = ["-".join(map(str, _)) for _ in combos]
+        compounds, energies = getattr(mlmeta, f"database_{dataset}")(**dbargs)
+        maxtrainingset = np.floor(np.log(len(compounds)) / np.log(2))
 
-    mat6 = np.zeros((len(cs), len(kinds)))
-    mat12 = np.zeros((len(cs), len(kinds)))
-    for idx, mol in enumerate(cs):
-        dm = ssd.squareform(ssd.pdist(mol.coordinates))
-        for i in range(mol.natoms):
-            for j in range(i + 1, mol.natoms):
-                a, b = sorted((mol.nuclear_charges[i], mol.nuclear_charges[j]))
-                mat6[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 6
-                mat12[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 12
+        xs = np.arange(len(compounds))
+        for ntrain in 2 ** np.arange(4, maxtrainingset + 1).astype(np.int):
+            print(dataset, ntrain)
+            np.random.shuffle(xs)
+            lj = LennardJonesLorentzBerthelot(compounds)
+            lj(xs[:ntrain], [], energies)
 
-    return elements, kinds, mat6, mat12, btrain, xs
+            da = DressedAtom(compounds)
+            btrain, btest = da(xs[:ntrain], xs[ntrain:], energies)
+            modenergies = energies.copy()
+            modenergies[xs[:ntrain]] -= btrain
+            modenergies[xs[ntrain:]] -= btest
 
-
-def target(parameters):
-    elements, kinds, mat6, mat12, btrain, trainidx = setup_problem()
-
-    sigmas = np.zeros(len(kinds))
-    epsilons = np.zeros(len(kinds))
-    for kidx, kind in enumerate(kinds):
-        kind = kind.split("-")
-        e1 = elements.index(int(kind[0]))
-        e2 = elements.index(int(kind[1]))
-        epsilons[kidx] = parameters[e1] * parameters[e2]
-        sigmas[kidx] = (parameters[e1 + 4] + parameters[e2 + 4]) / 2
-    sigmas = np.abs(sigmas)
-    sigmas = sigmas ** 6
-    epsilons = np.sqrt(np.abs(epsilons))
-    pred = np.dot(
-        mat12[trainidx, :] * (sigmas * sigmas) - mat6[trainidx, :] * sigmas,
-        epsilons,
-    )
-    return (np.linalg.norm(pred - (btrain - parameters[-1])),)
+            lj = LennardJonesLorentzBerthelot(compounds)
+            lj(xs[:ntrain], [], modenergies)
 
 
-# %%
-# from deap import base, creator, algorithms
-# import random
-# from deap import tools
-# creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-# creator.create("Individual", list, fitness=creator.FitnessMin)
-
-IND_SIZE = 4 * 2 + 1
-POPFACTOR = 100
-PROCS = 10
-
-
-def checkBounds(min, max):
-    def decorator(func):
-        def wrapper(*args, **kargs):
-            offspring = func(*args, **kargs)
-            for child in offspring:
-                for i in range(len(child)):
-                    if child[i] > max:
-                        child[i] = max
-                    elif child[i] < min:
-                        child[i] = min
-            return offspring
-
-        return wrapper
-
-    return decorator
-
-
-with mp.Pool(processes=PROCS) as pool:
-    toolbox = base.Toolbox()
-    toolbox.register("attribute", random.random)
-    toolbox.register(
-        "individual",
-        tools.initRepeat,
-        creator.Individual,
-        toolbox.attribute,
-        n=IND_SIZE,
-    )
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxBlend, alpha=1)
-    toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=0.1)
-    toolbox.register("select", tools.selTournament, tournsize=10)
-    toolbox.register("evaluate", target)
-    toolbox.register(
-        "map", lambda func, iterable: pool.map(func, iterable, chunksize=POPFACTOR)
-    )
-
-    toolbox.decorate("mate", checkBounds(0, 100))
-    toolbox.decorate("mutate", checkBounds(0, 100))
-
-    pop = toolbox.population(n=POPFACTOR * PROCS)
-    hof = tools.HallOfFame(1)
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", np.mean)
-    stats.register("min", np.min)
-
-    pop, log = algorithms.eaSimple(
-        pop,
-        toolbox,
-        cxpb=0.6,
-        mutpb=0.2,
-        ngen=2000,
-        stats=stats,
-        halloffame=hof,
-        verbose=True,
-    )
-# %%
-hof[0]
+build_lj_cache()
 # %%
