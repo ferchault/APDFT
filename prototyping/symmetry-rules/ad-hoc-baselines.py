@@ -4,6 +4,7 @@ import sys
 import functools
 import importlib
 import itertools as it
+import multiprocessing as mp
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -187,13 +188,14 @@ class LennardJonesLorentzBerthelot(Baseline):
 
     def __call__(self, trainidx, testidx, Y):
         # adjust mean and variance to make it easier for LJ to fit the data
-        orig_Ytrain = Y[trainidx].copy()
-        shift = Y[trainidx].mean()
-        Y = Y.copy()
-        Y -= shift
-        std = np.std(Y[trainidx])
-        Y /= std
-        Y -= 1
+        # orig_Ytrain = Y[trainidx].copy()
+        # shift = Y[trainidx].mean()
+        # Y = Y.copy()
+        # Y -= shift
+        # std = np.std(Y[trainidx])
+        # Y /= std
+        # Y -= 1
+        shift = 10
 
         # actual fit
         self._sigmas = np.zeros(len(self._kinds))
@@ -202,16 +204,18 @@ class LennardJonesLorentzBerthelot(Baseline):
             self._residuals,
             bounds=[(0.01, 100)] * len(self._elements) * 2,
             workers=1,
-            args=(trainidx, Y[trainidx]),
+            args=(trainidx, Y[trainidx] - shift),
         )
         self._best_params = result.x
-        btrain = (self._predict(trainidx, result.x) + 1) * std + shift
-        btest = (self._predict(testidx, result.x) + 1) * std + shift
+        # btrain = (self._predict(trainidx, result.x) + 1) * std + shift
+        # btest = (self._predict(testidx, result.x) + 1) * std + shift
+        btrain = self._predict(trainidx, result.x) + shift
+        btest = self._predict(testidx, result.x) + shift
 
         # linear regression to fix scaling issues
-        poly = np.poly1d(np.polyfit(btrain, orig_Ytrain, deg=1))
-        btrain = poly(btrain)
-        btest = poly(btest)
+        # poly = np.poly1d(np.polyfit(btrain, orig_Ytrain, deg=1))
+        # btrain = poly(btrain)
+        # btest = poly(btest)
         return btrain, btest
 
 
@@ -264,6 +268,7 @@ kcal = 627.509474063
 repname = "FCHL19"
 dbname = "qm9:500"
 flavors = "Identity DressedAtom LennardJonesLorentzBerthelot DressedAtom|LennardJonesLorentzBerthelot".split()
+flavors = "Identity DressedAtom DressedAtom|BondCounting".split()
 maxnull = 0
 f, axs = plt.subplots(2, 1, sharex=True, figsize=(4, 10))
 bigpicture, relevant = axs
@@ -301,6 +306,130 @@ relevant.set_xlabel("Training set size")
 bigpicture.set_ylim(1, 10 ** np.ceil(np.log(maxnull * kcal) / np.log(10)))
 relevant.set_ylim(1, 20)
 plt.subplots_adjust(hspace=0, wspace=0)
-# plt.xlim(64, max(xs))
 
+
+# %%
+import random
+from deap import base
+from deap import creator
+from deap import tools
+
+
+@functools.lru_cache(maxsize=1)
+def setup_problem():
+    cs, es = mlmeta.database_naphthalene()
+    da = Pipeline(cs, [DressedAtom])
+    xs = np.arange(len(es)).astype(np.int)
+    btrain, btest = da(xs, [], es)
+
+    elements = set()
+    for mol in cs:
+        elements = elements | set(mol.nuclear_charges)
+    elements = sorted(elements)
+    combos = it.combinations_with_replacement(elements, r=2)
+    kinds = ["-".join(map(str, _)) for _ in combos]
+
+    mat6 = np.zeros((len(cs), len(kinds)))
+    mat12 = np.zeros((len(cs), len(kinds)))
+    for idx, mol in enumerate(cs):
+        dm = ssd.squareform(ssd.pdist(mol.coordinates))
+        for i in range(mol.natoms):
+            for j in range(i + 1, mol.natoms):
+                a, b = sorted((mol.nuclear_charges[i], mol.nuclear_charges[j]))
+                mat6[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 6
+                mat12[idx, kinds.index(f"{a}-{b}")] += 1 / dm[i, j] ** 12
+
+    return elements, kinds, mat6, mat12, btrain, xs
+
+
+def target(parameters):
+    elements, kinds, mat6, mat12, btrain, trainidx = setup_problem()
+
+    sigmas = np.zeros(len(kinds))
+    epsilons = np.zeros(len(kinds))
+    for kidx, kind in enumerate(kinds):
+        kind = kind.split("-")
+        e1 = elements.index(int(kind[0]))
+        e2 = elements.index(int(kind[1]))
+        epsilons[kidx] = parameters[e1] * parameters[e2]
+        sigmas[kidx] = (parameters[e1 + 4] + parameters[e2 + 4]) / 2
+    sigmas = np.abs(sigmas)
+    sigmas = sigmas ** 6
+    epsilons = np.sqrt(np.abs(epsilons))
+    pred = np.dot(
+        mat12[trainidx, :] * (sigmas * sigmas) - mat6[trainidx, :] * sigmas,
+        epsilons,
+    )
+    return (np.linalg.norm(pred - (btrain - parameters[-1])),)
+
+
+# %%
+# from deap import base, creator, algorithms
+# import random
+# from deap import tools
+# creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+# creator.create("Individual", list, fitness=creator.FitnessMin)
+
+IND_SIZE = 4 * 2 + 1
+POPFACTOR = 100
+PROCS = 10
+
+
+def checkBounds(min, max):
+    def decorator(func):
+        def wrapper(*args, **kargs):
+            offspring = func(*args, **kargs)
+            for child in offspring:
+                for i in range(len(child)):
+                    if child[i] > max:
+                        child[i] = max
+                    elif child[i] < min:
+                        child[i] = min
+            return offspring
+
+        return wrapper
+
+    return decorator
+
+
+with mp.Pool(processes=PROCS) as pool:
+    toolbox = base.Toolbox()
+    toolbox.register("attribute", random.random)
+    toolbox.register(
+        "individual",
+        tools.initRepeat,
+        creator.Individual,
+        toolbox.attribute,
+        n=IND_SIZE,
+    )
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("mate", tools.cxBlend, alpha=1)
+    toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=0.1)
+    toolbox.register("select", tools.selTournament, tournsize=10)
+    toolbox.register("evaluate", target)
+    toolbox.register(
+        "map", lambda func, iterable: pool.map(func, iterable, chunksize=POPFACTOR)
+    )
+
+    toolbox.decorate("mate", checkBounds(0, 100))
+    toolbox.decorate("mutate", checkBounds(0, 100))
+
+    pop = toolbox.population(n=POPFACTOR * PROCS)
+    hof = tools.HallOfFame(1)
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("min", np.min)
+
+    pop, log = algorithms.eaSimple(
+        pop,
+        toolbox,
+        cxpb=0.6,
+        mutpb=0.2,
+        ngen=2000,
+        stats=stats,
+        halloffame=hof,
+        verbose=True,
+    )
+# %%
+hof[0]
 # %%
