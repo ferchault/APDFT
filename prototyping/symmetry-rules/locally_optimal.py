@@ -160,19 +160,28 @@ def get_compound(label):
 
 
 #%%
+from jax.experimental import loops
+
+
 def ds(reps):
-    def outer(i, K):
-        def inner(j, K):
-            d = jnp.linalg.norm(reps[i] - reps[j])
-            K = K.at[i, j].set(d)
-            K = K.at[j, i].set(d)
-            return K
-
-        return jax.lax.fori_loop(i, nmols, inner, K)
-
     nmols = len(reps)
-    K = jnp.zeros((nmols, nmols))
-    return jax.lax.fori_loop(0, nmols, outer, K)
+    with loops.Scope() as s:
+        s.K = jnp.zeros((nmols, nmols)) + 42
+        for a in s.range(nmols * nmols + 1):
+            i = (
+                N - 1 - jnp.floor((-1 + jnp.sqrt((2 * N + 1) ** 2 - 8 * (a + 1))) / 2)
+            ).astype(int)
+            j = (a - i * (2 * N - i - 1) // 2).astype(int)
+            d = jax.lax.cond(
+                i == j,
+                lambda _: 0.0,
+                lambda _: jnp.linalg.norm(reps[_[0]] - reps[_[1]]),
+                (i, j),
+            )
+            s.K = s.K.at[i, j].set(d)
+            s.K = s.K.at[j, i].set(d)
+        K = s.K
+    return K
 
 
 # %%
@@ -190,7 +199,7 @@ def positive_definite_solve(a, b):
 
 def get_lc_endpoint(df, transformation, propname):
     X = jnp.array(
-        [get_rep(transformation, get_compound(_)) for _ in df.label.values[:50]]
+        [get_rep(transformation, get_compound(_)) for _ in df.label.values[:200]]
     )
     Y = df[propname].values
 
@@ -203,17 +212,17 @@ def get_lc_endpoint(df, transformation, propname):
         Ktotal = jnp.exp(dscache * inv_sigma)
 
         mae = []
-        for ntrain in (40,):
-            for k in range(5):
+        for ntrain in (150,):
+            for k in range(1):
                 np.random.shuffle(totalidx)
                 train, test = totalidx[:ntrain], totalidx[ntrain:]
 
                 lval = 10 ** -10
                 K_subset = Ktotal[np.ix_(train, train)]
                 K_subset = K_subset.at[np.diag_indices_from(K_subset)].add(lval)
-                # step1 = jax.scipy.linalg.cho_factor(K_subset)
-                # alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
-                alphas = positive_definite_solve(K_subset, Y[train])
+                step1 = jax.scipy.linalg.cho_factor(K_subset)
+                alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
+                # alphas = positive_definite_solve(K_subset, Y[train])
 
                 K_subset = Ktotal[np.ix_(train, test)]
                 pred = jnp.dot(K_subset.transpose(), alphas)
@@ -235,9 +244,27 @@ def doit():
     angles[0] = 0.1
     angles = jnp.array(angles)
     print(jax.value_and_grad(wrapper)(angles))
+    # print(wrapper(angles))
 
 
-# doit()
+config.update("jax_debug_nans", True)
+doit()
 # %%
 mlmeta.profile(doit)
+# %%
+angles = np.zeros(45)
+angles[0] = 0.1
+transform = gea_orthogonal_from_angles(angles)
+X = np.array(
+    [get_rep(transform, get_compound(_)) for _ in fetch_energies().label.values[:200]]
+)
+# %%
+mind = 1000
+for i in range(X.shape[0]):
+    for j in range(i + 1, X.shape[0]):
+        d = np.linalg.norm(X[i] - X[j])
+        mind = min(d, mind)
+mind
+# %%
+transform
 # %%
