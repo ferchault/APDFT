@@ -17,11 +17,19 @@ import jax.numpy as jnp
 x = jax.random.uniform(jax.random.PRNGKey(0), (1,), dtype=jnp.float64)
 assert x.dtype == jnp.dtype("float64"), "JAX not in double precision mode"
 
+import qml
+import requests
+
 import numpy as np
 import matplotlib.pyplot as plt
+import functools
+import pandas as pd
 
 anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
+
+sys.path.append("..")
+import mlmeta
 
 # %%
 def gea_matrix_a(angles):
@@ -89,5 +97,134 @@ def gea_orthogonal_from_angles(angles_list):
     return b
 
 
-gea_orthogonal_from_angles(np.zeros(45))
+# %%
+@functools.lru_cache(maxsize=1)
+def fetch_energies():
+    """Loads CCSD/cc-pVDZ energies.
+
+    Returns
+    -------
+    DataFrame
+        Energies and metadata
+    """
+    df = pd.read_csv("https://zenodo.org/record/3994178/files/reference.csv?download=1")
+    C = -37.69831437
+    B = -24.58850790
+    N = -54.36533180
+    df["totalE"] = df.CCSDenergyinHa.values
+    df["nuclearE"] = df.NNinteractioninHa.values
+    df["electronicE"] = df.totalE.values - df.nuclearE.values
+
+    # atomisation energy
+    atoms = (10 - 2 * df.nBN.values) * C + df.nBN.values * (B + N)
+    df["atomicE"] = df.totalE.values - atoms
+
+    df = df["label nBN totalE nuclearE electronicE atomicE".split()].copy()
+    return df
+
+
+def get_rep(transformation, mol):
+    dz = jnp.array(mol.nuclear_charges[:10]) - 6
+    return jnp.dot(jnp.dot(transformation, anmvectors.T), dz)
+
+
+#%%
+@functools.lru_cache(maxsize=1)
+def fetch_geometry():
+    """Loads the XYZ geometry for naphthalene used in the reference calculations.
+
+    Returns
+    -------
+    str
+        XYZ file contents, ascii.
+    """
+    res = requests.get("https://zenodo.org/record/3994178/files/inp.xyz?download=1")
+    return res.content.decode("ascii")
+
+
+# endregion
+# region cached ML boilerplate
+class MockXYZ(object):
+    def __init__(self, lines):
+        self._lines = lines
+
+    def readlines(self):
+        return self._lines
+
+
+@functools.lru_cache(maxsize=3000)
+def get_compound(label):
+    c = qml.Compound(xyz=MockXYZ(fetch_geometry().split("\n")))
+    c.nuclear_charges = [int(_) for _ in str(label)] + [1] * 8
+    return c
+
+
+#%%
+def ds(reps):
+    def outer(i, K):
+        def inner(j, K):
+            d = jnp.linalg.norm(reps[i] - reps[j])
+            K = K.at[i, j].set(d)
+            K = K.at[j, i].set(d)
+            return K
+
+        return jax.lax.fori_loop(i, nmols, inner, K)
+
+    nmols = len(reps)
+    K = jnp.zeros((nmols, nmols))
+    return jax.lax.fori_loop(0, nmols, outer, K)
+
+
+# %%
+
+
+def get_lc_endpoint(df, transformation, propname):
+    X = jnp.array([get_rep(transformation, get_compound(_)) for _ in df.label.values])
+    Y = df[propname].values
+
+    totalidx = np.arange(len(X), dtype=np.int)
+    maes = []
+
+    dscache = ds(X)
+    for sigma in (1.0,):  # 2.0 ** np.arange(-2, 10):
+        inv_sigma = -0.5 / (sigma * sigma)
+        Ktotal = jnp.exp(dscache * inv_sigma)
+
+        mae = []
+        for ntrain in (2048,):
+            for k in range(1):
+                np.random.shuffle(totalidx)
+                train, test = totalidx[:ntrain], totalidx[ntrain:]
+
+                lval = 10 ** -10
+                K_subset = Ktotal[np.ix_(train, train)]
+                K_subset = K_subset.at[np.diag_indices_from(K_subset)].add(lval)
+                step1 = jax.scipy.linalg.cho_factor(K_subset)
+                alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
+
+                K_subset = Ktotal[np.ix_(train, test)]
+                pred = jnp.dot(K_subset.transpose(), alphas)
+                actual = Y[test]
+
+                thismae = jnp.abs(pred - actual).mean()
+                mae.append(thismae)
+        maes.append(jnp.average(mae))
+    return jnp.min(jnp.array(maes))
+
+
+def wrapper(angles):
+    transform = gea_orthogonal_from_angles(angles)
+    return get_lc_endpoint(fetch_energies(), transform, "atomicE")
+
+
+def doit():
+    angles = np.zeros(45)
+    angles[0] = 0.1
+    angles = jnp.array(angles)
+    print(wrapper(angles))
+
+
+# doit()
+# %%
+mlmeta.profile(doit)
 # %%
