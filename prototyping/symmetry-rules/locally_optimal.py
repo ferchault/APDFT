@@ -178,8 +178,20 @@ def ds(reps):
 # %%
 
 
+def positive_definite_solve(a, b):
+    factors = jax.scipy.linalg.cho_factor(a)
+
+    def solve(matvec, x):
+        return jax.scipy.linalg.cho_solve(factors, x)
+
+    matvec = functools.partial(jnp.dot, a)
+    return jax.lax.custom_linear_solve(matvec, b, solve, symmetric=True)
+
+
 def get_lc_endpoint(df, transformation, propname):
-    X = jnp.array([get_rep(transformation, get_compound(_)) for _ in df.label.values])
+    X = jnp.array(
+        [get_rep(transformation, get_compound(_)) for _ in df.label.values[:50]]
+    )
     Y = df[propname].values
 
     totalidx = np.arange(len(X), dtype=np.int)
@@ -191,16 +203,17 @@ def get_lc_endpoint(df, transformation, propname):
         Ktotal = jnp.exp(dscache * inv_sigma)
 
         mae = []
-        for ntrain in (2048,):
-            for k in range(1):
+        for ntrain in (40,):
+            for k in range(5):
                 np.random.shuffle(totalidx)
                 train, test = totalidx[:ntrain], totalidx[ntrain:]
 
                 lval = 10 ** -10
                 K_subset = Ktotal[np.ix_(train, train)]
                 K_subset = K_subset.at[np.diag_indices_from(K_subset)].add(lval)
-                step1 = jax.scipy.linalg.cho_factor(K_subset)
-                alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
+                # step1 = jax.scipy.linalg.cho_factor(K_subset)
+                # alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
+                alphas = positive_definite_solve(K_subset, Y[train])
 
                 K_subset = Ktotal[np.ix_(train, test)]
                 pred = jnp.dot(K_subset.transpose(), alphas)
@@ -221,7 +234,7 @@ def doit():
     angles = np.zeros(45)
     angles[0] = 0.1
     angles = jnp.array(angles)
-    print(wrapper(angles))
+    print(jax.value_and_grad(wrapper)(angles))
 
 
 # doit()
