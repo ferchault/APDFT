@@ -10,6 +10,7 @@
 from jax.config import config
 
 config.update("jax_enable_x64", True)
+config.update("jax_debug_nans", False)
 import jax
 import jax.numpy as jnp
 
@@ -30,6 +31,7 @@ _, anmvectors = np.linalg.eig(anmhessian)
 
 sys.path.append("..")
 import mlmeta
+import sklearn.metrics as skm
 
 # %%
 def gea_matrix_a(angles):
@@ -166,7 +168,7 @@ from jax.experimental import loops
 def ds(reps):
     nmols = len(reps)
     with loops.Scope() as s:
-        s.K = jnp.zeros((nmols, nmols)) + 42
+        s.K = jnp.zeros((nmols, nmols))
         for a in s.range(nmols * nmols + 1):
             i = (
                 nmols
@@ -186,6 +188,19 @@ def ds(reps):
     return K
 
 
+# def dsnp(reps):
+#     nmols = len(reps)
+#     K = np.zeros((nmols, nmols))
+#     for i in range(nmols):
+#         for j in range(i+1, nmols):
+#             d = np.linalg.norm(reps[i]-reps[j])
+#             K[i,j] = d
+#             K[j, i] = d
+#     return K
+def dsnp(reps):
+    return skm.pairwise_distances(reps, n_jobs=-1)
+
+
 # %%
 
 
@@ -199,23 +214,22 @@ def positive_definite_solve(a, b):
     return jax.lax.custom_linear_solve(matvec, b, solve, symmetric=True)
 
 
+@jax.partial(jax.jit, static_argnums=(0, 2))
 def get_lc_endpoint(df, transformation, propname):
-    X = jnp.array(
-        [get_rep(transformation, get_compound(_)) for _ in df.label.values[:200]]
-    )
+    X = jnp.array([get_rep(transformation, get_compound(_)) for _ in df.label.values])
     Y = df[propname].values
 
     totalidx = np.arange(len(X), dtype=np.int)
     maes = []
 
     dscache = ds(X)
-    for sigma in (1.0,):  # 2.0 ** np.arange(-2, 10):
+    for sigma in (1,):  # 2.0 ** np.arange(-2, 10):
         inv_sigma = -0.5 / (sigma * sigma)
         Ktotal = jnp.exp(dscache * inv_sigma)
 
         mae = []
-        for ntrain in (180,):
-            for k in range(5):
+        for ntrain in (int(0.9 * len(X)),):
+            for k in range(1):
                 np.random.shuffle(totalidx)
                 train, test = totalidx[:ntrain], totalidx[ntrain:]
 
@@ -236,46 +250,94 @@ def get_lc_endpoint(df, transformation, propname):
     return jnp.min(jnp.array(maes))
 
 
-def wrapper(angles):
-    # transform = gea_orthogonal_from_angles(angles)
-    transform = angles.reshape(10, 10)
+def wrapper(transform):
+    transform = transform.reshape(10, 10)
     return get_lc_endpoint(fetch_energies(), transform, "atomicE")
 
 
 def doit():
-    angles = np.zeros(45)
-    # angles[0] = 0.1
-    # angles[2] = 1
+    valgrad = jax.value_and_grad(wrapper)
 
-    # angles = np.random.uniform(size=45)
-    # angles = jnp.array(angles)
     angles = jnp.identity(10).reshape(-1)
-    mae, gradient = jax.value_and_grad(wrapper)(angles)
-    plt.bar(range(100), gradient)
-    print(mae)
+
+    mae, gradient = valgrad(angles)
+    print(mae, np.linalg.norm(gradient))
+    for i in range(10):
+        mae, gradient = valgrad(angles)
+        print(mae, np.linalg.norm(gradient))
+        angles -= gradient * 0.1
+    # plt.bar(range(100), gradient)
+    # plt.show()
+
+    # angles -= gradient*0.1
+    # mae, gradient = valgrad(angles)
+    # print(mae, np.linalg.norm(gradient))
+    # plt.bar(range(100), gradient)
+    # plt.show()
+
     # print (jax.jacfwd(wrapper)(angles))
     # print(wrapper(angles))
 
 
-config.update("jax_debug_nans", True)
-doit()
+# doit()
 # %%
-mlmeta.profile(doit)
-# %%
-angles = np.random.uniform(size=45)
-angles = jnp.array(angles)
-transform = gea_orthogonal_from_angles(angles)
-transform
-# %%
-Xmod = np.array(
-    [get_rep(transform, get_compound(_)) for _ in fetch_energies().label.values[:10]]
-)
-Xorig = jnp.array(
-    [
-        get_rep(np.identity(10), get_compound(_))
-        for _ in fetch_energies().label.values[:10]
-    ]
-)
-# %%
-Xorig[5], Xmod[5]
+def transformedkrr(df, trainidx, testidx, transform, propname):
+    X = np.array([get_rep(transform, get_compound(_)) for _ in df.label.values])
+    Y = df[propname].values
+
+    maes = []
+    dscache = np.array(dsnp(X))
+    for sigma in 2.0 ** np.arange(-2, 10):
+        inv_sigma = -0.5 / (sigma * sigma)
+        Ktotal = np.exp(dscache * inv_sigma)
+
+        mae = []
+        ntrain = len(trainidx)
+
+        lval = 10 ** -10
+        K_subset = Ktotal[np.ix_(trainidx, trainidx)]
+        K_subset[np.diag_indices_from(K_subset)] += lval
+        alphas = qml.math.cho_solve(K_subset, Y[trainidx])
+
+        K_subset = Ktotal[np.ix_(trainidx, testidx)]
+        pred = np.dot(K_subset.transpose(), alphas)
+        actual = Y[testidx]
+
+        maes.append(np.abs(pred - actual).mean())
+    return np.min(np.array(maes))
+
+
+def optimize_representation(ntrain=50):
+    print("Setup")
+    xs = np.arange(len(fetch_energies()))
+    np.random.shuffle(xs)
+    trainidx, testidx = xs[:ntrain], xs[ntrain:]
+    traindf = fetch_energies().iloc[trainidx].copy()
+
+    def inlinewrapper(transform):
+        transform = transform.reshape(10, 10)
+        return get_lc_endpoint(traindf, transform, "atomicE")
+
+    print("Build AD")
+    valgrad = jax.value_and_grad(inlinewrapper)
+
+    print("Evaluate")
+    transform = jnp.identity(10).reshape(-1)
+    for i in range(10):
+        print(i)
+        optmae, optgrad = valgrad(transform)
+        print(i)
+        krrmae = transformedkrr(
+            fetch_energies(),
+            trainidx,
+            testidx,
+            np.asarray(transform).reshape(10, 10),
+            "atomicE",
+        )
+        transform -= optgrad * 0.1
+        print(i, optmae, np.linalg.norm(optgrad), krrmae)
+
+
+optimize_representation()
+#%%
 # %%
