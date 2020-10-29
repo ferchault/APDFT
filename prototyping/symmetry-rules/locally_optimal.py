@@ -307,8 +307,7 @@ def transformedkrr(df, trainidx, testidx, transform, propname):
     return np.min(np.array(maes))
 
 
-def optimize_representation(ntrain=50):
-    print("Setup")
+def optimize_representation(ntrain=500):
     xs = np.arange(len(fetch_energies()))
     np.random.shuffle(xs)
     trainidx, testidx = xs[:ntrain], xs[ntrain:]
@@ -318,15 +317,11 @@ def optimize_representation(ntrain=50):
         transform = transform.reshape(10, 10)
         return get_lc_endpoint(traindf, transform, "atomicE")
 
-    print("Build AD")
     valgrad = jax.value_and_grad(inlinewrapper)
 
-    print("Evaluate")
     transform = jnp.identity(10).reshape(-1)
-    for i in range(10):
-        print(i)
+    for i in range(1000):
         optmae, optgrad = valgrad(transform)
-        print(i)
         krrmae = transformedkrr(
             fetch_energies(),
             trainidx,
