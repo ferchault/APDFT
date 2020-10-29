@@ -169,9 +169,11 @@ def ds(reps):
         s.K = jnp.zeros((nmols, nmols)) + 42
         for a in s.range(nmols * nmols + 1):
             i = (
-                N - 1 - jnp.floor((-1 + jnp.sqrt((2 * N + 1) ** 2 - 8 * (a + 1))) / 2)
+                nmols
+                - 1
+                - jnp.floor((-1 + jnp.sqrt((2 * nmols + 1) ** 2 - 8 * (a + 1))) / 2)
             ).astype(int)
-            j = (a - i * (2 * N - i - 1) // 2).astype(int)
+            j = (a - i * (2 * nmols - i - 1) // 2).astype(int)
             d = jax.lax.cond(
                 i == j,
                 lambda _: 0.0,
@@ -212,8 +214,8 @@ def get_lc_endpoint(df, transformation, propname):
         Ktotal = jnp.exp(dscache * inv_sigma)
 
         mae = []
-        for ntrain in (150,):
-            for k in range(1):
+        for ntrain in (180,):
+            for k in range(5):
                 np.random.shuffle(totalidx)
                 train, test = totalidx[:ntrain], totalidx[ntrain:]
 
@@ -235,15 +237,23 @@ def get_lc_endpoint(df, transformation, propname):
 
 
 def wrapper(angles):
-    transform = gea_orthogonal_from_angles(angles)
+    # transform = gea_orthogonal_from_angles(angles)
+    transform = angles.reshape(10, 10)
     return get_lc_endpoint(fetch_energies(), transform, "atomicE")
 
 
 def doit():
     angles = np.zeros(45)
-    angles[0] = 0.1
-    angles = jnp.array(angles)
-    print(jax.value_and_grad(wrapper)(angles))
+    # angles[0] = 0.1
+    # angles[2] = 1
+
+    # angles = np.random.uniform(size=45)
+    # angles = jnp.array(angles)
+    angles = jnp.identity(10).reshape(-1)
+    mae, gradient = jax.value_and_grad(wrapper)(angles)
+    plt.bar(range(100), gradient)
+    print(mae)
+    # print (jax.jacfwd(wrapper)(angles))
     # print(wrapper(angles))
 
 
@@ -252,19 +262,20 @@ doit()
 # %%
 mlmeta.profile(doit)
 # %%
-angles = np.zeros(45)
-angles[0] = 0.1
+angles = np.random.uniform(size=45)
+angles = jnp.array(angles)
 transform = gea_orthogonal_from_angles(angles)
-X = np.array(
-    [get_rep(transform, get_compound(_)) for _ in fetch_energies().label.values[:200]]
+transform
+# %%
+Xmod = np.array(
+    [get_rep(transform, get_compound(_)) for _ in fetch_energies().label.values[:10]]
+)
+Xorig = jnp.array(
+    [
+        get_rep(np.identity(10), get_compound(_))
+        for _ in fetch_energies().label.values[:10]
+    ]
 )
 # %%
-mind = 1000
-for i in range(X.shape[0]):
-    for j in range(i + 1, X.shape[0]):
-        d = np.linalg.norm(X[i] - X[j])
-        mind = min(d, mind)
-mind
-# %%
-transform
+Xorig[5], Xmod[5]
 # %%
