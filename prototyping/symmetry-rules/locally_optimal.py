@@ -5,9 +5,11 @@
 #  - Generalized Euler angles, 10.1063/1.1666011
 
 #%%
+# region imports
 # AD
 # keep jax config first
 from jax.config import config
+from jax.experimental import loops
 
 config.update("jax_enable_x64", True)
 config.update("jax_debug_nans", False)
@@ -27,6 +29,7 @@ import matplotlib.pyplot as plt
 import functools
 import pandas as pd
 import scipy
+import multiprocessing as mp
 
 anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
@@ -35,73 +38,9 @@ sys.path.append("..")
 import mlmeta
 import sklearn.metrics as skm
 
+# endregion
 # %%
-def gea_matrix_a(angles):
-    """
-    Generalized Euler Angles
-    Return the parametric angles described on Eqs. 15-19 from the paper:
-    Generalization of Euler Angles to N-Dimensional Orthogonal Matrices
-    David K. Hoffman, Richard C. Raffenetti, and Klaus Ruedenberg
-    Journal of Mathematical Physics 13, 528 (1972)
-    doi: 10.1063/1.1666011
-    """
-    n = len(angles)
-    matrix_a = jnp.eye(n)
-
-    for i in range(n - 1):
-        matrix_a = matrix_a.at[i, i].set(jnp.cos(angles[i]))
-        matrix_a = matrix_a.at[i, n - 1].set(jnp.tan(angles[i]))
-        for j in range(i + 1):
-            matrix_a = matrix_a.at[i, n - 1].mul(jnp.cos(angles[j]))
-
-    for i in range(n):
-        for k in range(n - 1):
-            if i > k:
-                matrix_a = matrix_a.at[i, k].set(
-                    -jnp.tan(angles[i]) * jnp.tan(angles[k])
-                )
-                for l in range(k, i + 1):
-                    matrix_a = matrix_a.at[i, k].mul(jnp.cos(angles[l]))
-
-    matrix_a = matrix_a.at[n - 1, n - 1].set(jnp.tan(angles[n - 1]))
-    for j in range(n):
-        matrix_a = matrix_a.at[n - 1, n - 1].mul(jnp.cos(angles[j]))
-
-    return matrix_a
-
-
-def gea_orthogonal_from_angles(angles_list):
-    """
-    Generalized Euler Angles
-    Return the orthogonal matrix from its generalized angles
-    Generalization of Euler Angles to N-Dimensional Orthogonal Matrices
-    David K. Hoffman, Richard C. Raffenetti, and Klaus Ruedenberg
-    Journal of Mathematical Physics 13, 528 (1972)
-    doi: 10.1063/1.1666011
-    :param angles_list: List of angles, for a n-dimensional space the total number
-                        of angles is k*(k-1)/2
-    """
-
-    b = jnp.eye(2)
-    n = int(jnp.sqrt(len(angles_list) * 8 + 1) / 2 + 0.5)
-    tmp = jnp.array(angles_list)
-
-    # For SO(k) there are k*(k-1)/2 angles that are grouped in k-1 sets
-    # { (k-1 angles), (k-2 angles), ... , (1 angle)}
-    for i in range(1, n):
-        angles = jnp.concatenate((jnp.array(tmp[-i:]), jnp.array([jnp.pi / 2])))
-        tmp = tmp[:-i]
-        ma = gea_matrix_a(angles)  # matrix i+1 x i+1
-        b = jnp.dot(b, ma.T).T
-        # We skip doing making a larger matrix for the last iteration
-        if i < n - 1:
-            c = jnp.eye(i + 2, i + 2)
-            c = c.at[:-1, :-1].set(b)
-            b = c
-    return b
-
-
-# %%
+# region dataset
 @functools.lru_cache(maxsize=1)
 def fetch_energies():
     """Loads CCSD/cc-pVDZ energies.
@@ -127,12 +66,6 @@ def fetch_energies():
     return df
 
 
-def get_rep(transformation, mol):
-    dz = jnp.array(mol.nuclear_charges[:10]) - 6
-    return jnp.dot(jnp.dot(transformation, anmvectors.T), dz)
-
-
-#%%
 @functools.lru_cache(maxsize=1)
 def fetch_geometry():
     """Loads the XYZ geometry for naphthalene used in the reference calculations.
@@ -146,8 +79,6 @@ def fetch_geometry():
     return res.content.decode("ascii")
 
 
-# endregion
-# region cached ML boilerplate
 class MockXYZ(object):
     def __init__(self, lines):
         self._lines = lines
@@ -163,10 +94,16 @@ def get_compound(label):
     return c
 
 
+# endregion
 #%%
-from jax.experimental import loops
 
 
+def get_rep(transformation, mol):
+    dz = jnp.array(mol.nuclear_charges[:10]) - 6
+    return jnp.dot(jnp.dot(transformation, anmvectors.T), dz)
+
+
+#%%
 def ds(reps):
     nmols = len(reps)
     with loops.Scope() as s:
@@ -190,30 +127,7 @@ def ds(reps):
     return K
 
 
-# def dsnp(reps):
-#     nmols = len(reps)
-#     K = np.zeros((nmols, nmols))
-#     for i in range(nmols):
-#         for j in range(i+1, nmols):
-#             d = np.linalg.norm(reps[i]-reps[j])
-#             K[i,j] = d
-#             K[j, i] = d
-#     return K
-def dsnp(reps):
-    return skm.pairwise_distances(reps, n_jobs=-1)
-
-
 # %%
-
-
-def positive_definite_solve(a, b):
-    factors = jax.scipy.linalg.cho_factor(a)
-
-    def solve(matvec, x):
-        return jax.scipy.linalg.cho_solve(factors, x)
-
-    matvec = functools.partial(jnp.dot, a)
-    return jax.lax.custom_linear_solve(matvec, b, solve, symmetric=True)
 
 
 # @jax.partial(jax.jit, static_argnums=(0, 2))
@@ -261,7 +175,6 @@ def get_transformed_mae(sigma, dscache, trainidx, testidx, Y):
     lval = 10 ** -10
     K_subset = Ktotal[np.ix_(trainidx, trainidx)]
     K_subset[np.diag_indices_from(K_subset)] += lval
-    # alphas = qml.math.cho_solve(K_subset, Y[trainidx])
     step1 = scipy.linalg.cho_factor(K_subset)
     alphas = scipy.linalg.cho_solve(step1, Y[trainidx])
 
@@ -275,7 +188,7 @@ def get_transformed_mae(sigma, dscache, trainidx, testidx, Y):
 def transformedkrr(df, trainidx, testidx, transform, Y):
     X = np.array([get_rep(transform, get_compound(_)) for _ in df.label.values])
 
-    dscache = np.array(dsnp(X))
+    dscache = np.array(skm.pairwise_distances(X, n_jobs=-1))
     sigmas = 2.0 ** np.arange(-2, 10)
     maes = [
         get_transformed_mae(sigma, dscache, trainidx, testidx, Y) for sigma in sigmas
@@ -301,17 +214,18 @@ def optimize_representation(ntrain=40):
     print("start")
     transform = jnp.identity(10).reshape(-1)
 
-    for i in range(3):
-        optmae, optgrad = valgrad(transform)
-        krrmae = transformedkrr(
-            fetch_energies(),
-            trainidx,
-            testidx,
-            np.asarray(transform).reshape(10, 10),
-            Y,
-        )
-        transform -= optgrad * 0.1
-        print(i, optmae, np.linalg.norm(optgrad), krrmae)
+    with mp.Pool() as pool:
+        for i in range(3):
+            optmae, optgrad = valgrad(transform)
+            krrmae = transformedkrr(
+                fetch_energies(),
+                trainidx,
+                testidx,
+                np.asarray(transform).reshape(10, 10),
+                Y,
+            )
+            transform -= optgrad * 0.1
+            print(i, optmae, np.linalg.norm(optgrad), krrmae)
 
 
 mlmeta.profile(optimize_representation)
