@@ -185,24 +185,30 @@ def get_transformed_mae(sigma, dscache, trainidx, testidx, Y):
     return np.abs(pred - actual).mean()
 
 
-def transformedkrr(df, trainidx, testidx, transform, Y):
-    X = np.array([get_rep(transform, get_compound(_)) for _ in df.label.values])
-
+def transformedkrr(pool, X, trainidx, testidx, transform, Y):
     dscache = np.array(skm.pairwise_distances(X, n_jobs=-1))
     sigmas = 2.0 ** np.arange(-2, 10)
-    maes = [
-        get_transformed_mae(sigma, dscache, trainidx, testidx, Y) for sigma in sigmas
-    ]
+    #maes = [
+    #    get_transformed_mae(sigma, dscache, trainidx, testidx, Y) for sigma in sigmas
+    #]
+    maes = pool.map(functools.partial(get_transformed_mae, dscache=dscache, trainidx=trainidx, testidx=testidx, Y=Y), sigmas)
 
     return np.min(np.array(maes))
 
 
-def optimize_representation(ntrain=40):
+def optimize_representation(ntrain=200):
     print("fetch")
     xs = np.arange(len(fetch_energies()))
     np.random.shuffle(xs)
     trainidx, testidx = xs[:ntrain], xs[ntrain:]
     traindf = fetch_energies().iloc[trainidx].copy()
+
+    # build ANM reference
+    X = []
+    for label in fetch_energies().label.values:
+        dz = [int(_)-6. for _ in str(label)]
+        X.append(np.dot(anmvectors.T, dz))
+    X = np.array(X)
     Y = fetch_energies().atomicE.values
 
     def inlinewrapper(transform):
@@ -218,7 +224,8 @@ def optimize_representation(ntrain=40):
         for i in range(3):
             optmae, optgrad = valgrad(transform)
             krrmae = transformedkrr(
-                fetch_energies(),
+                pool,
+                np.dot(transform.reshape(10, 10), X.T).T,
                 trainidx,
                 testidx,
                 np.asarray(transform).reshape(10, 10),
@@ -230,4 +237,19 @@ def optimize_representation(ntrain=40):
 
 mlmeta.profile(optimize_representation)
 #%%
+# %%
+
+# %%
+np.array(fetch_energies().label.apply(lambda _: np.array([int(__) for __ in str(_)])-6.).values)
+
+# %%
+X = []
+for label in fetch_energies().label.values:
+    X.append([int(_)-6. for _ in str(label)])
+X = np.array(X)
+# %%
+A = np.random.random(100).reshape(10, 10)
+== np.dot(A, X[10])
+# %%
+X
 # %%
