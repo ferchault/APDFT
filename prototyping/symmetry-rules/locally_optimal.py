@@ -130,9 +130,9 @@ def ds(reps):
 # %%
 
 
-# @jax.partial(jax.jit, static_argnums=(0, 2))
-def get_lc_endpoint(df, transformation, Y):
-    X = jnp.array([get_rep(transformation, get_compound(_)) for _ in df.label.values])
+@jax.partial(jax.jit, static_argnums=(0, 2))
+def get_lc_endpoint(X, transformation, Y):
+    X = jnp.dot(transformation.reshape(10, 10), X.T).T
 
     totalidx = np.arange(len(X), dtype=np.int)
     maes = []
@@ -151,9 +151,10 @@ def get_lc_endpoint(df, transformation, Y):
                 lval = 10 ** -10
                 K_subset = Ktotal[np.ix_(train, train)]
                 K_subset = K_subset.at[np.diag_indices_from(K_subset)].add(lval)
-                step1 = jax.scipy.linalg.cho_factor(K_subset)
-                alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
+                #step1 = jax.scipy.linalg.cho_factor(K_subset)
+                #alphas = jax.scipy.linalg.cho_solve(step1, Y[train])
                 # alphas = positive_definite_solve(K_subset, Y[train])
+                alphas = jax.scipy.linalg.solve(K_subset, Y[train], sym_pos=True)
 
                 K_subset = Ktotal[np.ix_(train, test)]
                 pred = jnp.dot(K_subset.transpose(), alphas)
@@ -188,15 +189,12 @@ def get_transformed_mae(sigma, dscache, trainidx, testidx, Y):
 def transformedkrr(pool, X, trainidx, testidx, transform, Y):
     dscache = np.array(skm.pairwise_distances(X, n_jobs=-1))
     sigmas = 2.0 ** np.arange(-2, 10)
-    #maes = [
-    #    get_transformed_mae(sigma, dscache, trainidx, testidx, Y) for sigma in sigmas
-    #]
     maes = pool.map(functools.partial(get_transformed_mae, dscache=dscache, trainidx=trainidx, testidx=testidx, Y=Y), sigmas)
 
     return np.min(np.array(maes))
 
-
-def optimize_representation(ntrain=200):
+import time
+def optimize_representation(ntrain=300):
     print("fetch")
     xs = np.arange(len(fetch_energies()))
     np.random.shuffle(xs)
@@ -213,16 +211,20 @@ def optimize_representation(ntrain=200):
 
     def inlinewrapper(transform):
         transform = transform.reshape(10, 10)
-        return get_lc_endpoint(traindf, transform, Y)
+        return get_lc_endpoint(X[trainidx], transform, Y)
 
     valgrad = jax.value_and_grad(inlinewrapper)
 
     print("start")
     transform = jnp.identity(10).reshape(-1)
 
-    with mp.Pool() as pool:
+    with mp.Pool(processes=32) as pool:
         for i in range(3):
+            start = time.time()
             optmae, optgrad = valgrad(transform)
+            print (f"jax: {time.time()-start}")
+            
+            start = time.time()
             krrmae = transformedkrr(
                 pool,
                 np.dot(transform.reshape(10, 10), X.T).T,
@@ -231,6 +233,7 @@ def optimize_representation(ntrain=200):
                 np.asarray(transform).reshape(10, 10),
                 Y,
             )
+            print (f"npx: {time.time()-start}")
             transform -= optgrad * 0.1
             print(i, optmae, np.linalg.norm(optgrad), krrmae)
 
