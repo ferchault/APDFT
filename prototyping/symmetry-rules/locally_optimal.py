@@ -19,12 +19,14 @@ x = jax.random.uniform(jax.random.PRNGKey(0), (1,), dtype=jnp.float64)
 assert x.dtype == jnp.dtype("float64"), "JAX not in double precision mode"
 
 import qml
+import sys
 import requests
 
 import numpy as np
 import matplotlib.pyplot as plt
 import functools
 import pandas as pd
+import scipy
 
 anmhessian = np.loadtxt("hessian.txt")
 _, anmvectors = np.linalg.eig(anmhessian)
@@ -214,16 +216,15 @@ def positive_definite_solve(a, b):
     return jax.lax.custom_linear_solve(matvec, b, solve, symmetric=True)
 
 
-@jax.partial(jax.jit, static_argnums=(0, 2))
-def get_lc_endpoint(df, transformation, propname):
+# @jax.partial(jax.jit, static_argnums=(0, 2))
+def get_lc_endpoint(df, transformation, Y):
     X = jnp.array([get_rep(transformation, get_compound(_)) for _ in df.label.values])
-    Y = df[propname].values
 
     totalidx = np.arange(len(X), dtype=np.int)
     maes = []
 
     dscache = ds(X)
-    for sigma in (1,):  # 2.0 ** np.arange(-2, 10):
+    for sigma in 2.0 ** np.arange(-2, 10):
         inv_sigma = -0.5 / (sigma * sigma)
         Ktotal = jnp.exp(dscache * inv_sigma)
 
@@ -250,89 +251,69 @@ def get_lc_endpoint(df, transformation, propname):
     return jnp.min(jnp.array(maes))
 
 
-def wrapper(transform):
-    transform = transform.reshape(10, 10)
-    return get_lc_endpoint(fetch_energies(), transform, "atomicE")
-
-
-def doit():
-    valgrad = jax.value_and_grad(wrapper)
-
-    angles = jnp.identity(10).reshape(-1)
-
-    mae, gradient = valgrad(angles)
-    print(mae, np.linalg.norm(gradient))
-    for i in range(10):
-        mae, gradient = valgrad(angles)
-        print(mae, np.linalg.norm(gradient))
-        angles -= gradient * 0.1
-    # plt.bar(range(100), gradient)
-    # plt.show()
-
-    # angles -= gradient*0.1
-    # mae, gradient = valgrad(angles)
-    # print(mae, np.linalg.norm(gradient))
-    # plt.bar(range(100), gradient)
-    # plt.show()
-
-    # print (jax.jacfwd(wrapper)(angles))
-    # print(wrapper(angles))
-
-
-# doit()
 # %%
-def transformedkrr(df, trainidx, testidx, transform, propname):
+def get_transformed_mae(sigma, dscache, trainidx, testidx, Y):
+    inv_sigma = -0.5 / (sigma * sigma)
+    Ktotal = np.exp(dscache * inv_sigma)
+
+    ntrain = len(trainidx)
+
+    lval = 10 ** -10
+    K_subset = Ktotal[np.ix_(trainidx, trainidx)]
+    K_subset[np.diag_indices_from(K_subset)] += lval
+    # alphas = qml.math.cho_solve(K_subset, Y[trainidx])
+    step1 = scipy.linalg.cho_factor(K_subset)
+    alphas = scipy.linalg.cho_solve(step1, Y[trainidx])
+
+    K_subset = Ktotal[np.ix_(trainidx, testidx)]
+    pred = np.dot(K_subset.transpose(), alphas)
+    actual = Y[testidx]
+
+    return np.abs(pred - actual).mean()
+
+
+def transformedkrr(df, trainidx, testidx, transform, Y):
     X = np.array([get_rep(transform, get_compound(_)) for _ in df.label.values])
-    Y = df[propname].values
 
-    maes = []
     dscache = np.array(dsnp(X))
-    for sigma in 2.0 ** np.arange(-2, 10):
-        inv_sigma = -0.5 / (sigma * sigma)
-        Ktotal = np.exp(dscache * inv_sigma)
+    sigmas = 2.0 ** np.arange(-2, 10)
+    maes = [
+        get_transformed_mae(sigma, dscache, trainidx, testidx, Y) for sigma in sigmas
+    ]
 
-        mae = []
-        ntrain = len(trainidx)
-
-        lval = 10 ** -10
-        K_subset = Ktotal[np.ix_(trainidx, trainidx)]
-        K_subset[np.diag_indices_from(K_subset)] += lval
-        alphas = qml.math.cho_solve(K_subset, Y[trainidx])
-
-        K_subset = Ktotal[np.ix_(trainidx, testidx)]
-        pred = np.dot(K_subset.transpose(), alphas)
-        actual = Y[testidx]
-
-        maes.append(np.abs(pred - actual).mean())
     return np.min(np.array(maes))
 
 
-def optimize_representation(ntrain=500):
+def optimize_representation(ntrain=40):
+    print("fetch")
     xs = np.arange(len(fetch_energies()))
     np.random.shuffle(xs)
     trainidx, testidx = xs[:ntrain], xs[ntrain:]
     traindf = fetch_energies().iloc[trainidx].copy()
+    Y = fetch_energies().atomicE.values
 
     def inlinewrapper(transform):
         transform = transform.reshape(10, 10)
-        return get_lc_endpoint(traindf, transform, "atomicE")
+        return get_lc_endpoint(traindf, transform, Y)
 
     valgrad = jax.value_and_grad(inlinewrapper)
 
+    print("start")
     transform = jnp.identity(10).reshape(-1)
-    for i in range(1000):
+
+    for i in range(3):
         optmae, optgrad = valgrad(transform)
         krrmae = transformedkrr(
             fetch_energies(),
             trainidx,
             testidx,
             np.asarray(transform).reshape(10, 10),
-            "atomicE",
+            Y,
         )
         transform -= optgrad * 0.1
         print(i, optmae, np.linalg.norm(optgrad), krrmae)
 
 
-optimize_representation()
+mlmeta.profile(optimize_representation)
 #%%
 # %%
