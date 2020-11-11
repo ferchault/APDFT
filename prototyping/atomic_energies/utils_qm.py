@@ -15,3 +15,10 @@ def load_obj(fname):
 def save_obj(obj, fname ):
     with open(fname, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+        
+def read_list(fname):
+    data = []
+    with open(fname, 'r') as f:
+        for line in f:
+            data.append(line.strip('\n'))
+    return(data)
