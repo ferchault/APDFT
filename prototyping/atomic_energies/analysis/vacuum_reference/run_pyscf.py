@@ -8,7 +8,8 @@ import os
 import utils_qm as uqm
 
 # get current directory
-os.getcwd()
+run_dir = os.getcwd()
+print(f'I am in directory {run_dir}')
 os.chdir(run_dir)
 print('Initializing')
 input_parameters = read_input(os.path.join(run_dir, 'input_parameters'))
@@ -17,7 +18,8 @@ intg_meth = input_parameters['intg_meth']
 basis = input_parameters['basis'] # 'def2-qzvp'
 com = qml.Compound(xyz=inputfile)
 
-lam_vals = np.arange(2, 54, 2)/52
+#lam_vals = #np.array([2, com.nuclear_charges.sum()/2, com.nuclear_charges.sum()])/com.nuclear_charges.sum()  #np.arange(2, com.nuclear_charges.sum(), 2)/com.nuclear_charges.sum()
+lam_vals = np.arange(2, com.nuclear_charges.sum()+2, 2)/com.nuclear_charges.sum()
 #lam_vals = np.concatenate((np.zeros(1), lam_vals))
 alchemical_potentials = []
 #alchemical_potentials.append(np.zeros(len(com.nuclear_charges)).tolist())
