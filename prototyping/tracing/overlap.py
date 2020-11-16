@@ -84,8 +84,10 @@ class ConnectedBenzene:
         if min(scores) < 0.9:
             center = (origin + dest) / 2
             mapping_left, _, calc_c = self._connect(origin, center, calc_o=calc_o)
-            mapping_right, _, _ = self._connect(center, dest, calc_o=calc_c, calc_d=calc_d)
-            return mapping_left[mapping_right], calc_o, calc_d
+            mapping_right, _, _ = self._connect(
+                center, dest, calc_o=calc_c, calc_d=calc_d
+            )
+            return mapping_right[mapping_left], calc_o, calc_d
         else:
             return col, calc_o, calc_d
 
@@ -104,8 +106,9 @@ class ConnectedBenzene:
         mapping, _, _ = self._connect(0, 1)
         return mapping
 
+
 o = np.array((7, 5, 7, 5, 6, 6))
 d = np.array((7, 5, 5, 7, 6, 6))
 c = ConnectedBenzene(o, d)
 #%%
-
+# only calculate similarity between elements within energy window
