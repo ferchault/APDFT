@@ -10,6 +10,7 @@ import pyscf.scf
 import pyscf.dft
 import pyscf.lib
 import pyscf.tools
+import pandas as pd
 import scipy.optimize as sco
 from pyscf.data import nist
 import matplotlib.pyplot as plt
@@ -79,6 +80,7 @@ class ConnectedBenzene:
                 sim[i, j] = np.sum(prop * self._grid.weights)
 
         row, col = sco.linear_sum_assignment(sim, maximize=True)
+        self._sims[(origin, dest)] = sim.copy()
         scores = sim[row, col]
 
         if min(scores) < 0.9:
@@ -89,6 +91,7 @@ class ConnectedBenzene:
             )
             return mapping_right[mapping_left], calc_o, calc_d
         else:
+            self._mappings[(origin, dest)] = col
             return col, calc_o, calc_d
 
     def __init__(self, origin, destination):
@@ -103,12 +106,100 @@ class ConnectedBenzene:
         self._meta_destination = destination
         self._meta_direction = self._meta_destination - self._meta_origin
         self._calcs = {}
+        self._mappings = {}
+        self._sims = {}
+
+    def connect(self):
         mapping, _, _ = self._connect(0, 1)
         return mapping
 
 
-o = np.array((7, 5, 7, 5, 6, 6))
-d = np.array((7, 5, 5, 7, 6, 6))
-c = ConnectedBenzene(o, d)
 #%%
 # only calculate similarity between elements within energy window
+
+# %%
+def rank_plot(c):
+    f = plt.figure(figsize=(8, 12))
+    occupied = sum(c._calcs[0].mo_occ > 0)
+    plt.axhline(occupied + 0.5, color="red")
+
+    # get lvals with a change
+    lvals = sorted(c._calcs.keys())
+    svals = []
+    smaps = []
+    nmos = len(c._calcs[0].mo_energy)
+    for origin, destination in zip(lvals[:-1], lvals[1:]):
+        if len(svals) == 0:
+            svals.append(origin)
+        if np.allclose(c._mappings[(origin, destination)], np.arange(nmos)):
+            continue
+        svals.append(destination)
+        smaps.append(c._mappings[(origin, destination)])
+    if svals[-1] < 1:
+        svals[-1] = 1
+
+    # plot lvals
+    xpos = np.linspace(0, 1, len(svals))
+    for x, sval in zip(xpos, svals):
+        try:
+            coloridx = list(sval % (1 / 2 ** np.arange(10))).index(0.0)
+        except:
+            coloridx = 10
+        plt.scatter(np.zeros(nmos) + x, np.arange(nmos), color=f"C{coloridx}")
+
+    # plot connections
+    for idx in range(len(svals) - 1):
+        for f, t in enumerate(smaps[idx]):
+            if f == t:
+                alpha = 0.7
+            else:
+                alpha = 1
+            plt.plot(xpos[idx : idx + 2], (f, t), color="grey", alpha=alpha, zorder=-10)
+
+    # label
+    plt.xlabel("Mixing parameter $\lambda$ [non-linear spacing]")
+    plt.xticks(xpos, svals)
+    plt.ylabel("MO index")
+
+
+#%%
+def extract(c, storename):
+    store = pd.HDFStore(f"{storename}.h5")
+
+    calcs = []
+    for k, calc in c._calcs.items():
+        row = {
+            "identifier": k,
+            "mo_coeff": calc.mo_coeff,
+            "mo_occ": calc.mo_occ,
+            "mo_energy": calc.mo_energy,
+            "energy": calc.e_tot,
+            "origin": c._meta_origin,
+            "destination": c._meta_destination,
+        }
+        calcs.append(row)
+    store["calcs"] = pd.DataFrame(calcs)
+
+    maps = []
+    for k, map in c._mappings.items():
+        maps.append({"identifier": k, "map": map})
+    store["mappings"] = pd.DataFrame(maps)
+
+    sims = []
+    for k, sim in c._sims.items():
+        sims.append({"identifier": k, "sim": sim})
+    store["sims"] = pd.DataFrame(sims)
+
+    store.close()
+
+
+#%%
+import sys
+
+origin, destination = sys.argv[1:]
+origin = np.array([{"C": 6, "B": 5, "N": 7}[_] for _ in origin])
+destination = np.array([{"C": 6, "B": 5, "N": 7}[_] for _ in destination])
+
+c = ConnectedBenzene(origin, destination)
+c.connect()
+extract(c, f"{sys.argv[1]}-{sys.argv[2]}")
