@@ -38,6 +38,7 @@ class ConnectedBenzene:
         return mol
 
     def _do_run(self, lval):
+        start = time.time()
         mol = self._get_mol()
         zs = lval * self._meta_direction + self._meta_origin
 
@@ -62,9 +63,11 @@ class ConnectedBenzene:
         hfe = calc.kernel(verbose=0)
 
         self._calcs[lval] = calc
+        print("spc done", time.time() - start)
         return calc
 
-    def _connect(self, origin, dest, calc_o=None, calc_d=None):
+    def _connect(self, origin, dest, calc_o=None, calc_d=None, psi_o=None, psi_d=None):
+        print(origin, dest)
         if calc_o is None:
             calc_o = self._do_run(origin)
         if calc_d is None:
@@ -72,27 +75,34 @@ class ConnectedBenzene:
 
         nmos = len(calc_o.mo_occ)
         sim = np.zeros((nmos, nmos))
+        if psi_o is None:
+            psi_o = [
+                np.abs(np.dot(self._ao, calc_o.mo_coeff[:, i])) for i in range(nmos)
+            ]
+        if psi_d is None:
+            psi_d = [
+                np.abs(np.dot(self._ao, calc_d.mo_coeff[:, j])) for j in range(nmos)
+            ]
         for i in range(nmos):
-            psi_i = np.abs(np.dot(self._ao, calc_o.mo_coeff[:, i]))
             for j in range(nmos):
-                psi_j = np.abs(np.dot(self._ao, calc_d.mo_coeff[:, j]))
-                prop = psi_i * psi_j
-                sim[i, j] = np.sum(prop * self._grid.weights)
+                sim[i, j] = np.sum(psi_o[i] * psi_d[j] * self._grid.weights)
 
         row, col = sco.linear_sum_assignment(sim, maximize=True)
         self._sims[(origin, dest)] = sim.copy()
         scores = sim[row, col]
 
-        if min(scores) < 0.9:
+        if min(scores) < 0.7:
             center = (origin + dest) / 2
-            mapping_left, _, calc_c = self._connect(origin, center, calc_o=calc_o)
-            mapping_right, _, _ = self._connect(
-                center, dest, calc_o=calc_c, calc_d=calc_d
+            mapping_left, _, calc_c, _, psi_c = self._connect(
+                origin, center, calc_o=calc_o, psi_o=psi_o
             )
-            return mapping_right[mapping_left], calc_o, calc_d
+            mapping_right, _, _, _, _ = self._connect(
+                center, dest, calc_o=calc_c, calc_d=calc_d, psi_o=psi_c, psi_d=psi_d
+            )
+            return mapping_right[mapping_left], calc_o, calc_d, psi_o, psi_d
         else:
             self._mappings[(origin, dest)] = col
-            return col, calc_o, calc_d
+            return col, calc_o, calc_d, psi_o, psi_d
 
     def __init__(self, origin, destination):
         gridmol = self._get_mol()
@@ -110,10 +120,14 @@ class ConnectedBenzene:
         self._sims = {}
 
     def connect(self):
-        mapping, _, _ = self._connect(0, 1)
+        mapping, _, _, _, _ = self._connect(0, 1)
         return mapping
 
 
+o = np.array((5, 7, 6, 6, 6, 6))
+d = np.array((5, 6, 7, 6, 6, 6))
+c = ConnectedBenzene(o, d)
+c.connect()
 #%%
 # only calculate similarity between elements within energy window
 
@@ -203,3 +217,4 @@ destination = np.array([{"C": 6, "B": 5, "N": 7}[_] for _ in destination])
 c = ConnectedBenzene(origin, destination)
 c.connect()
 extract(c, f"{sys.argv[1]}-{sys.argv[2]}")
+#%%
