@@ -38,7 +38,6 @@ class ConnectedBenzene:
         return mol
 
     def _do_run(self, lval):
-        start = time.time()
         mol = self._get_mol()
         zs = lval * self._meta_direction + self._meta_origin
 
@@ -63,11 +62,9 @@ class ConnectedBenzene:
         hfe = calc.kernel(verbose=0)
 
         self._calcs[lval] = calc
-        print("spc done", time.time() - start)
         return calc
 
     def _connect(self, origin, dest, calc_o=None, calc_d=None, psi_o=None, psi_d=None):
-        print(origin, dest)
         if calc_o is None:
             calc_o = self._do_run(origin)
         if calc_d is None:
@@ -91,7 +88,7 @@ class ConnectedBenzene:
         self._sims[(origin, dest)] = sim.copy()
         scores = sim[row, col]
 
-        if min(scores) < 0.7:
+        if min(scores) < 0.99:
             center = (origin + dest) / 2
             mapping_left, _, calc_c, _, psi_c = self._connect(
                 origin, center, calc_o=calc_o, psi_o=psi_o
@@ -124,10 +121,6 @@ class ConnectedBenzene:
         return mapping
 
 
-o = np.array((5, 7, 6, 6, 6, 6))
-d = np.array((5, 6, 7, 6, 6, 6))
-c = ConnectedBenzene(o, d)
-c.connect()
 #%%
 # only calculate similarity between elements within energy window
 
@@ -217,4 +210,3 @@ destination = np.array([{"C": 6, "B": 5, "N": 7}[_] for _ in destination])
 c = ConnectedBenzene(origin, destination)
 c.connect()
 extract(c, f"{sys.argv[1]}-{sys.argv[2]}")
-#%%
