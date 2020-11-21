@@ -74,20 +74,16 @@ class ConnectedBenzene:
         nmos = len(calc_o.mo_occ)
         sim = np.zeros((nmos, nmos))
         if psi_o is None:
-            psi_o = [
-                np.abs(np.dot(self._ao, calc_o.mo_coeff[:, i])) for i in range(nmos)
-            ]
+            psi_o = [np.dot(self._ao, calc_o.mo_coeff[:, i]) for i in range(nmos)]
         if psi_d is None:
-            psi_d = [
-                np.abs(np.dot(self._ao, calc_d.mo_coeff[:, j])) for j in range(nmos)
-            ]
+            psi_d = [np.dot(self._ao, calc_d.mo_coeff[:, j]) for j in range(nmos)]
         for i in range(nmos):
             for j in range(nmos):
                 deltaE = abs(calc_o.mo_energy[i] - calc_d.mo_energy[j])
                 if deltaE > 1 / 27.2114:
                     sim[i, j] = 0.0
                 else:
-                    sim[i, j] = np.sum(psi_o[i] * psi_d[j] * self._grid.weights)
+                    sim[i, j] = np.abs(np.sum(psi_o[i] * psi_d[j] * self._grid.weights))
 
         row, col = sco.linear_sum_assignment(sim, maximize=True)
         self._sims[(origin, dest)] = sim.copy()
