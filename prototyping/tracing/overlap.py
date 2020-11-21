@@ -65,6 +65,7 @@ class ConnectedBenzene:
         return calc
 
     def _connect(self, origin, dest, calc_o=None, calc_d=None, psi_o=None, psi_d=None):
+        print(origin, dest)
         if calc_o is None:
             calc_o = self._do_run(origin)
         if calc_d is None:
@@ -82,7 +83,11 @@ class ConnectedBenzene:
             ]
         for i in range(nmos):
             for j in range(nmos):
-                sim[i, j] = np.sum(psi_o[i] * psi_d[j] * self._grid.weights)
+                deltaE = abs(calc_o.mo_energy[i] - calc_d.mo_energy[j])
+                if deltaE > 1 / 27.2114:
+                    sim[i, j] = 0.0
+                else:
+                    sim[i, j] = np.sum(psi_o[i] * psi_d[j] * self._grid.weights)
 
         row, col = sco.linear_sum_assignment(sim, maximize=True)
         self._sims[(origin, dest)] = sim.copy()
