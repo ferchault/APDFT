@@ -6,6 +6,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as sco
+import qml
+import pandas as pd
+import scipy.optimize as sco
+import numpy as np
+import sys
+
+sys.path.append("../")
+import mlmeta
 
 # endregion
 
@@ -92,9 +100,12 @@ def compareplot(A, B, AB):
     consR.axvline(A._positions.shape[0], color="grey")
     for label in positions[0]:
         ranks = np.where(positions == label)[1]
-        # if min(ranks) != max(ranks):
-        consE.plot(energies[np.arange(len(ranks)), ranks])
-        consR.plot(ranks)
+        if min(ranks) != max(ranks):
+            alpha = 1
+        else:
+            alpha = 0.1
+        consE.plot(energies[np.arange(len(ranks)), ranks], alpha=alpha)
+        consR.plot(ranks, alpha=alpha)
         if label == AB._positions[-1][ranks[-1]]:
             color = "green"
         else:
@@ -106,9 +117,12 @@ def compareplot(A, B, AB):
     # AB
     for label in positions[0]:
         ranks = np.where(AB._positions == label)[1]
-        # if min(ranks) != max(ranks):
-        ABR.plot(ranks)
-        ABE.plot(AB._energies[np.arange(len(ranks)), ranks])
+        if min(ranks) != max(ranks):
+            alpha = 1
+        else:
+            alpha = 0.1
+        ABR.plot(ranks, alpha=alpha)
+        ABE.plot(AB._energies[np.arange(len(ranks)), ranks], alpha=alpha)
 
     ABE.set_ylim(-16, -6)
     # ABE.set_xlim(110, 150)
@@ -141,9 +155,9 @@ def get_mismatches(A, B, AB):
     return mismatch
 
 
-A = FollowMe("0.99-energy-fixed/BNCBCN-BNCNBC.h5")
-B = FollowMe("0.99-energy-fixed/BNCNBC-BNCCNB.h5")
-AB = FollowMe("0.99-energy-fixed/BNCBCN-BNCCNB.h5")
+A = FollowMe("def2/BNCBCN-BNCNBC.h5")
+B = FollowMe("def2/BNCNBC-BNCCNB.h5")
+AB = FollowMe("def2/BNCBCN-BNCCNB.h5")
 get_mismatches(A, B, AB)
 # region
 changestrs = "BNCCCC BCNCCC BCCNCC BNCBNC BNBNCC BNBCNC BNCBCN BNCNBC BNCCNB BNNBCC BNCNCB BNNCBC BNNCCB BCNNCB NBNBNB BNBNNB BNNNBB CCCCCC".split()
@@ -201,4 +215,94 @@ for destination in changestrs[1:]:
 
 # region
 df = pd.DataFrame(rows)
+# region
+for name, group in df.query("label=='MO-19'").groupby("ordering"):
+    plt.hist(group.energy, label=name, alpha=0.5)
+plt.legend()
+# region
+def get_mol(changestr):
+    lines = f"""12
+    
+    {changestr[0]}  0.000000000000000  1.391100104090276  0.0
+    {changestr[1]}  1.204728031075409  0.695550052045138 -0.0
+    {changestr[2]}  1.204728031075409 -0.695550052045138 -0.0
+    {changestr[3]} -0.000000000000000 -1.391100104090276  0.0
+    {changestr[4]} -1.204728031075409 -0.695550052045138  0.0
+    {changestr[5]} -1.204728031075409  0.695550052045138  0.0
+    H  0.000000000000000  2.471100189753489  0.0
+    H  2.140035536125550  1.235550092230858 -0.0
+    H  2.140035536125550 -1.235550092230858 -0.0
+    H -0.000000000000000 -2.471100189753489  0.0
+    H -2.140035536125550 -1.235550092230858  0.0
+    H -2.140035536125550  1.235550092230858  0.0"""
+    return qml.Compound(xyz=mlmeta.MockXYZ(lines.split("\n")))
+
+
+changestrs = "BNCCCC BCNCCC BCCNCC BNCBNC BNBNCC BNBCNC BNCBCN BNCNBC BNCCNB BNNBCC BNCNCB BNNCBC BNNCCB BCNNCB NBNBNB BNBNNB BNNNBB CCCCCC".split()
+mols = [get_mol(_) for _ in changestrs]
+# region
+
+
+# %%
+import matplotlib
+import matplotlib.ticker as ticker
+
+HOMO = 20
+LUMO = 21
+hartree2ev = 27.2114
+f, axs = plt.subplots(2, 8, figsize=(12, 8), sharex=True, sharey=True)
+
+
+def plot_into(idx, ax, label):
+    Ys_original = np.array(
+        [
+            df.query(
+                f"mol == @_ & ordering =='none' & label=='MO-{idx}'"
+            ).energy.values[0]
+            for _ in changestrs
+        ]
+    )
+    Ys_resorted = np.array(
+        [
+            df.query(
+                f"mol == @_ & ordering =='reordered' & label=='MO-{idx}'"
+            ).energy.values[0]
+            for _ in changestrs
+        ]
+    )
+    ns, mae, stddev = mlmeta.get_KRR_learning_curve(mols, "CM", Ys_original, k=100)
+    ax.errorbar(ns, mae * hartree2ev, stddev * hartree2ev, label="original")
+    ns, mae, stddev = mlmeta.get_KRR_learning_curve(mols, "CM", Ys_resorted, k=100)
+    ax.errorbar(ns, mae * hartree2ev, stddev * hartree2ev, label="resorted")
+    ax.legend()
+    ax.set_title(label)
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    locs = (4, 8, 16)
+    ax.xaxis.set_minor_locator(ticker.FixedLocator(locs))
+    ax.xaxis.set_major_locator(ticker.NullLocator())
+    ax.xaxis.set_minor_formatter(ticker.ScalarFormatter())
+    ax.set_xticklabels((4, 8, 16))
+
+
+plot_into(HOMO, axs[0, 7], "HOMO")
+plot_into(HOMO - 1, axs[0, 6], "HOMO-1")
+plot_into(HOMO - 2, axs[0, 5], "HOMO-2")
+plot_into(HOMO - 3, axs[0, 4], "HOMO-3")
+plot_into(HOMO - 4, axs[0, 3], "HOMO-4")
+plot_into(HOMO - 5, axs[0, 2], "HOMO-5")
+plot_into(HOMO - 6, axs[0, 1], "HOMO-6")
+plot_into(HOMO - 7, axs[0, 0], "HOMO-7")
+plot_into(LUMO, axs[1, 7], "LUMO")
+plot_into(LUMO + 1, axs[1, 6], "LUMO+1")
+plot_into(LUMO + 2, axs[1, 5], "LUMO+2")
+plot_into(LUMO + 3, axs[1, 4], "LUMO+3")
+plot_into(LUMO + 4, axs[1, 3], "LUMO+4")
+plot_into(LUMO + 5, axs[1, 2], "LUMO+5")
+plot_into(LUMO + 6, axs[1, 1], "LUMO+6")
+plot_into(LUMO + 7, axs[1, 0], "LUMO+7")
+axs[1, 4].set_xlabel("Training set size")
+axs[0, 0].set_ylabel("MAE [eV]")
+axs[1, 0].set_ylabel("MAE [eV]")
+
 # region

@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import functools
 import qml
-import requests
+#import requests
 import io
 import gzip
 import tarfile
