@@ -2,6 +2,7 @@
 # region
 import numpy as np
 import ase
+import sys
 from ase.neb import NEB
 import rmsd
 import pyscf
@@ -23,12 +24,11 @@ basepath = "."
 
 # region
 class Interpolate:
-    def __init__(self, fn_origin, fn_destination, LUMOminus, LUMOplus):
+    def __init__(self, fn_origin, fn_destination):
         self._origin = ase.io.read(fn_origin)
         self._destination = ase.io.read(fn_destination)
         self._elements = np.array(self._origin.get_chemical_symbols())
         self._align()
-        self._MOrange = (LUMOminus, LUMOplus + 1)
         self._calcs = {}
         self._sims = {}
 
@@ -52,7 +52,7 @@ class Interpolate:
         self._destination.set_positions(B[mapping])
         self._destination.set_chemical_symbols(elements_destination[mapping])
 
-    def _do_run(self, fractionalval):
+    def _do_run(self, fractionalval, mo_coeff=None, mo_occ=None):
         print(f"  > {fractionalval}")
         lval = fractionalval[0] / fractionalval[1]
         # build molecule
@@ -82,7 +82,14 @@ class Interpolate:
             return mf
 
         calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
-        hfe = calc.kernel(verbose=0)
+
+        dm = None
+        calc.chkfile = None
+        if mo_coeff is not None:
+            dm = calc.make_rdm1(mo_coeff, mo_occ)
+        hfe = calc.kernel(dm, verbose=5)
+        if not calc.converged:
+            raise ValueError("unconverged")
 
         self._calcs[fractionalval] = calc
         self._nmos = len(calc.mo_occ)
@@ -100,10 +107,17 @@ class Interpolate:
         if origin[1] != dest[1]:
             raise NotImplementedError("logic error!")
         print("<->", origin, dest)
+        mo_coeff, mo_occ = None, None
         if calc_o is None:
-            calc_o = self._do_run(origin)
+            if calc_d is not None:
+                mo_coeff = calc_d.mo_coeff
+                mo_occ = calc_d.mo_occ
+            calc_o = self._do_run(origin, mo_coeff, mo_occ)
         if calc_d is None:
-            calc_d = self._do_run(dest)
+            if calc_o is not None:
+                mo_coeff = calc_o.mo_coeff
+                mo_occ = calc_o.mo_occ
+            calc_d = self._do_run(dest, mo_coeff, mo_occ)
 
         sim = np.zeros((self._nmos, self._nmos))
         psi_o = [np.dot(calc_o.ao, calc_o.mo_coeff[:, i]) for i in range(self._nmos)]
@@ -120,6 +134,9 @@ class Interpolate:
         scores = sim[row, col]
         self._sims[(origin, dest)] = sim.copy()
 
+        print("    ", min(scores))
+        if 0.0 in scores:
+            print("   MO", list(scores).index(0.0))
         if min(scores) < 0.75:
             center = (origin[0] * 2 + 1, origin[1] * 2)
             calc_o, calc_c = self._connect(
@@ -131,7 +148,7 @@ class Interpolate:
         return calc_o, calc_d
 
     def _parametrize_geometry(self):
-        nimages = 5
+        nimages = 7
         images = [self._origin]
         images += [self._origin.copy() for i in range(nimages - 2)]
         images += [self._destination]
@@ -144,72 +161,30 @@ class Interpolate:
 
         coords = [_.get_positions() for _ in neb.images]
         self._geometry = sci.interp1d(
-            np.linspace(0, 1, nimages), coords, axis=0, kind="quadratic"
+            np.linspace(0, 1, nimages), coords, axis=0, kind="linear"
         )
 
     def connect(self):
         self._parametrize_geometry()
         self._connect((0, 1), (1, 1))
 
+    def save(self, fn):
+        # scale exact positions
+        max_denominator = max([_[1] for _ in self._calcs.keys()])
 
-i = Interpolate(f"{basepath}/ci0001.xyz", f"{basepath}/ci0100.xyz", 3, 3)
-i.connect()
-# endregion
-# region
+        # calculations
+        rows = []
+        for pos, calc in self._calcs.items():
+            factor = max_denominator // pos[1]
+            rows.append(
+                {"pos": pos[0] * factor, "occ": calc.mo_occ, "energies": calc.mo_energy}
+            )
+        calcs = pd.DataFrame(rows).sort_values("pos").reset_index(drop=True)
 
-# region
-import tqdm
-
-calcs = []
-for lval in tqdm.tqdm(np.linspace(0.0, 1, 64)):
-    calcs.append(i._do_run(lval))
-# region
-LUMO = list(calcs[0].mo_occ).index(0)
-import matplotlib.pyplot as plt
-
-for shift in range(1, 5):
-    plt.plot([_.mo_energy[LUMO - shift] for _ in calcs][0:10], "o-")
-# region
-with open("debug.xyz", "w") as fh:
-    for x in np.linspace(0, 1, 100):
-        atom = []
-        for element, position in zip(i._elements, i._geometry(x)):
-            atom.append(f"{element} {position[0]} {position[1]} {position[2]}")
-        fh.write("19\n\n" + "\n".join(atom) + "\n")
-# region
-def overlap(calc1, calc2, id1, id2):
-    grid = pyscf.dft.gen_grid.Grids(calc1.mol)
-    grid.level = 3
-    grid.build()
-    ao = pyscf.dft.numint.eval_ao(calc1.mol, grid.coords, deriv=0)
-    psi1 = np.dot(ao, calc1.mo_coeff[:, id1])
-    psi2 = np.dot(ao, calc2.mo_coeff[:, id2])
-    return np.sum(np.abs(psi1 * psi2) * grid.weights)
-
-
-for other in (2, 3, 4):
-    q = overlap(calcs[1], calcs[50], LUMO - 3, LUMO - other)
-    print(other, q)
-# region
-calcs[0].mol
-# region
-
-# region
-for shift in range(1, 5):
-    lvals = sorted(i._calcs.keys())
-    plt.plot(lvals, [i._calcs[lval].mo_energy[LUMO - shift] for lval in lvals])
-# region
-def follow_me(gp):
-    lvals = sorted(gp._calcs.keys(), key=lambda _: _[0] / _[1])
-    nmos = gp._nmos
-    labels = np.array([f"MO-{_}" for _ in range(nmos)])
-    positions = []
-    for idx, destination in enumerate(lvals):
-        if idx == 0:
-            ranking = labels
-        else:
-            origin = lvals[idx - 1]
-            print(origin, destination)
+        # similarities
+        rows = []
+        lvals = sorted(self._calcs.keys(), key=lambda _: _[0] / _[1])
+        for origin, destination in zip(lvals[:-1], lvals[1:]):
             maxq = max(origin[1], destination[1])
             originfactor = maxq // origin[1]
             destinationfactor = maxq // destination[1]
@@ -220,22 +195,98 @@ def follow_me(gp):
                     destination[1] * destinationfactor,
                 ),
             )
-            sim = gp._sims[identifier]
-            row, col = sco.linear_sum_assignment(sim, maximize=True)
-            ranking = positions[-1][np.argsort(col)]
-        positions.append(ranking)
-    return positions
+            sim = self._sims[identifier]
+            rows.append(
+                {
+                    "origin": origin[0] * max_denominator // origin[1],
+                    "destination": destination[0] * max_denominator // destination[1],
+                    "sim": sim,
+                }
+            )
+
+        sims = pd.DataFrame(rows)
+
+        # store
+        with pd.HDFStore(fn) as store:
+            store["calcs"] = calcs
+            store["sims"] = sims
 
 
-pos = follow_me(i)
+if __name__ == "__main__":
+    fnA, fnB, fnout = sys.argv[1:]
+    i = Interpolate(fnA, fnB)
+    i.connect()
+    i.save(fnout)
+# endregion
 # region
-import matplotlib.pyplot as plt
 
-for shift in range(1, 6):
-    plt.plot(
-        sorted(i._calcs.keys(), key=lambda _: _[0] / _[1]),
-        [list(_).index(f"MO-{i._LUMO-shift}") for _ in pos],
-    )
-# region
-i._calcs
+# # region
+# import tqdm
+
+# calcs = []
+# for lval in tqdm.tqdm(np.linspace(0.0, 1, 64)):
+#     calcs.append(i._do_run(lval))
+# # region
+# LUMO = list(calcs[0].mo_occ).index(0)
+# import matplotlib.pyplot as plt
+
+# for shift in range(1, 5):
+#     plt.plot([_.mo_energy[LUMO - shift] for _ in calcs][0:10], "o-")
+# # region
+# with open("debug.xyz", "w") as fh:
+#     for x in np.linspace(0, 1, 100):
+#         atom = []
+#         for element, position in zip(i._elements, i._geometry(x)):
+#             atom.append(f"{element} {position[0]} {position[1]} {position[2]}")
+#         fh.write("19\n\n" + "\n".join(atom) + "\n")
+# # region
+# def overlap(calc1, calc2, id1, id2):
+#     grid = pyscf.dft.gen_grid.Grids(calc1.mol)
+#     grid.level = 3
+#     grid.build()
+#     ao = pyscf.dft.numint.eval_ao(calc1.mol, grid.coords, deriv=0)
+#     psi1 = np.dot(ao, calc1.mo_coeff[:, id1])
+#     psi2 = np.dot(ao, calc2.mo_coeff[:, id2])
+#     return np.sum(np.abs(psi1 * psi2) * grid.weights)
+
+
+# for other in (2, 3, 4):
+#     q = overlap(calcs[1], calcs[50], LUMO - 3, LUMO - other)
+#     print(other, q)
+# # region
+# calcs[0].mol
+# # region
+
+# # region
+# for shift in range(1, 5):
+#     lvals = sorted(i._calcs.keys())
+#     plt.plot(lvals, [i._calcs[lval].mo_energy[LUMO - shift] for lval in lvals])
+# # region
+# def follow_me(gp):
+#     lvals = sorted(gp._calcs.keys(), key=lambda _: _[0] / _[1])
+#     nmos = gp._nmos
+#     labels = np.array([f"MO-{_}" for _ in range(nmos)])
+#     positions = []
+#     for idx, destination in enumerate(lvals):
+#         if idx == 0:
+#             ranking = labels
+#         else:
+#             origin = lvals[idx - 1]
+#             print(origin, destination)
+#             maxq = max(origin[1], destination[1])
+#             originfactor = maxq // origin[1]
+#             destinationfactor = maxq // destination[1]
+#             identifier = (
+#                 (origin[0] * originfactor, origin[1] * originfactor),
+#                 (
+#                     destination[0] * destinationfactor,
+#                     destination[1] * destinationfactor,
+#                 ),
+#             )
+#             sim = gp._sims[identifier]
+#             row, col = sco.linear_sum_assignment(sim, maximize=True)
+#             ranking = positions[-1][np.argsort(col)]
+#         positions.append(ranking)
+#     return positions
+not True and True
 # region
