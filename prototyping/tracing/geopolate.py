@@ -52,8 +52,9 @@ class Interpolate:
         self._destination.set_positions(B[mapping])
         self._destination.set_chemical_symbols(elements_destination[mapping])
 
-    def _do_run(self, lval):
-        print(f"  > {lval}")
+    def _do_run(self, fractionalval):
+        print(f"  > {fractionalval}")
+        lval = fractionalval[0] / fractionalval[1]
         # build molecule
         mol = pyscf.gto.Mole()
         atom = []
@@ -83,7 +84,7 @@ class Interpolate:
         calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
         hfe = calc.kernel(verbose=0)
 
-        self._calcs[lval] = calc
+        self._calcs[fractionalval] = calc
         self._nmos = len(calc.mo_occ)
         self._LUMO = list(calc.mo_occ).index(0)
 
@@ -96,6 +97,8 @@ class Interpolate:
         return calc
 
     def _connect(self, origin, dest, calc_o=None, calc_d=None):
+        if origin[1] != dest[1]:
+            raise NotImplementedError("logic error!")
         print("<->", origin, dest)
         if calc_o is None:
             calc_o = self._do_run(origin)
@@ -116,12 +119,15 @@ class Interpolate:
         row, col = sco.linear_sum_assignment(sim, maximize=True)
         scores = sim[row, col]
         self._sims[(origin, dest)] = sim.copy()
-        print("   ", min(scores))
 
         if min(scores) < 0.75:
-            center = (origin + dest) / 2
-            calc_o, calc_c = self._connect(origin, center, calc_o=calc_o)
-            self._connect(center, dest, calc_o=calc_c, calc_d=calc_d)
+            center = (origin[0] * 2 + 1, origin[1] * 2)
+            calc_o, calc_c = self._connect(
+                (origin[0] * 2, origin[1] * 2), center, calc_o=calc_o
+            )
+            self._connect(
+                center, (dest[0] * 2, dest[1] * 2), calc_o=calc_c, calc_d=calc_d
+            )
         return calc_o, calc_d
 
     def _parametrize_geometry(self):
@@ -143,8 +149,7 @@ class Interpolate:
 
     def connect(self):
         self._parametrize_geometry()
-        print("fix endpoint!")
-        self._connect(0, 0.15)
+        self._connect((0, 1), (1, 1))
 
 
 i = Interpolate(f"{basepath}/ci0001.xyz", f"{basepath}/ci0100.xyz", 3, 3)
@@ -195,7 +200,7 @@ for shift in range(1, 5):
     plt.plot(lvals, [i._calcs[lval].mo_energy[LUMO - shift] for lval in lvals])
 # region
 def follow_me(gp):
-    lvals = sorted(gp._calcs.keys())
+    lvals = sorted(gp._calcs.keys(), key=lambda _: _[0] / _[1])
     nmos = gp._nmos
     labels = np.array([f"MO-{_}" for _ in range(nmos)])
     positions = []
@@ -204,13 +209,33 @@ def follow_me(gp):
             ranking = labels
         else:
             origin = lvals[idx - 1]
-            identifier = (origin, destination)
-            sim = gp._sim[identifier]
+            print(origin, destination)
+            maxq = max(origin[1], destination[1])
+            originfactor = maxq // origin[1]
+            destinationfactor = maxq // destination[1]
+            identifier = (
+                (origin[0] * originfactor, origin[1] * originfactor),
+                (
+                    destination[0] * destinationfactor,
+                    destination[1] * destinationfactor,
+                ),
+            )
+            sim = gp._sims[identifier]
             row, col = sco.linear_sum_assignment(sim, maximize=True)
             ranking = positions[-1][np.argsort(col)]
         positions.append(ranking)
     return positions
 
 
-follow_me(i)
+pos = follow_me(i)
+# region
+import matplotlib.pyplot as plt
+
+for shift in range(1, 6):
+    plt.plot(
+        sorted(i._calcs.keys(), key=lambda _: _[0] / _[1]),
+        [list(_).index(f"MO-{i._LUMO-shift}") for _ in pos],
+    )
+# region
+i._calcs
 # region
