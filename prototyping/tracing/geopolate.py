@@ -31,6 +31,7 @@ class Interpolate:
         self._align()
         self._calcs = {}
         self._sims = {}
+        self._parametrize_geometry()
 
     def _align(self):
         A = self._origin.get_positions()
@@ -65,6 +66,11 @@ class Interpolate:
         mol.verbose = 0
         mol.build()
 
+        # debug
+        # with open(f"{fractionalval[0]}-{fractionalval[1]}.xyz", "w") as fh:
+        #    atom = "\n".join(atom)
+        #    fh.write(f"{19}\n\n{atom}\n")
+
         deltaZ = lval * (
             self._destination.get_atomic_numbers() - self._origin.get_atomic_numbers()
         )
@@ -89,6 +95,7 @@ class Interpolate:
             dm = calc.make_rdm1(mo_coeff, mo_occ)
         hfe = calc.kernel(dm, verbose=5)
         if not calc.converged:
+            print(atom)
             raise ValueError("unconverged")
 
         self._calcs[fractionalval] = calc
@@ -106,7 +113,8 @@ class Interpolate:
     def _connect(self, origin, dest, calc_o=None, calc_d=None):
         if origin[1] != dest[1]:
             raise NotImplementedError("logic error!")
-        print("<->", origin, dest)
+        percent = int(origin[0] / origin[1] * 100)
+        print("<->", origin, dest, f"{percent}%")
         mo_coeff, mo_occ = None, None
         if calc_o is None:
             if calc_d is not None:
@@ -119,25 +127,17 @@ class Interpolate:
                 mo_occ = calc_o.mo_occ
             calc_d = self._do_run(dest, mo_coeff, mo_occ)
 
-        sim = np.zeros((self._nmos, self._nmos))
-        psi_o = [np.dot(calc_o.ao, calc_o.mo_coeff[:, i]) for i in range(self._nmos)]
-        psi_d = [np.dot(calc_o.ao, calc_d.mo_coeff[:, i]) for i in range(self._nmos)]
-        for i in range(self._nmos):
-            for j in range(self._nmos):
-                deltaE = abs(calc_o.mo_energy[i] - calc_d.mo_energy[j])
-                if deltaE > 1 / 27.2114:
-                    sim[i, j] = 0.0
-                else:
-                    sim[i, j] = np.sum(np.abs(psi_o[i] * psi_d[j]) * calc_o.gw)
+        s = pyscf.gto.intor_cross("int1e_ovlp", calc_o.mol, calc_d.mol)
+        sim = np.abs(np.dot(np.dot(calc_o.mo_coeff.T, s), calc_d.mo_coeff))
 
         row, col = sco.linear_sum_assignment(sim, maximize=True)
-        scores = sim[row, col]
+        scores = sim[row, col][18:48]
         self._sims[(origin, dest)] = sim.copy()
 
         print("    ", min(scores))
         if 0.0 in scores:
-            print("   MO", list(scores).index(0.0))
-        if min(scores) < 0.75:
+            print("   MO", list(scores).index(0.0) + 18)
+        if min(scores) < 0.7:
             center = (origin[0] * 2 + 1, origin[1] * 2)
             calc_o, calc_c = self._connect(
                 (origin[0] * 2, origin[1] * 2), center, calc_o=calc_o
@@ -165,7 +165,6 @@ class Interpolate:
         )
 
     def connect(self):
-        self._parametrize_geometry()
         self._connect((0, 1), (1, 1))
 
     def save(self, fn):
@@ -211,12 +210,23 @@ class Interpolate:
             store["calcs"] = calcs
             store["sims"] = sims
 
+    def write_path(self, filename, nsteps=100):
+        with open(filename, "w") as fh:
+            natoms = len(self._elements)
+            for x in np.linspace(0, 1, nsteps):
+                atom = []
+                for element, position in zip(self._elements, self._geometry(x)):
+                    atom.append(f"{element} {position[0]} {position[1]} {position[2]}")
+                atom = "\n".join(atom)
+                fh.write(f"{natoms}\n\n{atom}\n")
+
 
 if __name__ == "__main__":
     fnA, fnB, fnout = sys.argv[1:]
     i = Interpolate(fnA, fnB)
+    i.write_path(f"{fnout}.xyz")
     i.connect()
-    i.save(fnout)
+    i.save(f"{fnout}.h5")
 # endregion
 # region
 
@@ -288,5 +298,58 @@ if __name__ == "__main__":
 #             ranking = positions[-1][np.argsort(col)]
 #         positions.append(ranking)
 #     return positions
-not True and True
+# # region
+# mol = pyscf.gto.Mole()
+# mol.atom = """C -1.097745727159791 0.23485654734900535 -0.9088858026239317
+# C -1.148721294308506 0.631582894648981 0.37109864730002834
+# C -1.3035513191474692 -0.6139636659989773 -0.101941083091326
+# O 0.1276146939024135 1.0352450310600259 1.1278270963572063
+# C 0.11389400908899736 -0.008765093638428461 0.01884833161651299
+# C 1.2863944794215965 0.45568563318279715 0.8086357123932881
+# C 2.4055931469398595 -0.00884017654152008 0.6024516548181206
+# C 2.291886858183722 -0.7891541441296157 -0.25052046816797835
+# O 1.0581018481417324 -0.8588218652550573 -0.6379288725084366
+# H -2.1672358736281283 0.8465780284891521 -1.2354890398436469
+# H -0.9435696858430008 1.4053112366460676 -1.3645788377943546
+# H -1.117748460709315 0.11217639495404938 -2.1276487852886214
+# H -2.5361255510934653 -0.6807044908125485 0.21453281938619664
+# H -1.5776349717434666 -1.787727326679819 -0.32134326417817033
+# H -1.552802796015216 -1.1177728598481522 1.031610529504163
+# H -1.7224031225089327 1.460433354191268 1.0967697482294911
+# H 1.5056349897114922 1.3385120499258043 1.7993573331553971
+# H 3.6049585143847995 -0.02438031611837757 0.8925596162660016
+# H 2.7734602623826796 -1.6302512314246582 -1.0153553355299398"""
+# mol.basis = "6-31G"
+# mol.verbose = 4
+# mol.build()
+
+# q = ase.io.read("fail.xyz")
+# deltaZ = (
+#     q.get_atomic_numbers() - q.get_atomic_numbers()
+# )
+# print (deltaZ)
+
+
+# def add_qmmm(calc, mol, deltaZ):
+#     mf = pyscf.qmmm.mm_charge(calc, mol.atom_coords() * nist.BOHR, deltaZ)
+
+#     def energy_nuc(self):
+#         q = mol.atom_charges().astype(np.float)
+#         q += deltaZ
+#         return mol.energy_nuc(q)
+
+#     mf.energy_nuc = energy_nuc.__get__(mf, mf.__class__)
+
+#     return mf
+
+# calc = add_qmmm(pyscf.scf.RHF(mol), mol, deltaZ)
+
+# dm = None
+# hfe = calc.kernel(dm, verbose=5)
+i = Interpolate("ci0001.xyz", "ci0100.xyz")
+# region
+i._connect((0, 1), (1, 1))
+# region
+calc1 = i._calcs[(7, 64)]
+calc2 = i._calcs[(1, 8)]
 # region
