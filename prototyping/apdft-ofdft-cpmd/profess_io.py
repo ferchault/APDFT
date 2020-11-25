@@ -68,7 +68,31 @@ def parse_ion_file(file):
                 positions = parse_position_section(f)
                 break
     return(positions)
-                
+
+def parse_ion_file_complete(file):
+    lattice = []
+    positions = []
+    atom_types = []
+    with open(file, 'r') as f:
+        for line in f:
+            if '%BLOCK LATTICE' in line:
+                lattice = parse_lattice_section(f)
+            elif '%BLOCK POSITIONS' in line:
+                positions, elements = parse_position_section_complete(f)
+            
+    return(lattice, positions, elements)
+
+def parse_lattice_section(fs):
+    lattice = []
+    for line in fs:
+        if not 'ENDBLOCK LATTICE' in line:
+            coords = line.split()
+            coords = [float(c) for c in coords]
+            lattice.append(coords)
+        else:
+            break
+    return(lattice)
+
 def parse_position_section(fs):
     pos = []
     for line in fs:
@@ -79,6 +103,19 @@ def parse_position_section(fs):
         else:
             break
     return(pos)
+
+def parse_position_section_complete(fs):
+    pos = []
+    elements = ''
+    for line in fs:
+        if not 'END BLOCK POSITIONS' in line:
+            coords = line.split()[1:4]
+            coords = [float(c) for c in coords]
+            pos.append(coords)
+            elements += line.split()[0]
+        else:
+            break
+    return(pos, elements)
 
 def parse_velocity_file(file):
     velocities = None
