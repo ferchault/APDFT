@@ -16,8 +16,8 @@ import pandas as pd
 import scipy.optimize as sco
 from pyscf.data import nist
 import scipy.interpolate as sci
-from ase.calculators.emt import EMT
 from ase.optimize.fire import FIRE as QuasiNewton
+from xtb.ase.calculator import XTB
 
 basepath = "."
 # endregion
@@ -65,11 +65,6 @@ class Interpolate:
         mol.basis = "6-31G"
         mol.verbose = 0
         mol.build()
-
-        # debug
-        # with open(f"{fractionalval[0]}-{fractionalval[1]}.xyz", "w") as fh:
-        #    atom = "\n".join(atom)
-        #    fh.write(f"{19}\n\n{atom}\n")
 
         deltaZ = lval * (
             self._destination.get_atomic_numbers() - self._origin.get_atomic_numbers()
@@ -153,7 +148,7 @@ class Interpolate:
         neb = NEB(images)
         neb.interpolate("idpp")
         for image in images:
-            image.calc = EMT()
+            image.calc = XTB()
         f = QuasiNewton(neb)
         f.run(steps=50)
 
