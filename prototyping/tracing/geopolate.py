@@ -99,15 +99,7 @@ class Interpolate:
             raise ValueError("unconverged")
 
         self._calcs[fractionalval] = calc
-        self._nmos = len(calc.mo_occ)
-        # self._LUMO = list(calc.mo_occ).index(0)
-
-        grid = pyscf.dft.gen_grid.Grids(calc.mol)
-        grid.level = 3
-        grid.build()
-        calc.ao = pyscf.dft.numint.eval_ao(calc.mol, grid.coords, deriv=0)
-        calc.gp = grid.coords
-        calc.gw = grid.weights
+        self._nmos = len(calc.mo_energy)
         return calc
 
     def _connect(self, origin, dest, calc_o=None, calc_d=None):
@@ -121,17 +113,17 @@ class Interpolate:
                 mo_coeff = calc_d.mo_coeff
                 mo_occ = calc_d.mo_occ
             try:
-                calc_o = self._do_run(origin, mo_coeff, mo_occ)
-            except:
                 calc_o = self._do_run(origin)
+            except:
+                calc_o = self._do_run(origin, mo_coeff, mo_occ)
         if calc_d is None:
             if calc_o is not None:
                 mo_coeff = calc_o.mo_coeff
                 mo_occ = calc_o.mo_occ
             try:
-                calc_d = self._do_run(dest, mo_coeff, mo_occ)
-            except:
                 calc_d = self._do_run(dest)
+            except:
+                calc_d = self._do_run(dest, mo_coeff, mo_occ)
 
         s = pyscf.gto.intor_cross("int1e_ovlp", calc_o.mol, calc_d.mol)
         sim = np.abs(np.dot(np.dot(calc_o.mo_coeff.T, s), calc_d.mo_coeff))
