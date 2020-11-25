@@ -7,13 +7,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-basepath = "/mnt/c/Users/guido/data/vasp/n2_co/alchemical-vasp"
+basepath = "/mnt/c/Users/guido/workcopies/apdft/prototyping/crystal/data_files"
 
 #%%
-def get_epn(lvalstr):
+def get_epns(lvalstr):
     """Extracts the locally averaged electronic electrostatic potential from the .129 file.
-
-    Hard coded for this particular data set.
 
     Parameters
     ----------
@@ -22,8 +20,8 @@ def get_epn(lvalstr):
 
     Returns
     -------
-    tuple
-        EPN in eV
+    list
+        EPN at all nuclei in eV
     """
     with open(f"{basepath}/{lvalstr}.129") as fh:
         lines = fh.readlines()
@@ -37,16 +35,32 @@ def get_epn(lvalstr):
                 in_section = False
                 A = np.loadtxt(io.StringIO("".join(section_lines)))
                 # weighted sum around nucleus
-                A = A[A[:, 0] < 0.1]
+                A = A[A[:, 0] < 0.11]
                 epns.append((A[:, 1] * A[:, 2]).sum() / A[:, 2].sum())
                 section_lines = []
             else:
                 section_lines.append(line)
         if "DIST(IND)" in line:
             in_section = True
-    return epns[0], epns[-1]
+    return np.array(epns)
 
 
+def fixed_epns(lvalstr):
+    """Fixes the ordering of the atoms to be the same for all calculations. Pads missing EPN for ghost sites."""
+
+    epns = get_epns(lvalstr)
+    if lvalstr == "0.0":
+        return epns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 12, 12, 0, 0]]
+    if lvalstr == "1.0":
+        return epns[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 14, 15, 15]]
+    return epns
+
+
+plt.plot(fixed_epns("0.9"))
+plt.plot(fixed_epns("1.0"))
+
+
+#%%
 def get_epn_averaged(lines):
     """Extracts the averaged electronic electrostatic potential from the log file.
 
