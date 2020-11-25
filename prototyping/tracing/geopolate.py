@@ -1,25 +1,23 @@
 #!/usr/bin/env python
 # region
-import numpy as np
-import ase
 import sys
-from ase.neb import NEB
+import warnings
+
+import numpy as np
+import pandas as pd
+import scipy.optimize as sco
+import scipy.interpolate as sci
+
 import rmsd
+import ase
+from ase.neb import NEB
 import pyscf
 import pyscf.gto
 import pyscf.qmmm
 import pyscf.scf
-import pyscf.dft
-import pyscf.lib
-import pyscf.tools
-import pandas as pd
-import scipy.optimize as sco
 from pyscf.data import nist
-import scipy.interpolate as sci
-from ase.optimize.fire import FIRE as QuasiNewton
-from xtb.ase.calculator import XTB
 
-basepath = "."
+warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 # endregion
 
 # region
@@ -54,9 +52,10 @@ class Interpolate:
         self._destination.set_chemical_symbols(elements_destination[mapping])
 
     def _do_run(self, fractionalval, mo_coeff=None, mo_occ=None):
-        if fractionalval[1] > 2**15:
+        if fractionalval[1] > 2 ** 15:
             raise ValueError("Steps too tiny. Find some other path.")
         lval = fractionalval[0] / fractionalval[1]
+
         # build molecule
         mol = pyscf.gto.Mole()
         atom = []
@@ -91,7 +90,6 @@ class Interpolate:
             dm = calc.make_rdm1(mo_coeff, mo_occ)
         hfe = calc.kernel(dm, verbose=5)
         if not calc.converged:
-            print(atom)
             raise ValueError("unconverged")
 
         self._calcs[fractionalval] = calc
@@ -145,11 +143,6 @@ class Interpolate:
         images += [self._destination]
         neb = NEB(images)
         neb.interpolate("idpp")
-        #for image in images:
-        #    image.calc = XTB()
-        #f = QuasiNewton(neb)
-        #f.run(steps=1)
-
         coords = [_.get_positions() for _ in neb.images]
         self._geometry = sci.interp1d(
             np.linspace(0, 1, nimages), coords, axis=0, kind="linear"
@@ -212,9 +205,15 @@ class Interpolate:
                 fh.write(f"{natoms}\n\n{atom}\n")
 
 
+# endregion
+
 if __name__ == "__main__":
     fnA, fnB, fnout = sys.argv[1:]
     i = Interpolate(fnA, fnB)
     i.write_path(f"{fnout}.xyz")
-    i.connect()
-    i.save(f"{fnout}.h5")
+    try:
+        i.connect()
+        i.save(f"{fnout}.h5")
+        print("OK")
+    except:
+        print("ERROR: unable to trace")
