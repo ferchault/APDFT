@@ -1,10 +1,17 @@
+# turn parallelization off
+import os
+os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=4
+os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=4 
+os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=6
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=4
+os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=6
+
 import sys
 sys.path.insert(0,'/home/misa/git_repositories/APDFT/prototyping/atomic_energies')
 import alchemy_tools_pyscf as atp
 from parse_pyscf import read_input
 import qml
 import numpy as np
-import os
 import utils_qm as uqm
 
 # get current directory
@@ -15,11 +22,15 @@ print('Initializing')
 input_parameters = read_input(os.path.join(run_dir, 'input_parameters'))
 inputfile = input_parameters['structure_file']#os.path.join(basepath, com+'.xyz')
 intg_meth = input_parameters['intg_meth']
-basis = input_parameters['basis'] # 'def2-qzvp'
+basis = input_parameters['basis'] # 'def2-qzvp
+lam_par = input_parameters['lambda']
 com = qml.Compound(xyz=inputfile)
 
 #lam_vals = #np.array([2, com.nuclear_charges.sum()/2, com.nuclear_charges.sum()])/com.nuclear_charges.sum()  #np.arange(2, com.nuclear_charges.sum(), 2)/com.nuclear_charges.sum()
-lam_vals = np.arange(2, com.nuclear_charges.sum()+2, 2)/com.nuclear_charges.sum()
+if lam_par == 'steps_of_2':
+    lam_vals = np.arange(2, com.nuclear_charges.sum()+2, 2)/com.nuclear_charges.sum()
+else:
+    lam_vals = [float(lam_par)]
 #lam_vals = np.concatenate((np.zeros(1), lam_vals))
 alchemical_potentials = []
 #alchemical_potentials.append(np.zeros(len(com.nuclear_charges)).tolist())
@@ -42,10 +53,11 @@ for lam in lam_vals: #np.flip(lam_vals)[:-1]:
     alchpots_lambda = atp.calculate_alchpot(dm, includeonly, mol)
     alchemical_potentials.append(alchpots_lambda) 
 #   saving results
-    uqm.save_obj(alchemical_potentials, os.path.join(run_dir, 'alchemical_potentials_tmp'))
-    uqm.save_obj(mo_energies, os.path.join(run_dir, 'mo_energies_tmp'))
-    uqm.save_obj(mo_occs, os.path.join(run_dir, 'mo_occupancies_tmp'))
-    uqm.save_obj(lam_vals[:np.where(lam_vals==lam)[0][0]+1], os.path.join(run_dir, 'lam_vals_tmp'))
+    if len(lam_vals) > 1:
+        uqm.save_obj(alchemical_potentials, os.path.join(run_dir, 'alchemical_potentials_tmp'))
+        uqm.save_obj(mo_energies, os.path.join(run_dir, 'mo_energies_tmp'))
+        uqm.save_obj(mo_occs, os.path.join(run_dir, 'mo_occupancies_tmp'))
+        uqm.save_obj(lam_vals[:np.where(lam_vals==lam)[0][0]+1], os.path.join(run_dir, 'lam_vals_tmp'))
     
 alchemical_potentials = np.array(alchemical_potentials)
 # average_potentials = atp.calculate_average_alchpots(alchemical_potentials, lam_vals, intg_meth)
