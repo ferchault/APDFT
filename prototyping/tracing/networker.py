@@ -5,6 +5,7 @@ import pandas as pd
 import rmsd
 import geopolate
 import os
+import glob
 import sys
 import concurrent.futures
 #endregion
@@ -33,12 +34,24 @@ def get_task(pair):
 # region
 if __name__ == '__main__':
     completed = [1]
-    remaining = np.arange(2, 6096)
-    np.random.shuffle(remaining)
+    new = []
+    for logfile in glob.glob("production/log*log"):
+        origin = int(logfile.split("_")[1].split("-")[0])
+        destination = int(logfile.split("-")[1].split(".")[0])
 
+        completed.append(origin)
+
+        with open(logfile) as fh:
+            lines = fh.readlines()
+        
+        if "OK" in lines[-1]:
+            new.append(destination)
+
+    remaining = set(np.arange(1, 6096)) - set(completed) - set(new)
     pairs = []
-    for r in remaining:
-        pairs.append((completed[-1], r))
+    for existing in new:
+        for r in remaining:
+            pairs.append((existing, r))
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         l = list(executor.map(get_task, pairs))
