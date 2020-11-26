@@ -6,7 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import functools
 import qml
-#import requests
+
+# import requests
 import io
 import gzip
 import tarfile
@@ -135,9 +136,12 @@ def get_KRR_learning_curve(
         X = np.array([_[0] for _ in combined])
         Q = np.array([_[1] for _ in combined])
     else:
-        X = np.array(
-            [get_representation(_, representation, **repkwargs) for _ in molecules]
-        )
+        if callable(representation):
+            X = np.array([representation(_) for _ in molecules])
+        else:
+            X = np.array(
+                [get_representation(_, representation, **repkwargs) for _ in molecules]
+            )
 
     rows = []
     totalidx = np.arange(len(X), dtype=np.int)
