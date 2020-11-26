@@ -21,16 +21,17 @@ class PROFESS(Calculator):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
-    def initialize(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
+    def initialize(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, profess_path = None, pos_type = 'CART'):
         self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
+        self.profess_path = profess_path
 
     def run_profess(self):
         os.chdir(self.run_dir)
-        p = subprocess.run(['/home/misa/git_repositories/PROFESS/PROFESS', self.inpt_name], capture_output = True,  text=True )
+        p = subprocess.run([self.profess_path, self.inpt_name], capture_output = True,  text=True )
         return(p)
     
     def update(self, atoms):
