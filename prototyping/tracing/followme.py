@@ -68,3 +68,9 @@ def extract_table():
     valids = [1] + [split_name(_)[1] for _ in glob.glob("/lscratch/vonrudorff/tracing/production/*.h5")]
     return {_: get_labeled_energies(_) for _ in valids}
 # region
+if __name__ == '__main__':
+    tbl = extract_table()
+    import pickle 
+    with open("table.pkl", "wb") as fh:
+        pickle.dump(tbl, fh)
+# region
