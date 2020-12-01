@@ -22,7 +22,12 @@ class FollowMe:
         self._sims = pd.read_hdf(filename, key="sims")
         self._nmos = len(self._calcs.occ.values[0])
         self.lvals = sorted(self._calcs.pos.values)
+        self._extract_energies()
         self._connect(labels)
+        self._adjust_crossings()
+
+    def _extract_energies(self):
+        self._sorted_energies = np.vstack(self._calcs.sort_values("pos").energies.values)
 
     def _find_crossing_candidates(self, idA, idB):
         # inspired by 10.1016/j.physa.2010.12.017
@@ -41,6 +46,67 @@ class FollowMe:
 
         peaks = [_ for _ in peaks if deltaE[_] < CROSSING_MAX_GAP]
         return peaks
+    
+    def get_energy(self, moidx):
+        pos = self._positions == f"MO-{moidx}"
+        return self._sorted_energies[pos]
+    def _get_mol(self, pos):
+        row = self._calcs.query("pos == @pos")
+        mol = pyscf.gto.Mole()
+        atom = []
+        for Z, coords in zip(row.Zs.values[0], row.coord.values[0]):
+            atom.append(f"{Z} {coords[0]} {coords[1]} {coords[2]}")
+        mol.atom = ";".join(atom)
+        mol.basis = row.basis.values[0]
+        mol.build()
+        return mol, row.coeff.values[0]
+
+
+    def _get_sim(self, origin, destination):
+        mol_o, coeff_o = _get_mol(self, origin)
+        mol_d, coeff_d = _get_mol(self, destination)
+
+        s = pyscf.gto.intor_cross("int1e_ovlp", mol_o, mol_d)
+        sim = np.abs(np.dot(np.dot(coeff_o.T, s), coeff_d))
+        return sim
+
+
+    def _adjust_crossings(self):
+        maxstep = max(self._calcs.pos.values)
+        crossings = self._find_all_crossing_candidates()
+
+        for idx, row in crossings.sort_values("pos").iterrows():
+            if row.one < 30 or row.one > 34:
+                continue
+            before = max(row.pos - maxstep * DELTA_LAMBDA_BUFFER, 0)
+            before = self._calcs.query("pos <= @before").sort_values("pos").pos.values[-1]
+            after = min(row.pos + maxstep * DELTA_LAMBDA_BUFFER, maxstep)
+            after = self._calcs.query("pos >= @after").sort_values("pos").pos.values[0]
+
+            sim = _get_sim(self, before, after)[row.one : row.other + 1, row.one : row.other + 1]
+            before_calc_id = self.lvals.index(before)
+            pos_calc_id = self.lvals.index(row.pos)
+            after_calc_id = self.lvals.index(after)
+            before_label_one, before_label_other = self._positions[before_calc_id, [row.one, row.other]]
+            after_label_one, after_label_other = self._positions[after_calc_id, [row.one, row.other]]
+            
+            needs_exchange = False
+            if np.linalg.det(sim) < 0:
+                # check if exchange acutally needed
+                if before_label_one == after_label_one:
+                    needs_exchange = True
+            else:
+                # reverse exchange if done
+                if before_label_one != after_label_one:
+                    needs_exchange = True
+            
+            if needs_exchange:
+                updated = self._positions[pos_calc_id:, :].copy()
+                mask1 = updated == before_label_one
+                mask2 = updated == before_label_other
+                updated[mask1] = before_label_other
+                updated[mask2] = before_label_one
+                self._positions[pos_calc_id:, :] = updated
 
     def _find_all_crossing_candidates(self):
         rows = []
@@ -55,12 +121,12 @@ class FollowMe:
         else:
             labels = labels._positions[-1]
         positions = []
-        energies = []
+        #energies = []
         for idx, destination in enumerate(self.lvals):
             spectrum = self._calcs.query("pos == @destination").energies.values[0]
             if idx == 0:
                 ranking = labels
-                energies.append(spectrum)
+                #energies.append(spectrum)
             else:
                 origin = self.lvals[idx - 1]
                 sim = self._sims.query(
@@ -71,15 +137,15 @@ class FollowMe:
                 ranking = positions[-1][np.argsort(col)]
 
                 # add energies in that order
-                nener = np.zeros(len(ranking))
+                #nener = np.zeros(len(ranking))
 
-                for molabel, moenergy in zip(ranking, spectrum):
-                    idx = int(molabel.split("-")[1])
-                    nener[idx] = moenergy
-                energies.append(nener)
+                #for molabel, moenergy in zip(ranking, spectrum):
+                #    idx = int(molabel.split("-")[1])
+                #    nener[idx] = moenergy
+                #energies.append(nener)
             positions.append(ranking)
         self._positions = np.array(positions)
-        self._energies = np.array(energies)
+        #self._energies = np.array(energies)
 
     def get_labeled_energies(self, globalreference=False):
         if globalreference:
@@ -141,110 +207,3 @@ if __name__ == "__main__":
 
     with open("/lscratch/vonrudorff/tracing/production/table.pkl", "wb") as fh:
         pickle.dump(tbl, fh)
-
-# region
-import glob
-
-for fn in glob.glob("/lscratch/vonrudorff/tracing/production/*.h5"):
-    d = FollowMe(fn)
-    if (d._positions[-1][30:34] == sorted(d._positions[-1][30:34])).all():
-        continue
-    print(fn)
-    continue
-    for i in range(30, 34):
-        xs = d.lvals
-        ys = d._energies[:, i]
-        ys2 = d._energies[:, i + 1]
-        plt.plot(xs, ys, color="grey")
-        peaks = d._find_crossing_candidates(i, i + 1)
-        # plt.scatter(peaks, np.interp(peaks, xs, (ys+ys2)/2), color="red")
-    # plt.show()
-
-# region
-# 1640: missing out
-
-import matplotlib.pyplot as plt
-
-d = FollowMe("/lscratch/vonrudorff/tracing/foo/debug.h5")
-for i in range(30, 34):
-    xs = d.lvals
-    ys = d._energies[:, i]
-    ys2 = d._energies[:, i + 1]
-    plt.plot(xs, ys)
-    peaks = d._find_crossing_candidates(i, i + 1)
-    plt.scatter(peaks, np.interp(peaks, xs, (ys + ys2) / 2), color="red")
-
-
-def _get_mol(self, pos):
-    row = self._calcs.query("pos == @pos")
-    mol = pyscf.gto.Mole()
-    atom = []
-    for Z, coords in zip(row.Zs.values[0], row.coord.values[0]):
-        atom.append(f"{Z} {coords[0]} {coords[1]} {coords[2]}")
-    mol.atom = ";".join(atom)
-    mol.basis = row.basis.values[0]
-    mol.build()
-    return mol, row.coeff.values[0]
-
-
-def _get_sim(self, origin, destination):
-    mol_o, coeff_o = _get_mol(self, origin)
-    mol_d, coeff_d = _get_mol(self, destination)
-
-    s = pyscf.gto.intor_cross("int1e_ovlp", mol_o, mol_d)
-    sim = np.abs(np.dot(np.dot(coeff_o.T, s), coeff_d))
-    return sim
-
-
-def _adjust_crossings(self):
-    maxstep = max(self._calcs.pos.values)
-    crossings = self._find_all_crossing_candidates()
-
-    for idx, row in crossings.sort_values("pos").iterrows():
-        if row.one < 30 or row.one > 34:
-            continue
-        before = max(row.pos - maxstep * DELTA_LAMBDA_BUFFER, 0)
-        before = self._calcs.query("pos <= @before").sort_values("pos").pos.values[-1]
-        after = min(row.pos + maxstep * DELTA_LAMBDA_BUFFER, maxstep)
-        after = self._calcs.query("pos >= @after").sort_values("pos").pos.values[0]
-
-        sim = _get_sim(self, before, after)[row.one : row.other + 1, row.one : row.other + 1]
-        before_calc_id = self.lvals.index(before)
-        pos_calc_id = self.lvals.index(row.pos)
-        after_calc_id = self.lvals.index(after)
-        before_label_one, before_label_other = self._positions[before_calc_id, [row.one, row.other]]
-        after_label_one, after_label_other = self._positions[after_calc_id, [row.one, row.other]]
-        
-        needs_exchange = False
-        if np.linalg.det(sim) < 0:
-            # check if exchange acutally needed
-            if before_label_one == after_label_one:
-                needs_exchange = True
-        else:
-            # reverse exchange if done
-            if before_label_one != after_label_one:
-                needs_exchange = True
-            
-        if needs_exchange:
-            updated = self._positions[pos_calc_id:, :].copy()
-            mask1 = updated == before_label_one
-            mask2 = updated == before_label_other
-            updated[mask1] = before_label_other
-            updated[mask2] = before_label_one
-            self._positions[pos_calc_id:, :] = updated
-
-                
-
-
-        plt.axvline(before)
-        plt.axvline(after)
-
-
-_adjust_crossings(d)
-# region
-
-
-sim = _get_sim(d, 384, 512)
-# region
-sim[31:33, 31:33]
-# region
