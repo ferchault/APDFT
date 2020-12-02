@@ -38,7 +38,7 @@ class FollowMe:
         ys = (1 - fidelityA) / dl ** 2 * (1 - fidelityB) / dl ** 2
 
         signal = np.interp(np.arange(max(xs)), xs, ys)
-        peaks, _ = scs.find_peaks(signal, height=0.2 * max(signal))
+        peaks, _ = scs.find_peaks(signal, height=0.05 * max(signal))
 
         # force crossings to be within a given energy window
         deltaE = np.abs([_[idA] - _[idB] for _ in self._calcs.energies.values])
@@ -63,8 +63,8 @@ class FollowMe:
 
 
     def _get_sim(self, origin, destination):
-        mol_o, coeff_o = _get_mol(self, origin)
-        mol_d, coeff_d = _get_mol(self, destination)
+        mol_o, coeff_o = self._get_mol(origin)
+        mol_d, coeff_d = self._get_mol(destination)
 
         s = pyscf.gto.intor_cross("int1e_ovlp", mol_o, mol_d)
         sim = np.abs(np.dot(np.dot(coeff_o.T, s), coeff_d))
@@ -83,7 +83,7 @@ class FollowMe:
             after = min(row.pos + maxstep * DELTA_LAMBDA_BUFFER, maxstep)
             after = self._calcs.query("pos >= @after").sort_values("pos").pos.values[0]
 
-            sim = _get_sim(self, before, after)[row.one : row.other + 1, row.one : row.other + 1]
+            sim = self._get_sim(before, after)[row.one : row.other + 1, row.one : row.other + 1]
             before_calc_id = self.lvals.index(before)
             pos_calc_id = self.lvals.index(row.pos)
             after_calc_id = self.lvals.index(after)
