@@ -10,6 +10,8 @@ def parse_out_file(file, value_name):
         value_name = 'LATTICE INFORMATION'
     elif value_name == 'temperature':
         value_name = 'Temperature'
+    elif value_name == 'nve temperature':
+        value_name = 'NVE Temperature'
     elif value_name == 'pressure':
         value_name = 'Ext Pressure * Vol'
         
@@ -32,6 +34,8 @@ def parse_out_file(file, value_name):
                     value.append(float(line.split(':')[-1]))
                 elif value_name == 'Temperature':
                     value.append(float(line.split(':')[-1]))
+                elif value_name == 'NVE Temperature':
+                    value.append(float(line.split(' ')[-2]))    
                 elif value_name == 'Ext Pressure * Vol':
                     value.append(float(line.split(':')[-1]))
                 elif value_name == 'LATTICE INFORMATION':
