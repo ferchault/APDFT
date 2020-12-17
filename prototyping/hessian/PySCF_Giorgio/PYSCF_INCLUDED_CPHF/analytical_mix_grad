@@ -1,0 +1,47 @@
+from pyscf import scf,gto
+import numpy as np
+import inspect
+from FcMole import FcM
+import matplotlib.pyplot as plt
+from pyscf.grad import rhf as grhf  #### very important
+from pyscf.hessian import rhf as hrhf # without those two mf.Gradients() and mf.Hessian() don't work
+
+NUC_FRAC_CHARGE=gto.mole.NUC_FRAC_CHARGE
+NUC_MOD_OF=gto.mole.NUC_MOD_OF
+PTR_FRAC_CHARGE=gto.mole.PTR_FRAC_CHARGE
+
+dL=[.001,-.001]
+
+def DeltaV(mol,dL):
+    mol.set_rinv_orig_(mol.atom_coords()[0])
+    dV=mol.intor('int1e_rinv')*dL[0]
+    mol.set_rinv_orig_(mol.atom_coords()[1])
+    dV+=mol.intor('int1e_rinv')*dL[1]
+    return -dV
+
+def mix_deriv(mol0,g0)
+
+#first piece
+ga=np.zeros((2,3))
+ga[0]+=np.einsum('xij,ij->x', g0.hcore_generator()(0),dP)       #dP/dZ* dH/dx
+ga[1]+=np.einsum('xij,ij->x', g0.hcore_generator()(1),dP)
+
+
+
+denv=mol0._env.copy()
+datm=mol0._atm.copy()
+fcs=[.001,-.001]
+datm[:,NUC_MOD_OF] = NUC_FRAC_CHARGE
+for i in range (mol0.natm):
+    denv[datm[i,PTR_FRAC_CHARGE]]=fcs[i] 
+dH1=-gto.moleintor.getints('int1e_ipnuc_sph',datm,mol0._bas,denv, None,3,0,'s1')
+
+comp2=np.zeros((2,3,10,10))
+for atm_id in [0,1]:
+    with mol0.with_rinv_at_nucleus(atm_id):
+        vrinv = -mol0.intor('int1e_iprinv', comp=3)
+    shl0, shl1, p0, p1 = mol0.aoslice_by_atom()[atm_id]
+    vrinv*=dL[atm_id]
+    vrinv[:,p0:p1] += dH1[:,p0:p1]  
+    vrinv += vrinv.transpose(0,2,1)
+    comp2[atm_id]=vrinv
