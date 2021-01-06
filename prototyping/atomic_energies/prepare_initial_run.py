@@ -36,7 +36,7 @@ def gd_comp(compound_path, lambda_ve):
     
     # make directory from compound
     compound_name = os.path.basename(compound_path).split('.')[0]
-    base_directory = os.path.join('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/', compound_name)
+    base_directory = os.path.join('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/', compound_name+'/box30')
     
     # generate parent directory
     if not os.path.exists(base_directory):
@@ -63,7 +63,7 @@ def gi_file(lambda_ve, compound, total_ve):
     # specific input section and charge
     charge = lambda_ve - total_ve
     # shift coordinates
-    boxsize = np.array([20.0, 20, 20])
+    boxsize = np.array([30.0, 30, 30])
     boxcenter = boxsize/2
     compound.coordinates = shift2center(compound.coordinates, boxcenter)
     atom_section = generate_atom_section(compound)

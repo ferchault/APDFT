@@ -195,8 +195,8 @@ def get_PP_file(Z, lval):
     
 
 PARENT_INP = '/home/misa/APDFT/prototyping/atomic_energies/input-template/run-1/run.inp'
-compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_014656.xyz')
-calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/calculations/converge_lambda_test/dsgdb9nsd_014656/lambda0p2/start_scaled_pp'
+compound = qml.Compound(xyz='/home/misa/datasets/qm9/dsgdb9nsd_003700.xyz')
+calc_dir = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/dsgdb9nsd_003700/box30/ve_8/trun'
 
 if not os.path.exists(calc_dir):
     os.makedirs(calc_dir)
