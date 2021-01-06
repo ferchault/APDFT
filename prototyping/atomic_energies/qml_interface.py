@@ -266,7 +266,7 @@ def get_global_idx(local_idc, molecule_size):
     molecule_size: list with number of atoms in every molecule
     global_idc: index of molecule in alchemy_data for every local index in local_idx
     """
-    local_idc.sort()
+    #local_idc.sort()
     cumulated = []
     for idx in range(len(molecule_size)):
         cumulated.append(np.sum(molecule_size[0:idx+1]))
