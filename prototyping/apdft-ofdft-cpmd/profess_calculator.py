@@ -4,6 +4,7 @@ from ase import units
 import profess_io as pio
 import subprocess
 import os
+from shutil import copyfile
 import numpy as np
 from density_calculators import DensityOptimizerCPMD
 
@@ -21,13 +22,16 @@ class PROFESS(Calculator):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
-    def initialize(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, profess_path = None, pos_type = 'CART'):
+    def initialize(self, run_dir=None, ini_den = None, ini_ion = None, inpt_name = None, pp_names = None, atoms=None, profess_path = None, pos_type = 'CART'):
         self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
         self.profess_path = profess_path
+        
+        copyfile(ini_den, os.path.join(run_dir, inpt_name+'.den')) # make initial ion file
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial density file
 
     def run_profess(self):
         os.chdir(self.run_dir)
@@ -80,7 +84,7 @@ class PROFESS(Calculator):
         # read forces
         self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
         # ensures that programm crashes if computation of forces fails in next step
-        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
+        #os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
         return(self.forces)
         
     
@@ -98,12 +102,16 @@ class PROFESS_CPMD(PROFESS):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
-    def initialize(self, atoms=None, dt = None, inpt_name=None, mu = None, pos_type = 'CART',pp_names=None, run_dir=None):
+    def initialize(self, atoms=None, dt = None, ini_den = None, ini_ion = None, inpt_name=None, mu = None, pos_type = 'CART',pp_names=None, profess_path = None, run_dir=None):
         self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
+        self.profess_path = profess_path
+        
+        copyfile(ini_den, os.path.join(run_dir, inpt_name+'.den')) # make initial ion file
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial density file
         
         # create and initialize DensityOptimizer
         self.DensOpt = DensityOptimizerCPMD()

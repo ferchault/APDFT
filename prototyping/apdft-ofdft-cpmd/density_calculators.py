@@ -17,8 +17,9 @@ class DensityOptimizer():
     def __init__(self):
         pass
     
-    def initialize(self, atoms, dt, mu, workdir):
+    def initialize(self, atoms, dt, mu, profess_path, workdir):
         self.workdir = workdir
+        self.profess_path = profess_path # path to PROFESS executable
         
         self.dt = dt
         self.mu = mu
@@ -139,7 +140,7 @@ class DensityOptimizer():
     
     def run_profess(self):
         os.chdir(self.workdir)
-        p = subprocess.run(['/home/misa/software/PROFESS-1/PROFESS', 'job'], capture_output = True,  text=True )
+        p = subprocess.run([self.profess_path, 'job'], capture_output = True,  text=True )
         return(p)
     
     def save_density(self, density, density_path):
@@ -154,9 +155,10 @@ class DensityOptimizer():
 
 class DensityOptimizerCPMD(DensityOptimizer):
       
-    def initialize(self, atoms, dt, inpt_name, mu, workdir):
+    def initialize(self, atoms, dt, inpt_name, mu, profess_path, workdir):
         self.workdir = workdir
         self.inpt_name = inpt_name
+        self.profess_path = profess_path # path to PROFESS executable
         
         self.dt = dt
         self.mu = mu
@@ -285,7 +287,7 @@ class DensityOptimizerCPMD(DensityOptimizer):
             
     def run_profess(self):
         os.chdir(self.workdir)
-        p = subprocess.run(['/home/misa/software/PROFESS-1/PROFESS', self.inpt_name], capture_output = True,  text=True )
+        p = subprocess.run([self.profess_path, self.inpt_name], capture_output = True,  text=True )
         return(p)
     
     def vv_step(self):
