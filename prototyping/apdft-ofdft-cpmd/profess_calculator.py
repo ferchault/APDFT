@@ -110,12 +110,12 @@ class PROFESS_CPMD(PROFESS):
         self.energy_zero = 0.0
         self.profess_path = profess_path
         
-        copyfile(ini_den, os.path.join(run_dir, inpt_name+'.den')) # make initial ion file
+        copyfile(ini_den, os.path.join(run_dir, 'density0')) # make initial ion file
         copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial density file
         
         # create and initialize DensityOptimizer
         self.DensOpt = DensityOptimizerCPMD()
-        self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.run_dir)
+        self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir)
     
     def get_forces(self, atoms=None):
         # write new .ion file
