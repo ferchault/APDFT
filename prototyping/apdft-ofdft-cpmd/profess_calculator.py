@@ -13,7 +13,7 @@ class PROFESS(Calculator):
     calls PROFESS using the parameters given in __init__
     """
     name = 'PROFESS'
-    implemented_properties = ['forces']
+    implemented_properties = ['forces', 'energy']
 
     def __init__(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
         self.atoms = atoms
@@ -93,7 +93,7 @@ class PROFESS_CPMD(PROFESS):
     calls PROFESS using the parameters given in __init__
     """
     name = 'PROFESS'
-    implemented_properties = ['forces']
+    implemented_properties = ['forces', 'energy']
 
     def __init__(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
         self.atoms = atoms
@@ -110,8 +110,8 @@ class PROFESS_CPMD(PROFESS):
         self.energy_zero = 0.0
         self.profess_path = profess_path
         
-        copyfile(ini_den, os.path.join(run_dir, 'density0')) # make initial ion file
-        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial density file
+        copyfile(ini_den, os.path.join(run_dir, 'density_0')) # make initial density file
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial ion file
         
         # create and initialize DensityOptimizer
         self.DensOpt = DensityOptimizerCPMD()
@@ -130,16 +130,29 @@ class PROFESS_CPMD(PROFESS):
         
         # optimize density for one single step
         # at this step also the forces are calculated, check that exited normally
-        self.DensOpt.optimize_vv(1)
+        self.DensOpt.optimize_vv()
         
         # update energy
         self.energy_zero = self.DensOpt.energies[-1]
         
-        # read forces
-        self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
+        # read forces in this case from .out file not from separate file .force.out
+        self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.out', '.out'))
         # ensures that programm crashes if computation of forces fails in next step
-        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
+        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.out')
         return(self.forces)
+    
+    def get_property(self, name, atoms=None, allow_calculation=True):
+        if name not in self.implemented_properties:
+            #raise PropertyNotImplementedError('{} property not implemented'.format(name))
+            result = None
+
+        if name == 'forces':
+            result = self.forces
+        elif name == 'energy':
+            result = self.energy_zero
+
+        return result
+
         
     
 class PROFESS_old(Calculator):

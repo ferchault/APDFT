@@ -232,58 +232,55 @@ class DensityOptimizerCPMD(DensityOptimizer):
             # update sqrt of density
             self.X = self.X_p
 
-    
-    def optimize_vv(self, nsteps, density_file = None, overwrite = False):
-        for i in range(nsteps):
-            
-            # do the calculation, find a more elegant way to get the correct density? maybe mv instead of copy
-            # create path to density file
-            density_file = os.path.join(self.workdir, f'density_{self.step}')    
-            # calculate gradient for density file
-            self.calculate_dEdX(density_file)
-            
-            # read gradient and density into python
-            grad_file = os.path.join(self.workdir, 'dEdX')
-            grad = self.read_gradient(grad_file)
-            num_gpt_grad = len(grad)
-            self.dEdX = self.rescale(grad, num_gpt_grad)
-            if self.X is None:
-                dens = self.read_density(density_file)
-                self.num_gpt_dens = len(dens)
-                self.density = self.rescale(dens, self.num_gpt_dens)
-                self.X = np.sqrt(self.density)
-            
-            # read energy
-            self.energies.append(pio.parse_out_file(os.path.join(self.workdir, f'{self.inpt_name}.out'), 'TOTAL ENERGY'))
-            
-            # propagate density
-            if self.X_m is not None:
-                self.vv_step()
-            else: 
-                a = -self.dEdX/self.mu
-                self.X_p = a*self.dt**2 + self.X
-            
-            # enforce that number of electrons is conserved
-            lambda_1, lambda_2 = self.calculate_lambda()
-            self.X_p = self.X_p + self.dt**2/self.mu*lambda_2*self.X
-            
-            # write new density to file
-            density_p = np.power(self.X_p,2)
-            
-            dV = self.V/self.num_gpt_dens
-            
-            density_p = density_p/dV
-            if overwrite:
-                self.save_density(density_p, os.path.join(self.workdir, f'density'))
-            else:
-                self.save_density(density_p, os.path.join(self.workdir, f'density_{self.step+1}'))
-            
-            # update sqrt of density for previous step
-            self.X_m = self.X
-            self.X = self.X_p
-              
-            # update step counter
-            self.step += 1
+    def optimize_vv(self, density_file = None, overwrite = False):
+        # do the calculation, find a more elegant way to get the correct density? maybe mv instead of copy
+        # create path to density file
+        density_file = os.path.join(self.workdir, f'density_{self.step}')    
+        # calculate gradient for density file
+        self.calculate_dEdX(density_file)
+
+        # read gradient and density into python
+        grad_file = os.path.join(self.workdir, 'dEdX')
+        grad = self.read_gradient(grad_file)
+        num_gpt_grad = len(grad)
+        self.dEdX = self.rescale(grad, num_gpt_grad)
+        if self.X is None:
+            dens = self.read_density(density_file)
+            self.num_gpt_dens = len(dens)
+            self.density = self.rescale(dens, self.num_gpt_dens)
+            self.X = np.sqrt(self.density)
+
+        # read energy
+        self.energies.append(pio.parse_out_file(os.path.join(self.workdir, f'{self.inpt_name}.out'), 'TOTAL ENERGY'))
+
+        # propagate density
+        if self.X_m is not None:
+            self.vv_step()
+        else: 
+            a = -self.dEdX/self.mu
+            self.X_p = a*self.dt**2 + self.X
+
+        # enforce that number of electrons is conserved
+        lambda_1, lambda_2 = self.calculate_lambda()
+        self.X_p = self.X_p + self.dt**2/self.mu*lambda_2*self.X
+
+        # write new density to file
+        density_p = np.power(self.X_p,2)
+
+        dV = self.V/self.num_gpt_dens
+
+        density_p = density_p/dV
+        if overwrite:
+            self.save_density(density_p, os.path.join(self.workdir, f'density'))
+        else:
+            self.save_density(density_p, os.path.join(self.workdir, f'density_{self.step+1}'))
+
+        # update sqrt of density for previous step
+        self.X_m = self.X
+        self.X = self.X_p
+
+        # update step counter
+        self.step += 1
             
     def run_profess(self):
         os.chdir(self.workdir)
