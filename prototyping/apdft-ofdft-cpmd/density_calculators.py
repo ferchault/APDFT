@@ -21,13 +21,16 @@ class DensityOptimizer():
         self.workdir = workdir
         self.profess_path = profess_path # path to PROFESS executable
         
-        self.dt = dt
+        self.fs2atu = 1/(au._aut*1e15) # converts time from fs to a.t.u.: 1 fs * fs2atu = time in a.t.u.
+        self.dt = dt/au.fs * self.fs2atu # conversion back to fs from ase time format by dividing by au.fs then conversion from fs to a.t.u.
         self.mu = mu
         self.energies = []
         
         self.atoms = atoms
         self.V = self.atoms.get_volume()/au.Bohr**3
         self.Ne = - atoms.get_initial_charges().sum() + get_num_val_elec(atoms.get_atomic_numbers())
+        
+
         
     def calculate_dEdX(self, density_file):
         """
@@ -40,6 +43,8 @@ class DensityOptimizer():
         assert self.p.returncode == 0, 'Calculation of forces failed'
         
     def calculate_lambda(self):
+        #scaling_factor_sq = (self.X*self.X).sum()/self.Ne
+        
         N_p = (self.X_p*self.X).sum()
         N_pp = (self.X_p*self.X_p).sum()
         tau = self.dt**2/self.mu
@@ -155,17 +160,18 @@ class DensityOptimizer():
 
 class DensityOptimizerCPMD(DensityOptimizer):
       
-    def initialize(self, atoms, dt, inpt_name, mu, profess_path, workdir):
+    def initialize(self, atoms, dt, inpt_name, mu, profess_path, workdir, debug=False):
         self.workdir = workdir
         self.inpt_name = inpt_name
         self.profess_path = profess_path # path to PROFESS executable
         
-        self.dt = dt
+        self.fs2atu = 1/(au._aut*1e15) # converts time from fs to a.t.u.: 1 fs * fs2atu = time in a.t.u.
+        self.dt = dt/au.fs * self.fs2atu # conversion back to fs from ase time format by dividing by au.fs then conversion from fs to a.t.u.
         self.mu = mu
         self.energies = []
         
         self.atoms = atoms
-        self.V = self.atoms.get_volume()/au.Bohr**3
+        self.V = self.atoms.get_volume()/au.Bohr**3 # convert volume from Ang^-3 to Bohr^-3
         self.Ne = - atoms.get_initial_charges().sum() + get_num_val_elec(atoms.get_atomic_numbers())
         
         self.X = None
@@ -174,6 +180,13 @@ class DensityOptimizerCPMD(DensityOptimizer):
         # in CPMD coupled to ASE the density propagation is done for only one step during each iteration
         # the variale self.step counts the actual number of steps in the MD simulation
         self.step = 0
+        
+        self.debug = debug
+        if self.debug:
+            self.store_new_densities = []
+            self.store_densities = []
+            self.store_dEdX = []
+            self.store_lambdas = []
         
     def calculate_dEdX(self, density_file):
         """
@@ -200,11 +213,11 @@ class DensityOptimizerCPMD(DensityOptimizer):
             grad_file = os.path.join(self.workdir, 'dEdX')
             grad = self.read_gradient(grad_file)
             num_gpt_grad = len(grad)
-            self.dEdX = self.rescale(grad, num_gpt_grad)
+            self.dEdX = grad # self.rescale(grad, num_gpt_grad)
             if self.X is None:
                 dens = self.read_density(density_file)
                 num_gpt_dens = len(dens)
-                self.density = self.rescale(dens, num_gpt_dens)
+                self.density = dens # self.rescale(dens, num_gpt_dens)
                 self.X = np.sqrt(self.density)
             
             # read energy
@@ -239,11 +252,13 @@ class DensityOptimizerCPMD(DensityOptimizer):
         # calculate gradient for density file
         self.calculate_dEdX(density_file)
 
-        # read gradient and density into python
+        # read gradient 
         grad_file = os.path.join(self.workdir, 'dEdX')
         grad = self.read_gradient(grad_file)
         num_gpt_grad = len(grad)
         self.dEdX = self.rescale(grad, num_gpt_grad)
+        
+        # read density for zeroth step
         if self.X is None:
             dens = self.read_density(density_file)
             self.num_gpt_dens = len(dens)
@@ -281,6 +296,12 @@ class DensityOptimizerCPMD(DensityOptimizer):
 
         # update step counter
         self.step += 1
+        
+        if self.debug:
+            self.store_densities.append(self.density)
+            self.store_new_densities.append(density_p)
+            self.store_dEdX.append(self.dEdX)
+            self.store_lambdas.append((lambda_1, lambda_2))
             
     def run_profess(self):
         os.chdir(self.workdir)

@@ -89,7 +89,7 @@ def parse_ion_file_complete(file):
 def parse_lattice_section(fs):
     lattice = []
     for line in fs:
-        if not 'ENDBLOCK LATTICE' in line:
+        if not 'END BLOCK LATTICE' in line:
             coords = line.split()
             coords = [float(c) for c in coords]
             lattice.append(coords)
