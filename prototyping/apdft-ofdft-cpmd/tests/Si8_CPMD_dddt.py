@@ -32,7 +32,7 @@ pp_names = ['si.lda.recpot']
 mu = 380
 dt = 0.0001 # time interval in fs
 t = 1000 # total time in fs
-steps = int(t/dt)
+steps = 10#int(t/dt)
 # make empty calculator
 calc = PROFESS_CPMD()
 # pass calculator to atoms object

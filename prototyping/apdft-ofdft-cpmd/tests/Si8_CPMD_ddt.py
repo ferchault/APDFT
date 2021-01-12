@@ -21,16 +21,16 @@ atoms = initialize_atoms(pos_file, vel_file, pos_type='CART')
 # set parameters for PROFESS calculation
 #profess_path = '/home/misa/software/PROFESS-1/PROFESS' # on avl24
 profess_path = '/home/misa/opt/PROFESS-1/PROFESS' # on avl51
-log = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-4/Si8_dt_1e-4.log'
-traj_path = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-4/Si8_dt_1e-4.traj'
-run_dir = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-4'
+log = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-3/Si8_dt_1e-3.log'
+traj_path = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-3/Si8_dt_1e-3.traj'
+run_dir = '/home/misa/projects/APDFT-CPMD/data/CPMD/Si8_dt_1e-3'
 ini_den = '/home/misa/projects/APDFT-CPMD/data/CPMD/debug_Si8/initial_data/ase_nve.den'
 ini_ion = '/home/misa/projects/APDFT-CPMD/data/CPMD/debug_Si8/initial_data/ase_nve.ion'
-inpt_name = 'Si8_dt_1e-4'
+inpt_name = 'Si8_dt_1e-3'
 pp_names = ['si.lda.recpot']
 
 mu = 380
-dt = 0.0001 # time interval in fs
+dt = 0.001 # time interval in fs
 t = 1000 # total time in fs
 steps = int(t/dt)
 # make empty calculator
