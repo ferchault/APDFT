@@ -156,7 +156,7 @@ class DensityOptimizer():
         new_dens = density_path
         with open(new_dens, 'w') as f:
             f.write(dens_str)
-
+                    
 
 class DensityOptimizerCPMD(DensityOptimizer):
       
@@ -176,6 +176,8 @@ class DensityOptimizerCPMD(DensityOptimizer):
         
         self.X = None
         self.X_m = None
+        
+        self.ekin_dens = [0.0] # the initial velocity of the electron density is zero for now
         
         # in CPMD coupled to ASE the density propagation is done for only one step during each iteration
         # the variale self.step counts the actual number of steps in the MD simulation
@@ -198,6 +200,18 @@ class DensityOptimizerCPMD(DensityOptimizer):
         self.p = self.run_profess()
         assert self.p.returncode == 0, 'Calculation of forces failed'
     
+    def calculate_lambda(self):
+        #scaling_factor_sq = (self.X*self.X).sum()/self.Ne
+        
+        N_p = (self.X_p*self.X).sum()
+        N_pp = (self.X_p*self.X_p).sum()
+        tau = self.dt**2/self.mu
+        p2 = N_p/(tau*self.Ne)
+        q = (N_pp - self.Ne)/(tau**2*self.Ne)
+        lambda_1 = -p2 - np.sqrt(p2**2 - q)
+        lambda_2 = -p2 + np.sqrt(p2**2 - q)
+        #print(f'N_p = {N_p}, N_pp = {N_pp}')
+        return(lambda_1, lambda_2)
     
     def optimize(self, nsteps, density_file = None, overwrite = False):
         for i in range(nsteps):
@@ -279,6 +293,14 @@ class DensityOptimizerCPMD(DensityOptimizer):
         lambda_1, lambda_2 = self.calculate_lambda()
         self.X_p = self.X_p + self.dt**2/self.mu*lambda_2*self.X
 
+        # calculate kinetic energy of the electron density (useful for diagnostics)
+        if self.X_m is None:
+            v_dens = (np.power(self.X_p, 2) - np.power(self.X, 2))/(self.dt)
+        else:
+            v_dens = (np.power(self.X_p, 2) - np.power(self.X_m, 2))/(2*self.dt)
+            
+        self.ekin_dens.append(self.mu/2*np.sum(np.power(v_dens, 2)))
+        
         # write new density to file
         density_p = np.power(self.X_p,2)
 
@@ -307,6 +329,12 @@ class DensityOptimizerCPMD(DensityOptimizer):
         os.chdir(self.workdir)
         p = subprocess.run([self.profess_path, self.inpt_name], capture_output = True,  text=True )
         return(p)
+    
+    def save_property(self, property = 'ekin_dens'):
+        if property == 'ekin_dens':
+            fn = os.path.join(self.workdir, 'ekin_dens.txt')
+            np.savetxt(fn, np.array(self.ekin_dens).T, header = 'Kinetic Energy of electron density (Ha)')
+
     
     def vv_step(self):
         self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX    
