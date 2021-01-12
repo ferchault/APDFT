@@ -301,6 +301,12 @@ class DensityOptimizerCPMD(DensityOptimizer):
             
         self.ekin_dens.append(self.mu/2*np.sum(np.power(v_dens, 2)))
         
+        # debugging
+#         print('X=', np.sum(np.power(self.X,2)))
+#         if self.X_m is not None:
+#             print('X_m=', np.sum(np.power(self.X_m,2)))
+#         print('X_p=', np.sum(np.power(self.X_p,2)))
+        
         # write new density to file
         density_p = np.power(self.X_p,2)
 
