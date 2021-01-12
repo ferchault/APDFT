@@ -300,11 +300,11 @@ class DensityOptimizerCPMD(DensityOptimizer):
 
         # calculate kinetic energy of the electron density (useful for diagnostics)
         if self.X_m is None:
-            v_dens = (np.power(self.X_p, 2) - np.power(self.X, 2))/(self.dt)
+            v_dens = (self.X_p - self.X)/self.dt
         else:
-            v_dens = (np.power(self.X_p, 2) - np.power(self.X_m, 2))/(2*self.dt)
+            v_dens = (self.X_p - self.X_m)/(2*self.dt)
             
-        self.ekin_dens.append(self.mu/2*np.sum(np.power(v_dens, 2)))
+        self.ekin_dens.append( self.mu*np.sum( np.power(v_dens,2) ) )
         
         # debugging
 #         print('X=', np.sum(np.power(self.X,2)))
