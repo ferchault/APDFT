@@ -119,22 +119,27 @@ class PROFESS_CPMD(PROFESS):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         self.profess_path = profess_path
-        
-        copyfile(ini_den, os.path.join(run_dir, 'density_0')) # make initial density file
-        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial ion file
-        
-        # create and initialize DensityOptimizer
-        self.DensOpt = DensityOptimizerCPMD()
-        self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir)
-        
+            
         self.debug = debug
         if self.debug:
             self.store_forces = []
             self.store_positions = []
+        
+        if self.debug:
+            copyfile(ini_den, os.path.join(run_dir, 'density_0')) # make initial density file
+        else:
+            copyfile(ini_den, os.path.join(run_dir, 'density')) # make initial density file
             
-            # create and initialize DensityOptimizer
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial ion file
+        
+        # create and initialize DensityOptimizer
+        if self.debug:
             self.DensOpt = DensityOptimizerCPMD()
             self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir, debug=True)
+        else:
+            self.DensOpt = DensityOptimizerCPMD()
+            self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir)
+
     
     def get_forces(self, atoms=None):
         # write new .ion file

@@ -194,8 +194,9 @@ class DensityOptimizerCPMD(DensityOptimizer):
         """
         calculates dEdX for the density specified in density file
         """
-        # copy density file to work_dir/density
-        shutil.copy(density_file, os.path.join(self.workdir, 'density'))
+        if self.debug:
+            # copy density file to work_dir/density
+            shutil.copy(density_file, os.path.join(self.workdir, 'density'))
         # run PROFESS-1
         self.p = self.run_profess()
         assert self.p.returncode == 0, 'Calculation of forces failed'
@@ -259,10 +260,14 @@ class DensityOptimizerCPMD(DensityOptimizer):
             # update sqrt of density
             self.X = self.X_p
 
-    def optimize_vv(self, density_file = None, overwrite = False):
-        # do the calculation, find a more elegant way to get the correct density? maybe mv instead of copy
-        # create path to density file
-        density_file = os.path.join(self.workdir, f'density_{self.step}')    
+    def optimize_vv(self, density_file = None):
+        
+        if self.debug:
+            # save density every step
+            density_file = os.path.join(self.workdir, f'density_{self.step}')  
+        else:
+            density_file = os.path.join(self.workdir, 'density') 
+
         # calculate gradient for density file
         self.calculate_dEdX(density_file)
 
@@ -313,10 +318,11 @@ class DensityOptimizerCPMD(DensityOptimizer):
         dV = self.V/self.num_gpt_dens
 
         density_p = density_p/dV
-        if overwrite:
-            self.save_density(density_p, os.path.join(self.workdir, f'density'))
-        else:
+        
+        if self.debug:
             self.save_density(density_p, os.path.join(self.workdir, f'density_{self.step+1}'))
+        else:
+            self.save_density(density_p, os.path.join(self.workdir, f'density'))
 
         # update sqrt of density for previous step
         self.X_m = self.X
