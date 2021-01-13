@@ -27,12 +27,12 @@ from find_converged import concatenate_files
 #                Set before running         #
 #############################################
 
-COMPOUND_PATH = input('insert path to compound')#'/home/misa/projects/Atomic-Energies/data/dsgdb9nsd_003664'
-PATH2CUBES = os.path.join(COMPOUND_PATH, 'cube-files')
+COMPOUND_PATH = sys.argv[1] #'/home/misa/projects/Atomic-Energies/data/dsgdb9nsd_003664'
+PATH2CUBES = os.path.join(COMPOUND_PATH, 'cube-files/')
 PATH2UEG = '/home/misa/projects/Atomic-Energies/data/ueg_reference/ueg/box30/ve_00.cube'
 
 
-print(f'Calculation energy in {COMPOUND_PATH}')
+print(f'Calculation energy in {COMPOUND_PATH}', flush = True)
 
 cubes = ['ve_8.cube', 've_15.cube', 've_23.cube', 've_30.cube', 've_38.cube']
 for i in range(len(cubes)):
@@ -49,7 +49,7 @@ nuclei, atomic_energies_with_repulsion, atomic_energies, alch_pots = at.atomic_e
 
 # calculation of atomisation energy
 # read total energy B3LYP from xyz-file in qm9 database
-comp_name = re.search('dsgdb9nsd_......', base)[0] # get the compound name from the path
+comp_name = re.search('dsgdb9nsd_......', COMPOUND_PATH)[0] # get the compound name from the path
 total_energy = at.get_property(os.path.join('/home/misa/datasets/qm9/', comp_name + '.xyz'), 'U0')
 
 # read energies B3LYP of free atoms
