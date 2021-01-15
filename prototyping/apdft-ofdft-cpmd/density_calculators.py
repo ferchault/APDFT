@@ -349,4 +349,5 @@ class DensityOptimizerCPMD(DensityOptimizer):
 
     
     def vv_step(self):
-        self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX    
+        self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX
+        #self.X_p = 2*self.X - self.X_m - (self.dt**2/self.mu)*self.dEdX * 0.5
