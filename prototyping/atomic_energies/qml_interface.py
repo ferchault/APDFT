@@ -99,21 +99,21 @@ def wrapper_global_representations(alchemy_data, molecule_size, rep_par='coulomb
             full_matrix[idx] = rep
         
     return(full_matrix)
+
+def get_dmatrix(reps):
+    """
+    calculates distance between representations with L2-norm
+    input should be 2D-array of representations: row = representation, column: elements of a single representation
+    returns symmetric distance matrix
+    """
     
-#def calculate_distances(rep_matrix, modus):
-#    """
-#    calculates the distance of every representation with all representations (including itself)
-#    returns the distances as a 1D numpy array
-#    
-#    rep_matrix: 2D numpy array every row contains the representation for one atom
-#    dist: distances as a 1D numpy array
-#    """
-#    if modus = = 'l2':
-#        d2 = qml.distance.l2_distance(rep_matrix, rep_matrix)
-#        d2_flattened = d2[np.triu_indices(len(rep_matrix))]
-#    elif modus == 'wasserstein':
-#        
-#    return(d2_flattened)
+    num_reps = len(reps)
+    dmatrix = np.zeros((num_reps, num_reps))
+    for rows in range(num_reps):
+        for cols in range(rows, num_reps):
+            dmatrix[rows, cols] = np.linalg.norm(reps[rows]-reps[cols])
+            dmatrix[cols, rows] = dmatrix[rows, cols]
+    return(dmatrix)
 
 def generate_label_vector(alchemy_data, num_rep, value='atomisation'):
     """
