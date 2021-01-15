@@ -7,11 +7,24 @@ Created on Mon Aug 26 11:37:43 2019
 """
 
 import qml
-#import qml.distance
-import numpy as np
 import qml.kernels
 import qml.math
 import qml.fchl
+
+
+import numpy as np
+import sklearn.model_selection as sk
+
+
+def crossvalidate(reps, labels, tr_size, sigma, lam_val, num_cv):
+    errors = []
+    for cv in range(num_cv):
+        reps_tr, reps_test, labels_tr, labels_test = sk.train_test_split(reps,labels,train_size=tr_size)
+        coeffs = train_kernel(reps_tr, labels_tr, sigma, lam_val)
+        labels_predicted = predict_labels(reps_test, reps_tr, sigma, coeffs)
+        errors.append((np.abs(labels_predicted - labels_test)).mean())
+    errors = np.array(errors)
+    return(errors.mean(), errors.std())
 
 def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/atomic_energies_mic'):
     """
@@ -380,77 +393,8 @@ def crossvalidate_new(reps, labels, molecule_size, tr_set_size, sigma, lam_val, 
     
     return(error_crossval.mean(), error_crossval.std())
 
-def crossvalidate(reps, labels, molecule_size, tr_set_size, sigma, lam_val, molecule=False, num_cross=10):
-    """
-    calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
-    
-    reps: representations of training and validation data
-    labels: labels of training and validation data
-    molecule_size: the number of atoms for every representation
-    tr_set_size: the size of the training set
-    sigma: the kernel width
-    lam_val: the regularizer
-    num_cross: the number of cross-validations
-    
-    error_crossval: the mean error for every cross-validation run
-    """
-    
-    error_crossval = np.zeros(num_cross)
-    
-    for idx in range(0, num_cross):
-        
-        # split data into training and validation set
-        global_idc_tr, global_idc_val = get_indices(len(molecule_size), tr_set_size)
-        local_idc_tr, local_idc_val = get_local_idx(global_idc_tr, molecule_size), get_local_idx(global_idc_val, molecule_size)
-        rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
-        labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
-        
-        # calculate error
-        coeffs = train_kernel(rep_splitted_loc[0], labels_splitted_loc[0], sigma, lam_val)
-        labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
-        
-        if molecule:
-            error_crossval[idx] = calculate_error_atomisation_energy(labels_predicted, molecule_size[global_idc_val], labels_splitted_loc[1]).mean()
 
-        else:
-            error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
-#            error_crossval[idx] = np.abs((labels_predicted - labels_splitted_loc[1])/labels_splitted_loc[1]).mean()
 
-    return(error_crossval.mean(), error_crossval.std())
-    
-def crossvalidate_per_atom(reps, labels, molecule_size, tr_set_size, sigma, lam_val, num_cross=10):
-    """
-    calculates the mean error for num_cross randomly selected training sets, returns the mean and std of these mean errors
-    this function can be used to generate learning curves, where the input are arbitrary individual atoms and 
-    not the atoms that belong to a specific molecule
-    
-    reps: representations of training and validation data
-    labels: labels of training and validation data
-    molecule_size: the number of atoms for every representation
-    tr_set_size: the size of the training set
-    sigma: the kernel width
-    lam_val: the regularizer
-    num_cross: the number of cross-validations
-    
-    error_crossval: the mean error for every cross-validation run
-    """
-    
-    error_crossval = np.zeros(num_cross)
-    
-    for idx in range(0, num_cross):
-        
-        # split data into training and validation set
-        local_idc_tr, local_idc_val = get_indices(molecule_size.sum(), tr_set_size)
-        rep_splitted_loc = reps[local_idc_tr], reps[local_idc_val] # select the representations
-        labels_splitted_loc = labels[local_idc_tr], labels[local_idc_val] # select the labels
-        
-        # calculate error
-        coeffs = train_kernel(rep_splitted_loc[0], labels_splitted_loc[0], sigma, lam_val)
-        labels_predicted = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma, coeffs)
-        
-        error_crossval[idx] = np.abs(labels_predicted - labels_splitted_loc[1]).mean()
-    
-    return(error_crossval.mean(), error_crossval.std())
 
 
 def split_data(reps, labels, tr_set_size, molecule_size, local=True):
@@ -465,135 +409,6 @@ def split_data(reps, labels, tr_set_size, molecule_size, local=True):
         labels_splitted = labels[global_idc_tr], labels[global_idc_val]
     
     return(rep_splitted, labels_splitted)
-
-#def crossvalidate_local(total_set_size, tr_set_size, reps, labels, molecule_size, num_cross=10):
-#    sigmas_opt = np.zeros(num_cross)
-#    lams_opt = np.zeros(num_cross)
-#    error_molecule = np.zeros(num_cross)
-#    error_atomic = np.zeros(num_cross)
-#
-#    for idx in range(0, num_cross):
-#        
-#        # split data into training and validation set
-#        global_idc = get_indices(total_set_size, tr_set_size)
-#        local_idc = get_local_idx(global_idc[0], molecule_size), get_local_idx(global_idc[1], molecule_size)
-#        
-#        rep_splitted_loc = reps[local_idc[0]], reps[local_idc[1]] # select the representations
-#        labels_splitted_loc = labels[local_idc[0]], labels[local_idc[1]] # select the labels
-#        
-#        # optimize hyperparameters via grid search
-#        sigmas = np.logspace(-1, 4, 12).tolist()
-#        lams = np.logspace(-15, 0, 16).tolist()
-#        results = optimize_hypar(rep_splitted_loc, labels_splitted_loc, sigmas, lams)
-#        error_atomic[idx] = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,2]
-#        
-#        # calculate error per molecule
-#        
-#        # predict atomic energies
-#        sigma_opt = results[0][np.where(results[0]==np.amin(results[0][:,2]))[0]][0,0]
-#        coeffs = results[1] 
-#        atomic_energies = predict_labels(rep_splitted_loc[1], rep_splitted_loc[0], sigma_opt, coeffs)
-#        error_molecule[idx] = calculate_error_atomisation_energy(atomic_energies, molecule_size[global_idc[1]], labels_splitted_loc[1]).mean()
-#        
-#    statistics_atomic = error_atomic.mean(), error_atomic.std()
-#    statistics_molecule = error_molecule.mean(), error_molecule.std()
-#    return(statistics_atomic, statistics_molecule)
-        
-
-def optimize_hypar_cv(reps, labels, tr_set_size, molecule_size, sigmas = np.logspace(-1, 4, 12).tolist(), lams = np.logspace(-15, 0, 16).tolist(), num_cv=10, local=True):
-    """
-    returns the sigma, lambda values that yield the minimum mean error for a num_cv-fold cross-validation, as well as the mean error
-    for these sigma, lambda-values
-    
-    reps: all representations
-    labels: all labels
-    tr_set_size: size of the training set
-    molecule_size: number of atoms in each molecule
-    num_cv: number of sets for cross-validation
-    """
-    
-    # storage of output of optimization
-    opt_data = np.zeros((num_cv, len(sigmas)*len(lams), 3))
-    
-    for idx in range(0, num_cv):
-        reps_splitted, labels_splitted = split_data(reps, labels, tr_set_size, molecule_size, local=True)
-        
-        # optimize hyperparameters via grid search
-        results = optimize_hypar(reps_splitted, labels_splitted, sigmas, lams)
-        opt_data[idx] = results[0]
-        
-    # find set of hyperparameters with minimum mean error
-    mean_errors = opt_data.mean(axis=0)[:,2] # mean error for every set of hyper-paramters
-    std = opt_data.std(axis=0)[:,2]
-    min_error = np.amin(mean_errors) # minimum mean error
-    idx_opt = np.where(mean_errors==min_error) # idx of set of hyperparameters with lowest mean error
-    opt_sigma = opt_data[0][idx_opt][0,0] # sigma value for minimum error
-    opt_lambda = opt_data[0][idx_opt][0,1] # lambda value for minimum error
-    
-    
-    return(opt_sigma, opt_lambda, min_error, std[idx_opt][0])
-        
-
-def optimize_hypar(rep, labels, sigmas, lams):
-    """
-    finds the combination of sigma and lambda that yields the minimimum prediction error
-    for a given training and validation set
-    
-    @in:
-    rep: tuple containing representations (training set, validation set)
-    lables: tuple containing labels (training set, validation set)
-    sigmas: list of sigmas that will be tried duirng optimizations
-    lams: list of lambdas that will be tried during optimizations
-    
-    @out:
-    mean_errors: tuple (sigma, lambda, corresponding mean error) for all sigma, lambda combinations
-    opt_coeffs: coefficients for the sigma, lambda values which yield the lowest mean error
-    opt_errors: errors for the sigma, lambda values which yield the lowest mean error
-    """
-    
-    # representations for training and validation
-    rep_tr, rep_val = rep
-    labels_tr, labels_val = labels
-    
-    # store validation results
-    mean_errors = np.empty( (len(sigmas)*len(lams), 3) )
-    
-    # optimum coefficients, errors
-    opt_coeffs = np.zeros( len(rep_tr) )
-    opt_errors = np.zeros( len(rep_val) )
-    
-    start_idx = 0
-    for idx_s, s in enumerate(sigmas):
-        print("Optimizing sigma = {}".format(s))
-        # build kernel for different sigmas
-        tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, s)
-        val_kernel = qml.kernels.gaussian_kernel(rep_val, rep_tr, s)
-        
-        for idx_l, l in enumerate(lams):
-            print("Optimizing lambda = {}".format(l))
-            reg_kernel = tr_kernel + np.identity(len(tr_kernel))*l
-            coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
-            
-            # validation
-            val_errors = np.abs( np.dot(val_kernel, coeffs) - labels_val ) 
-            val_err_mean = val_errors.mean()
-
-            # evaluate validation and store data
-            mean_errors[start_idx+idx_l] = s, l, val_err_mean
-            
-            tmp = mean_errors[:, 2]
-            if np.amin(tmp[0:start_idx+idx_l+1]) == mean_errors[start_idx+idx_l][2]:
-                opt_coeffs = coeffs
-                opt_errors = val_errors
-                
-            
-#            if (start_idx+idx_l == 0) or (mean_errors[start_idx+idx_l,2] < mean_errors[start_idx+idx_l-1,2]):
-#                opt_coeffs = coeffs
-#                opt_errors = val_errors
-            
-        start_idx += len(lams)
-        
-    return( mean_errors, opt_coeffs, opt_errors )
     
 def predict_labels(rep_test, rep_tr, sigma, coeffs):
     """
@@ -692,59 +507,3 @@ def partition_idx_by_charge(charges):
     for k in charges_partitioned:
         charges_partitioned[k] = np.where(charges == k)
     return(charges_partitioned)
-
-def test(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
-    
-    # calculate full kernel
-    gaussian_kernel = qml.kernels.gaussian_kernel(rep_matrix, rep_matrix, sigma)
-    
-    # select training and test kernel
-    tr_kernel, test_kernel = split_kernel(gaussian_kernel, tr_ind, test_ind)
-    
-    # labels of training representations
-    tr_labels = labels[tr_ind]
-    
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
-    
-    # calculate errors
-    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
-    mean_pred_error = np.mean(predicition_errors)
-    
-    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
-    mean_tr_error = np.mean(training_errors)
-    
-    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
-
-def test_fast(rep_matrix, tr_ind, test_ind, labels, sigma, lam_val):
-
-    # calculate training kernel
-    tr_kernel = qml.kernels.gaussian_kernel(rep_matrix[tr_ind], rep_matrix[tr_ind], sigma)
-    
-    # calculate test kernel
-    test_kernel = qml.kernels.gaussian_kernel(rep_matrix[test_ind], rep_matrix[tr_ind], sigma)
-    
-    # labels of training representations
-    tr_labels = labels[tr_ind]
-    
-    # calculate regression coefficents (do not add identity matrix if lam = 0 for stability reasons)
-    if lam_val == 0:
-        coeffs = qml.math.cho_solve(tr_kernel, tr_labels)
-    else:
-        mat = tr_kernel + np.identity(len(tr_kernel))*lam_val
-        coeffs = qml.math.cho_solve(mat, tr_labels)
-    
-    # calculate errors
-    predicition_errors = np.abs( np.dot(test_kernel, coeffs) - labels[test_ind] )
-    mean_pred_error = np.mean(predicition_errors)
-    
-    training_errors = np.abs( np.dot(mat, coeffs) - labels[tr_ind] )
-    mean_tr_error = np.mean(training_errors)
-    
-    return( (predicition_errors, mean_pred_error), (training_errors, mean_tr_error) )
-    
-    
