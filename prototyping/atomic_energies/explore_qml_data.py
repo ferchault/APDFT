@@ -111,6 +111,16 @@ def max_dist_distribution(compounds):
 ###                                show molecules
 ###############################################################################
 
+    
+def get_smiles(file):
+    """
+    parse smiles string from files in QM9 dataset
+    """
+    with open(file, 'r') as f:
+        content = f.readlines()
+        smiles = content[-2].split()[0]
+    return(smiles)
+
 def show(compound, viewer='Avogadro'):
     """
     compound: compound of qm9 in qml format
