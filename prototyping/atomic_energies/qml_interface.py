@@ -35,7 +35,8 @@ def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results
     paths = []
     with open(path, 'r') as f:
         for line in f:
-            paths.append(line.rstrip('\n'))
+            file_path = line.rstrip('\n')
+            paths.append(file_path)
     return(paths)
 
 def load_alchemy_data(paths):
@@ -263,7 +264,7 @@ def get_local_idx(global_idx, molecule_size):
     @out
     returns a list with the indices of the representations in the full local representation matrix
     """
-    global_idx.sort()
+    #global_idx.sort()
     indices = []
     for idx in global_idx:
         start_idx = np.sum(molecule_size[0:idx])
