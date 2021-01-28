@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+/home/misa/projects/Atomic-Energies/data/ueg_reference/FCHL_kernels/home/misa/projects/Atomic-Energies/data/ueg_reference/FCHL_kernels/home/misa/projects/Atomic-Energies/data/ueg_reference/FCHL_kernels/home/misa/projects/Atomic-Energies/data/ueg_reference/FCHL_kernels/home/misa/projects/Atomic-Energies/data/ueg_reference/FCHL_kernels#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jan 21 17:33:48 2020
