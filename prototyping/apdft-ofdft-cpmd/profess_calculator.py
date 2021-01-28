@@ -4,6 +4,7 @@ from ase import units
 import profess_io as pio
 import subprocess
 import os
+from shutil import copyfile
 import numpy as np
 from density_calculators import DensityOptimizerCPMD
 
@@ -12,7 +13,7 @@ class PROFESS(Calculator):
     calls PROFESS using the parameters given in __init__
     """
     name = 'PROFESS'
-    implemented_properties = ['forces']
+    implemented_properties = ['forces', 'energy']
 
     def __init__(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
         self.atoms = atoms
@@ -21,13 +22,21 @@ class PROFESS(Calculator):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
-    def initialize(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, profess_path = None, pos_type = 'CART'):
+    def initialize(self, run_dir=None, ini_den = None, ini_ion = None, inpt_name = None, pp_names = None, atoms=None, profess_path = None, pos_type = 'CART', debug=False):
         self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
         self.profess_path = profess_path
+        
+        copyfile(ini_den, os.path.join(run_dir, inpt_name+'.den')) # make initial ion file
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial density file
+        
+        self.debug = debug
+        if self.debug:
+            self.store_forces = []
+            self.store_positions = []
 
     def run_profess(self):
         os.chdir(self.run_dir)
@@ -80,7 +89,12 @@ class PROFESS(Calculator):
         # read forces
         self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
         # ensures that programm crashes if computation of forces fails in next step
-        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
+        #os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
+        
+        if self.debug:
+            self.store_forces.append(self.forces)
+            self.store_positions.append(self.positions)
+        
         return(self.forces)
         
     
@@ -89,7 +103,7 @@ class PROFESS_CPMD(PROFESS):
     calls PROFESS using the parameters given in __init__
     """
     name = 'PROFESS'
-    implemented_properties = ['forces']
+    implemented_properties = ['forces', 'energy']
 
     def __init__(self, run_dir=None, inpt_name=None, pp_names=None, atoms=None, pos_type = 'CART'):
         self.atoms = atoms
@@ -98,16 +112,34 @@ class PROFESS_CPMD(PROFESS):
         self.pp_names = pp_names
         self.energy_zero = 0.0
         
-    def initialize(self, atoms=None, dt = None, inpt_name=None, mu = None, pos_type = 'CART',pp_names=None, run_dir=None):
+    def initialize(self, atoms=None, dt = None, ini_den = None, ini_ion = None, inpt_name=None, mu = None, pos_type = 'CART',pp_names=None, profess_path = None, run_dir=None, debug=False):
         self.atoms = atoms
         self.run_dir = run_dir
         self.inpt_name = inpt_name
         self.pp_names = pp_names
         self.energy_zero = 0.0
+        self.profess_path = profess_path
+            
+        self.debug = debug
+        if self.debug:
+            self.store_forces = []
+            self.store_positions = []
+        
+        if self.debug:
+            copyfile(ini_den, os.path.join(run_dir, 'density_0')) # make initial density file
+        else:
+            copyfile(ini_den, os.path.join(run_dir, 'density')) # make initial density file
+            
+        copyfile(ini_ion, os.path.join(run_dir, inpt_name+'.ion')) # make initial ion file
         
         # create and initialize DensityOptimizer
-        self.DensOpt = DensityOptimizerCPMD()
-        self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.run_dir)
+        if self.debug:
+            self.DensOpt = DensityOptimizerCPMD()
+            self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir, debug=True)
+        else:
+            self.DensOpt = DensityOptimizerCPMD()
+            self.DensOpt.initialize(self.atoms, dt, self.inpt_name, mu, self.profess_path, self.run_dir)
+
     
     def get_forces(self, atoms=None):
         # write new .ion file
@@ -121,17 +153,35 @@ class PROFESS_CPMD(PROFESS):
         # write density? no but ensure that density file exists
         
         # optimize density for one single step
-        # at this step also the forces are calculated, check that exited normally
-        self.DensOpt.optimize_vv(1)
+        # at this step also the forces are calculated, check that terminated normally
+        self.DensOpt.optimize_vv()
         
         # update energy
         self.energy_zero = self.DensOpt.energies[-1]
         
-        # read forces
-        self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out'))
+        # read forces in this case from .out file not from separate file .force.out
+        self.forces = np.array(pio.parse_force_file(f'{os.path.join(self.run_dir, self.inpt_name)}.out', '.out'))
         # ensures that programm crashes if computation of forces fails in next step
-        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.force.out')
+        os.remove(f'{os.path.join(self.run_dir, self.inpt_name)}.out')
+        
+        if self.debug:
+            self.store_forces.append(self.forces)
+            self.store_positions.append(positions)
+        
         return(self.forces)
+    
+    def get_property(self, name, atoms=None, allow_calculation=True):
+        if name not in self.implemented_properties:
+            #raise PropertyNotImplementedError('{} property not implemented'.format(name))
+            result = None
+
+        if name == 'forces':
+            result = self.forces
+        elif name == 'energy':
+            result = self.energy_zero
+
+        return result
+
         
     
 class PROFESS_old(Calculator):

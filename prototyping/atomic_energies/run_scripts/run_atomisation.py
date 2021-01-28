@@ -26,7 +26,8 @@ from find_converged import concatenate_files
 
 
 # paths to the compounds
-dirs = concatenate_files(['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/batch2_paths_atomic_energies'])
+dirs_all = concatenate_files(['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/batch2_paths_atomic_energies'])
+dirs = dirs_all[123:]
 
 for compound_path in dirs:
     print(f'Calculation energy in {compound_path}')

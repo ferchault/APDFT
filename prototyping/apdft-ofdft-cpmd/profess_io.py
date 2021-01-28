@@ -89,7 +89,7 @@ def parse_ion_file_complete(file):
 def parse_lattice_section(fs):
     lattice = []
     for line in fs:
-        if not 'ENDBLOCK LATTICE' in line:
+        if not 'END BLOCK LATTICE' in line:
             coords = line.split()
             coords = [float(c) for c in coords]
             lattice.append(coords)
@@ -140,7 +140,7 @@ def parse_velocity_section(fs):
         velocities.append(velocities_atom)
     return(velocities)
 
-def parse_force_file(file):
+def parse_force_file(file, file_format = '.force.out'):
     forces = []
     with open(file, 'r') as f:
         for line in f:
@@ -149,15 +149,18 @@ def parse_force_file(file):
             else:
                 f.readline()
                 f.readline()
-                forces = parse_force_section(f)
+                forces = parse_force_section(f, file_format)
                 break
     return(forces)
 
-def parse_force_section(f):
+def parse_force_section(f, file_format):
     forces = []
     for line in f:
         if not '........' in line:
-            forces_atom = line.split()[2:5]
+            if file_format == '.force.out':
+                forces_atom = line.split()[2:5]
+            elif file_format == '.out':
+                forces_atom = line.split()[3:6]
             forces_atom = [float(for_a) for for_a in forces_atom]
             forces.append(forces_atom)
         else:

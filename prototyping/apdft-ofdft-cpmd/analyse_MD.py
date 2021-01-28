@@ -124,3 +124,19 @@ def plot_coordinate(ax, ax_idx, positions, coord):
         coord_label = 'z'
     ax[ax_idx].set_ylabel(coord_label)
     ax[ax_idx].legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+def drift(time, energy, num_atom, tstart=None, tend=None):
+    """
+    in: time in fs, energy in Ha
+    out: drift in Ha/(atom*ps)
+    
+    """
+    
+    
+    if tstart == None and tend == None:
+        dE = (energy[-1]-energy[0])/(time[-1]-time[0])
+        dE = dE/num_atom*1000 # conversion from eV/fs to Ha/atom/ps
+    else:
+        dE = (energy[tend]-energy[tstart])/(time[tend] - time[tstart])/num_atom*1000
+
+    return(dE)
