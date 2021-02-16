@@ -8,6 +8,11 @@ elements = {'H':1, 'He':2,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
 
+tolerance = 1e-3
+
+
+
+
 def delta(i,j):
     #Kronecker Delta
     if i == j:
@@ -64,11 +69,35 @@ def charge_inertia_moment(mole):
     #Only the eigen values are needed, v is discarded
     return np.sort(w)
 
-def num_AEchildren(mole, m, dZ):
+def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m atoms in mole with identical Coulombic neighborhood by the values
     specified in dZ'''
-    print("Not finished yet")
+    N = len(mole)
+    z = len(dZ)
+    if N < m:
+        raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
+    if z < 1:
+        raise ValueError("Number of elements of dZ must be at least 1")
+    #Find the Coulombic neighborhood of each atom in mole
+    Coulomb_vector = Coulomb_neighborhood(mole)
+    #Are there atoms with identical/close Coulombic neighborhood?
+    Coulombic_subgroups = np.empty((0))#
+    #Default form: [Coulombic_neighborhood, [[atom_charge, (x,y,z)], ..., [atom_charge, (x,y,z)]]]
+
+    #????????????????????????????????????????????
+    for i in range(N):
+        for j in range(i+1,N):
+            print(Coulomb_vector[i]-Coulomb_vector[j])
+            if np.linalg.norm(Coulomb_vector[i]-Coulomb_vector[j]) < tolerance:
+                    if Coulomb_vector[i] not in Coulombic_subgroups:
+                        Coulombic_subgroups = np.append(Coulombic_subgroups, [Coulomb_vector[i], [mole[i][0], mole[i][1]]], axis = 0)
+                    Coulombic_subgroups = np.append(Coulombic_subgroups, [Coulomb_vector[j], [mole[j][0], mole[j][1]]], axis = 0)
+                    #Make sure, the j-th entry is not counted multiple times
+                    Coulomb_vector = np.delete(Coulomb_vector, j, axis = 0)
+    print(Coulombic_subgroups)
+
+
 
 
 
@@ -78,9 +107,8 @@ def num_AEchildren(mole, m, dZ):
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
 
-cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)], ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
+cube = [['C', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)], ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['C', (1,1,1)]]
 center_mole(benzene)
-print(benzene)
-print(charge_inertia_tensor(benzene))
-#print(Coulomb_neighborhood(benzene))
-print(charge_inertia_moment(benzene))
+#print(charge_inertia_tensor(benzene))
+#print(charge_inertia_moment(benzene))
+num_AEchildren(benzene)
