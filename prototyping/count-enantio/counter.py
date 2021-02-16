@@ -8,29 +8,79 @@ elements = {'H':1, 'He':2,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
 
-def Coulomb_matrix(atom):
+def delta(i,j):
+    #Kronecker Delta
+    if i == j:
+        return 1
+    else:
+        return 0
+
+def center_mole(mole):
+    #Centers a molecule
+    sum = (0,0,0)
+    N = len(mole)
+    for i in range(N):
+        sum = np.add(mole[i][1],sum)
+    sum = np.multiply(sum, 1/N)
+    for i in range(N):
+        mole[i][1] = np.subtract(mole[i][1],sum)
+
+def Coulomb_matrix(mole):
     #returns the Coulomb matrix of a given molecule
-    N = len(atom)
+    N = len(mole)
     result = np.zeros((N,N))
     for i in range(N):
         for j in range(N):
             if (j == i):
-                result[i][i] = pow(elements[atom[i][0]], 2.4)
+                result[i][i] = pow(elements[mole[i][0]], 2.4)
             else:
-                result[i][j] = elements[atom[i][0]]*elements[atom[j][0]]/np.linalg.norm(np.subtract(atom[i][1],atom[j][1]))
+                result[i][j] = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
     return result
 
-def Coulomb_neighborhood(atom):
+def Coulomb_neighborhood(mole):
     #returns the sum over rows/columns of the Coulomb matrix. Thus, each atom is
     #assigned its Coulombic neighborhood
-    matrix = Coulomb_matrix(atom)
+    matrix = Coulomb_matrix(mole)
     return matrix.sum(axis = 0)
 
-# The order in which the atoms are presented constitutes their ID
-atom = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
-gpname, orig, axes = detect_symm(atom)
+def charge_inertia_tensor(mole):
+    #Calculate an inertia tensor but with charges instead of masses
+    N = len(mole)
+    result_tensor = np.zeros((3,3))
+    sum = 0
+    for i in range(3):
+        for j in range(i+1):
+            for k in range(N):
+                sum += elements[mole[k][0]]*(np.dot(mole[k][1], mole[k][1])*delta(i,j) - mole[k][1][i]*mole[k][1][j])
+            result_tensor[i][j] = sum
+            result_tensor[j][i] = sum
+            sum = 0
+    return result_tensor
 
-#Hard code what is returned if molecule has only one or two atoms
-print(Coulomb_neighborhood(atom))
-print(gpname)
+def charge_inertia_moment(mole):
+    #Calculate the inertia moments of a molecule with charges instead of masses
+    #and sort them in ascending order
+    w,v = np.linalg.eig(charge_inertia_tensor(mole))
+    #Only the eigen values are needed, v is discarded
+    return np.sort(w)
+
+def num_AEchildren(mole, m, dZ):
+    '''Returns the number of alchemical enantiomers of mole that can be reached by
+    varying m atoms in mole with identical Coulombic neighborhood by the values
+    specified in dZ'''
+    print("Not finished yet")
+
+
+
+
+
+# The order in which the atoms are presented constitutes their ID
+benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
+
+cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)], ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
+center_mole(benzene)
+print(benzene)
+print(charge_inertia_tensor(benzene))
+#print(Coulomb_neighborhood(benzene))
+print(charge_inertia_moment(benzene))
