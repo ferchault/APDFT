@@ -8,10 +8,7 @@ elements = {'H':1, 'He':2,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
 
-tolerance = 1e-3
-
-
-
+tolerance = 4 #Rounding to three digits
 
 def delta(i,j):
     #Kronecker Delta
@@ -43,8 +40,8 @@ def Coulomb_matrix(mole):
     return result
 
 def Coulomb_neighborhood(mole):
-    #returns the sum over rows/columns of the Coulomb matrix. Thus, each atom is
-    #assigned its Coulombic neighborhood
+    '''returns the sum over rows/columns of the Coulomb matrix.
+    Thus, each atom is assigned its Coulombic neighborhood'''
     matrix = Coulomb_matrix(mole)
     return matrix.sum(axis = 0)
 
@@ -79,26 +76,31 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
     if z < 1:
         raise ValueError("Number of elements of dZ must be at least 1")
+    if 0 in dZ:
+        raise ValueError("0 is not allowed in dZ")
     #Find the Coulombic neighborhood of each atom in mole
-    Coulomb_vector = Coulomb_neighborhood(mole)
-    #Are there atoms with identical/close Coulombic neighborhood?
-    Coulombic_subgroups = np.empty((0))#
-    #Default form: [Coulombic_neighborhood, [[atom_charge, (x,y,z)], ..., [atom_charge, (x,y,z)]]]
-
-    #????????????????????????????????????????????
+    CN = Coulomb_neighborhood(mole)
+    '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
     for i in range(N):
-        for j in range(i+1,N):
-            print(Coulomb_vector[i]-Coulomb_vector[j])
-            if np.linalg.norm(Coulomb_vector[i]-Coulomb_vector[j]) < tolerance:
-                    if Coulomb_vector[i] not in Coulombic_subgroups:
-                        Coulombic_subgroups = np.append(Coulombic_subgroups, [Coulomb_vector[i], [mole[i][0], mole[i][1]]], axis = 0)
-                    Coulombic_subgroups = np.append(Coulombic_subgroups, [Coulomb_vector[j], [mole[j][0], mole[j][1]]], axis = 0)
-                    #Make sure, the j-th entry is not counted multiple times
-                    Coulomb_vector = np.delete(Coulomb_vector, j, axis = 0)
-    print(Coulombic_subgroups)
-
-
-
+        CN[i] = round(CN[i],tolerance)
+    '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
+    their indices'''
+    similars = [np.where(CN == i)[0].tolist() for i in np.unique(CN)]
+    print(similars)
+    '''This is the list of all atoms which can be transmuted simultaneously.
+    Now, count all AEs which are possible'''
+    count = 0
+    new_m = m
+    for alpha in range(len(similars)):
+        num_sites = len(similars[alpha])
+        #Get necessary atoms listed in similars[alpha]
+        '''Take all the indices in similars[alpha] and extract exactly those atoms from mole'''
+        #Make sure, that m does no exceed length of similars[alpha] = num_sites
+        if m > len(similars[alpha]):
+            new_m = num_sites
+            print("Warning: Number of changing atoms (", m, ") exceeds the number of alchemically similar sites in set", alpha, "which is", num_sites)
+        else:
+            new_m = m
 
 
 
@@ -109,6 +111,7 @@ benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 
 cube = [['C', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)], ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['C', (1,1,1)]]
 center_mole(benzene)
+#print(Coulomb_neighborhood(benzene))
 #print(charge_inertia_tensor(benzene))
 #print(charge_inertia_moment(benzene))
-num_AEchildren(benzene)
+num_AEchildren(cube, m=7, dZ=[+1,1])
