@@ -67,6 +67,7 @@ def charge_inertia_moment(mole):
     return np.sort(w)
 
 def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
+    mole = np.array(mole, dtype=object)
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m atoms in mole with identical Coulombic neighborhood by the values
     specified in dZ'''
@@ -86,23 +87,54 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
     '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
     their indices'''
     similars = [np.where(CN == i)[0].tolist() for i in np.unique(CN)]
-    print(similars)
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all AEs which are possible'''
     count = 0
     new_m = m
+    #Initalize empty temp_mole for all configurations. No idea how to that otherwise?
+    temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
+    temp_mole = np.delete(temp_mole, 0, 0)
     for alpha in range(len(similars)):
         num_sites = len(similars[alpha])
         #Get necessary atoms listed in similars[alpha]
-        '''Take all the indices in similars[alpha] and extract exactly those atoms from mole'''
+        for i in range(num_sites):
+            temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
         #Make sure, that m does no exceed length of similars[alpha] = num_sites
         if m > len(similars[alpha]):
             new_m = num_sites
             print("Warning: Number of changing atoms (", m, ") exceeds the number of alchemically similar sites in set", alpha, "which is", num_sites)
         else:
             new_m = m
-
-
+        '''Now: go through all configurations of changing m_new atoms of set similars[alpha]
+        with size num_sites by the values stored in dZ. Then: compare their charge_inertia_moments
+        and only count the unique ones'''
+        atomwise_config = np.zeros((num_sites, len(dZ)+1))
+        standard_config = np.zeros((num_sites))
+        #First: All allowed charges for ONE atom at a time
+        for i in range(num_sites):
+            #no change:
+            atomwise_config[i][0] = elements[temp_mole[i][0]]
+            standard_config[i] = atomwise_config[i][0]
+            #just changes:
+            for j in range(len(dZ)):
+                atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
+        #Second: All possible combinations of those atoms with meshgrid
+        #The * passes the arrays element wise
+        mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
+        #Third: Delete all arrays where number of changes unequal m_new
+        config_num = 0
+        while config_num < len(mole_config):
+            if (new_m != (np.subtract(standard_config,mole_config[config_num]) != 0).sum()):
+                mole_config = np.delete(mole_config, config_num, axis = 0)
+            else:
+                config_num += 1
+        #Of all those configurations, calculate charge_inertia_moment
+        #-----------------------------Work in progress below
+        print(mole_config)
+        #-----------------------------
+        #Clear temp_mole
+        temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
+        temp_mole = np.delete(temp_mole, 0, 0)
 
 
 # The order in which the atoms are presented constitutes their ID
@@ -114,4 +146,11 @@ center_mole(benzene)
 #print(Coulomb_neighborhood(benzene))
 #print(charge_inertia_tensor(benzene))
 #print(charge_inertia_moment(benzene))
-num_AEchildren(cube, m=7, dZ=[+1,1])
+num_AEchildren(benzene, m=2, dZ=[+1,-1])
+
+#arr_0 = np.array([['Pb', (1,2,3)]], dtype=object)
+#arr_0 = np.delete(arr_0, 0, 0)
+#arr = np.array([['C',(2,3,4)]], dtype=object)
+#arr2 = np.array([['D',(6,7,8)]], dtype=object)
+#arr = np.append(arr_0, arr2, axis = 0).tolist()
+#print(arr)
