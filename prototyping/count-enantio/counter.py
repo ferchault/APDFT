@@ -2,13 +2,15 @@ from pyscf import gto, scf
 from pyscf.symm.geom import detect_symm #change TOLERANCE to higher values
 import numpy as np
 
-elements = {'H':1, 'He':2,
+elements = {'Ghost':0, 'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
 'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
 
-tolerance = 4 #Rounding to three digits
+inv_elements = {v: k for k, v in elements.items()}
+
+tolerance = 4 #Rounding to ... digits
 
 def delta(i,j):
     #Kronecker Delta
@@ -64,10 +66,13 @@ def charge_inertia_moment(mole):
     #and sort them in ascending order
     w,v = np.linalg.eig(charge_inertia_tensor(mole))
     #Only the eigen values are needed, v is discarded
-    return np.sort(w)
+    moments = np.sort(w)
+    #To make life easier, the values in moments are rounded to tolerance for easier comparison
+    for i in range(3):
+        moments[i] = round(moments[i],tolerance)
+    return moments
 
 def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
-    mole = np.array(mole, dtype=object)
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m atoms in mole with identical Coulombic neighborhood by the values
     specified in dZ'''
@@ -79,6 +84,9 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         raise ValueError("Number of elements of dZ must be at least 1")
     if 0 in dZ:
         raise ValueError("0 is not allowed in dZ")
+    #Prepare the array mole^
+    center_mole(mole)
+    mole = np.array(mole, dtype=object)
     #Find the Coulombic neighborhood of each atom in mole
     CN = Coulomb_neighborhood(mole)
     '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
@@ -91,7 +99,7 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
     Now, count all AEs which are possible'''
     count = 0
     new_m = m
-    #Initalize empty temp_mole for all configurations. No idea how to that otherwise?
+    #Initalize empty array temp_mole for all configurations. No idea how to that otherwise?
     temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
     temp_mole = np.delete(temp_mole, 0, 0)
     for alpha in range(len(similars)):
@@ -128,29 +136,37 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
                 mole_config = np.delete(mole_config, config_num, axis = 0)
             else:
                 config_num += 1
-        #Of all those configurations, calculate charge_inertia_moment
-        #-----------------------------Work in progress below
-        print(mole_config)
-        #-----------------------------
+        #Now: check that atoms have not been transmuted to negative charges
+        if np.min(mole_config) < 0:
+            raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar site")
+        #Of all those configurations, calculate charge_inertia_moments and save them
+        CIM = np.zeros((config_num, 3))
+        for i in range(config_num):
+            for j in range(num_sites):
+                temp_mole[j][0] = inv_elements[mole_config[i][j]]
+            #print(mole_config[i])
+            #print(temp_mole)
+            CIM[i] = charge_inertia_moment(temp_mole)
+            #print(CIM[i])
+        #Every charge_inertia_moment is only to be counted once. No multiples!
+        count += len(np.unique(CIM, axis = 0))
+        #print(count)
+        '''At this point of the algorithm, the np.unique class could be easily used
+        to return the unique configurations, but of the ENTIRE molecule, not just
+        the similars, by saving all temp_mole in another array and deleting the non-
+        unique according to CIM'''
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
+    return count
 
 
-# The order in which the atoms are presented constitutes their ID
+
+
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
 
-cube = [['C', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)], ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['C', (1,1,1)]]
-center_mole(benzene)
-#print(Coulomb_neighborhood(benzene))
-#print(charge_inertia_tensor(benzene))
-#print(charge_inertia_moment(benzene))
-num_AEchildren(benzene, m=2, dZ=[+1,-1])
+cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)],
+['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
 
-#arr_0 = np.array([['Pb', (1,2,3)]], dtype=object)
-#arr_0 = np.delete(arr_0, 0, 0)
-#arr = np.array([['C',(2,3,4)]], dtype=object)
-#arr2 = np.array([['D',(6,7,8)]], dtype=object)
-#arr = np.append(arr_0, arr2, axis = 0).tolist()
-#print(arr)
+print(num_AEchildren(cube, m=4, dZ=[+1]))
