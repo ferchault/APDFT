@@ -10,7 +10,7 @@ elements = {'Ghost':0, 'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-tolerance = 4 #Rounding to ... digits
+tolerance = 2 #Rounding to ... digits
 
 def delta(i,j):
     #Kronecker Delta
@@ -47,24 +47,25 @@ def Coulomb_neighborhood(mole):
     matrix = Coulomb_matrix(mole)
     return matrix.sum(axis = 0)
 
-def charge_inertia_tensor(mole):
-    #Calculate an inertia tensor but with charges instead of masses
+def CN_inertia_tensor(mole):
+    #Calculate an inertia tensor but with Coulomb_neighborhood instead of masses
     N = len(mole)
+    CN = Coulomb_neighborhood(mole)
     result_tensor = np.zeros((3,3))
     sum = 0
     for i in range(3):
         for j in range(i+1):
             for k in range(N):
-                sum += elements[mole[k][0]]*(np.dot(mole[k][1], mole[k][1])*delta(i,j) - mole[k][1][i]*mole[k][1][j])
+                sum += CN[k]*(np.dot(mole[k][1], mole[k][1])*delta(i,j) - mole[k][1][i]*mole[k][1][j])
             result_tensor[i][j] = sum
             result_tensor[j][i] = sum
             sum = 0
     return result_tensor
 
-def charge_inertia_moment(mole):
+def CN_inertia_moment(mole):
     #Calculate the inertia moments of a molecule with charges instead of masses
     #and sort them in ascending order
-    w,v = np.linalg.eig(charge_inertia_tensor(mole))
+    w,v = np.linalg.eig(CN_inertia_tensor(mole))
     #Only the eigen values are needed, v is discarded
     moments = np.sort(w)
     #To make life easier, the values in moments are rounded to tolerance for easier comparison
@@ -114,7 +115,7 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         else:
             new_m = m
         '''Now: go through all configurations of changing m_new atoms of set similars[alpha]
-        with size num_sites by the values stored in dZ. Then: compare their charge_inertia_moments
+        with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
         atomwise_config = np.zeros((num_sites, len(dZ)+1))
         standard_config = np.zeros((num_sites))
@@ -132,23 +133,24 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         #Third: Delete all arrays where number of changes unequal m_new
         config_num = 0
         while config_num < len(mole_config):
-            if (new_m != (np.subtract(standard_config,mole_config[config_num]) != 0).sum()):
-                mole_config = np.delete(mole_config, config_num, axis = 0)
-            else:
+            if (num_sites - new_m == (np.subtract(standard_config,mole_config[config_num]) == 0).sum()):
                 config_num += 1
+            else:
+                mole_config = np.delete(mole_config, config_num, axis = 0)
         #Now: check that atoms have not been transmuted to negative charges
         if np.min(mole_config) < 0:
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar site")
-        #Of all those configurations, calculate charge_inertia_moments and save them
+        #Of all those configurations, calculate CN_inertia_moments and save them
         CIM = np.zeros((config_num, 3))
         for i in range(config_num):
             for j in range(num_sites):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
             #print(mole_config[i])
-            #print(temp_mole)
-            CIM[i] = charge_inertia_moment(temp_mole)
-            #print(CIM[i])
-        #Every charge_inertia_moment is only to be counted once. No multiples!
+            print(temp_mole)
+            CIM[i] = CN_inertia_moment(temp_mole)
+            print(CIM[i])
+            print('---------------')
+        #Every CN_inertia_moment is only to be counted once. No multiples!
         count += len(np.unique(CIM, axis = 0))
         #print(count)
         '''At this point of the algorithm, the np.unique class could be easily used
@@ -169,4 +171,4 @@ benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)],
 ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
 
-print(num_AEchildren(cube, m=4, dZ=[+1]))
+print(num_AEchildren(cube, m=4, dZ=[+1,-1]))
