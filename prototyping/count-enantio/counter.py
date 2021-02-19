@@ -63,7 +63,7 @@ def CN_inertia_tensor(mole):
     return result_tensor
 
 def CN_inertia_moment(mole):
-    #Calculate the inertia moments of a molecule with charges instead of masses
+    #Calculate the inertia moments of a molecule with CN instead of masses
     #and sort them in ascending order
     w,v = np.linalg.eig(CN_inertia_tensor(mole))
     #Only the eigen values are needed, v is discarded
@@ -139,17 +139,17 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
                 mole_config = np.delete(mole_config, config_num, axis = 0)
         #Now: check that atoms have not been transmuted to negative charges
         if np.min(mole_config) < 0:
-            raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar site")
+            raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
         #Of all those configurations, calculate CN_inertia_moments and save them
         CIM = np.zeros((config_num, 3))
         for i in range(config_num):
             for j in range(num_sites):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
             #print(mole_config[i])
-            print(temp_mole)
+            #print(temp_mole)
             CIM[i] = CN_inertia_moment(temp_mole)
-            print(CIM[i])
-            print('---------------')
+            #print(CIM[i])
+            #print('---------------')
         #Every CN_inertia_moment is only to be counted once. No multiples!
         count += len(np.unique(CIM, axis = 0))
         #print(count)
@@ -162,8 +162,7 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
 
-
-
+#Furthermore: Try out Naphthalene, try specific m for each item in dZ, try num_AEsibling
 
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
