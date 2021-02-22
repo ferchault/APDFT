@@ -73,7 +73,7 @@ def CN_inertia_moment(mole):
         moments[i] = round(moments[i],tolerance)
     return moments
 
-def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
+def num_AEchildren_old(mole, m = 2, dZ = [+1,-1]):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m atoms in mole with identical Coulombic neighborhood by the values
     specified in dZ'''
@@ -162,7 +162,109 @@ def num_AEchildren(mole, m = 2, dZ = [+1,-1]):
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
 
-#Furthermore: Try out Naphthalene, try specific m for each item in dZ, try num_AEsibling
+
+
+def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
+    '''Returns the number of alchemical enantiomers of mole that can be reached by
+    varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
+    dZ2 respectively.'''
+    N = len(mole)
+    if N < m1 + m2:
+        raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
+    if (m1*dZ1 + m2*dZ2 != 0):
+        raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2")
+    if (dZ1 == 0) or (dZ2 == 0):
+        raise ValueError("0 is not allowed in dZ")
+    #Prepare the array mole^
+    center_mole(mole)
+    mole = np.array(mole, dtype=object)
+    #Find the Coulombic neighborhood of each atom in mole
+    CN = Coulomb_neighborhood(mole)
+    '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
+    for i in range(N):
+        CN[i] = round(CN[i],tolerance)
+    '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
+    their indices'''
+    similars = [np.where(CN == i)[0].tolist() for i in np.unique(CN)]
+    '''This is the list of all atoms which can be transmuted simultaneously.
+    Now, count all molecules which are possible excluding mirrored or rotated versions'''
+    count = 0
+    #Initalize empty array temp_mole for all configurations. No idea how to that otherwise?
+    temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
+    temp_mole = np.delete(temp_mole, 0, 0)
+    for alpha in range(len(similars)):
+        num_sites = len(similars[alpha])
+        #Get necessary atoms listed in similars[alpha]
+        for i in range(num_sites):
+            temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
+        #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
+        if m1+m2 > len(similars[alpha]):
+            raise ValueError("Number of changing atoms m1 + m2 =", m1+m2, "exceeds the number of alchemically similar sites in set", alpha, "which is", num_sites)
+        '''Now: go through all configurations of changing m1 + m2 atoms of set similars[alpha]
+        with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
+        and only count the unique ones'''
+        atomwise_config = np.zeros((num_sites, 3)) #Three possible states: 0, dZ1, dZ2
+        standard_config = np.zeros((num_sites))
+        #First: All allowed charges for ONE atom at a time
+        for i in range(num_sites):
+            #no change:
+            atomwise_config[i][0] = elements[temp_mole[i][0]]
+            #Initalize standard_config:
+            standard_config[i] = atomwise_config[i][0]
+            #just changes:
+            atomwise_config[i][1] = elements[temp_mole[i][0]]+dZ1
+            atomwise_config[i][2] = elements[temp_mole[i][0]]+dZ2
+        #Second: All possible combinations of those atoms with meshgrid
+        #The * passes the arrays element wise
+        mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
+        #Third: Delete all arrays where number of changes unequal m_new
+        config_num = 0
+        while config_num < len(mole_config):
+            '''Every configuration has multiple things to fulfill:
+            m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2.
+            The netto charge conservation is already baked into the code.'''
+            if (m1 == (np.subtract(standard_config,mole_config[config_num]) == dZ1).sum()) and (m2 == (np.subtract(standard_config,mole_config[config_num]) == dZ2).sum()):
+                config_num += 1
+            else:
+                mole_config = np.delete(mole_config, config_num, axis = 0)
+        #Now: check that atoms have not been transmuted to negative charges
+        if np.min(mole_config) < 0:
+            raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
+        #Of all those configurations, calculate CN_inertia_moments and save them
+        CIM = np.zeros((config_num, 3))
+        for i in range(config_num):
+            for j in range(num_sites):
+                temp_mole[j][0] = inv_elements[mole_config[i][j]]
+            print(mole_config[i])
+            #print(temp_mole)
+            CIM[i] = CN_inertia_moment(temp_mole)
+            round(CIM[i][0],tolerance)
+            round(CIM[i][1],tolerance)
+            round(CIM[i][2],tolerance)
+            #print(CIM[i])
+            print('---------------')
+
+        '''Now, all possible configurations are obtained; with np.unique, we can
+        find all unique ones. However, we are not interested in the number of unique
+        configurations but in all unique configurations that experienced changes in
+        any direction (+ or -) at the SAME sites. Thus, if there exists a configuration
+        with the SAME changed sites as another one, then those are alchemical enantiomers!
+        Then, this molecule and the number of its enantionmers shall be printed!'''
+
+        '''At this point of the algorithm, the np.unique class could be easily used
+        to return the unique configurations, but of the ENTIRE molecule, not just
+        the similars, by saving all temp_mole in another array and deleting the non-
+        unique according to CIM'''
+
+        #Clear temp_mole
+        temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
+        temp_mole = np.delete(temp_mole, 0, 0)
+    return count
+
+
+
+
+#Furthermore: Try out Naphthalene, try num_AEsibling
 
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
@@ -170,4 +272,4 @@ benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)],
 ['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
 
-print(num_AEchildren(cube, m=4, dZ=[+1,-1]))
+print(num_AEchildren(benzene))
