@@ -11,7 +11,7 @@ elements = {'Ghost':0, 'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-tolerance = 2 #Rounding to ... digits
+tolerance = 4 #Rounding to ... digits
 
 def delta(i,j):
     #Kronecker Delta
@@ -187,10 +187,12 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         find all unique ones (uniquing CIM). However, we are not interested in the
         number of unique configurations but in all unique configurations that experienced
         changes in the SAME sites (uniquing Delta_CIM afterwards).
-        Then, this molecule and the number of its enantionmers shall be printed!'''
+        Then, this molecule and the number of its enantiomers shall be printed!'''
         #Initalize array of already seen CIMs. Still no better way to do this?
         seen = [[1.,2.,3.]]
         seen = np.delete(seen, 0, axis= 0)
+        erased = [[1.,2.,3.]]
+        erased = np.delete(erased, 0, axis= 0)
         #Delete all SPACIALLY equivalent configurations
         config_num = 0
         while config_num <len(Total_CIM):
@@ -200,14 +202,23 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
                 seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
                 config_num += 1
             else:
+                erased = np.append(erased, [Total_CIM[config_num][1]], axis = 0)
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        #print(seen)
-        #print(Total_CIM)
+        '''Only the second, third, etc. occurence of the configurations are deleted,
+        but not the first one. Hence, if a configuration is in erased, it needs to
+        be deleted explicitly:'''
+        config_num = 0
+        while config_num <len(Total_CIM):
+            if Total_CIM[config_num][1] not in erased:
+                config_num += 1
+            else:
+                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
         #print('---------------')
         #Initalize array of already seen Delta_CIMs. Still no better way to do this?
         seen = [[1.,2.,3.]]
         seen = np.delete(seen, 0, axis= 0)
-        #Delete all ALCHEMICALLY equivalent configurations
+        '''Delete all ALCHEMICALLY equivalent configurations, i.e. all second, third, etc.
+        occurences of an alchemical configuration'''
         config_num = 0
         while config_num <len(Total_CIM):
             #print(seen)
@@ -248,5 +259,5 @@ cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
 ['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
 
 start_time = time.time()
-print(num_AEchildren(cube, m1=1, dZ1=+1, m2=1, dZ2=-1))
+print(num_AEchildren(benzene, m1=1, dZ1=+1, m2=1, dZ2=-1))
 print("Time:", (time.time() - start_time))
