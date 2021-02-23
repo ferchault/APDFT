@@ -167,7 +167,7 @@ def num_AEchildren_old(mole, m = 2, dZ = [+1,-1]):
 def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
-    dZ2 respectively.'''
+    dZ2, respectively.'''
     N = len(mole)
     if N < m1 + m2:
         raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
@@ -236,7 +236,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         changed sites and 0 elsewhere. In this fashion, we can distinguish alchemically distinct
         but spacially identical sites by their Delta_Coulomb_inertia moments'''
         Delta_CIM = np.zeros((config_num, 3), dtype=object)
-        help_mole = temp_mole
+        help_mole = np.copy(temp_mole)
 
         Total_CIM = np.zeros((config_num,3), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments; entry 2: Delta_CN_inertia_moments
         for i in range(config_num):
@@ -261,17 +261,55 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             round(Delta_CIM[i][2],tolerance)
             #print(Delta_CIM[i])
 
-            Total_CIM[i][0] = mole_config[i]
+            Total_CIM[i][0] = np.copy(temp_mole)
             Total_CIM[i][1] = CIM[i]
             Total_CIM[i][2] = Delta_CIM[i]
-            print(Total_CIM[i])
-            print('---------------')
-        '''Now, all possible configurations are obtained; with np.unique, we can
+
+        '''Now, all possible configurations are obtained; with two loops, we can
         find all unique ones (uniquing CIM). However, we are not interested in the
         number of unique configurations but in all unique configurations that experienced
         changes in the SAME sites (uniquing Delta_CIM afterwards).
         Then, this molecule and the number of its enantionmers shall be printed!'''
-
+        #Initalize array of already seen CIMs. Still no better way to do this?
+        seen = [[1.,2.,3.]]
+        seen = np.delete(seen, 0, axis= 0)
+        #Delete all SPACIALLY equivalent configurations
+        config_num = 0
+        while config_num <len(Total_CIM):
+            #print(seen)
+            #print(Total_CIM[config_num])
+            if Total_CIM[config_num][1] not in seen:
+                seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
+                config_num += 1
+            else:
+                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+        #print(seen)
+        #print(Total_CIM)
+        #print('---------------')
+        #Initalize array of already seen Delta_CIMs. Still no better way to do this?
+        seen = [[1.,2.,3.]]
+        seen = np.delete(seen, 0, axis= 0)
+        #Delete all ALCHEMICALLY equivalent configurations
+        config_num = 0
+        while config_num <len(Total_CIM):
+            #print(seen)
+            #print(Total_CIM[config_num])
+            if Total_CIM[config_num][2] not in seen:
+                seen = np.append(seen, [Total_CIM[config_num][2]], axis = 0)
+                config_num += 1
+            else:
+                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+        #print(seen)
+        #print('---------------')
+        #print(Total_CIM)
+        '''All is done. Now, print the remaining atoms in sites and their contribution
+        to count.'''
+        print('---------------')
+        for i in range(len(Total_CIM)):
+            print(Total_CIM[i][0])
+        print('Number of Alchemical Enantiomers from these sites:', len(Total_CIM))
+        print('---------------')
+        count += len(Total_CIM)
         '''At this point of the algorithm, the np.unique class could be easily used
         to return the unique configurations, but of the ENTIRE molecule.'''
 
