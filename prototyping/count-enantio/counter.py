@@ -189,7 +189,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
-    #Initalize empty array temp_mole for all configurations. No idea how to that otherwise?
+    #Initalize empty array temp_mole for all configurations. No idea how to do that otherwise?
     temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
     temp_mole = np.delete(temp_mole, 0, 0)
     for alpha in range(len(similars)):
@@ -217,7 +217,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         #Second: All possible combinations of those atoms with meshgrid
         #The * passes the arrays element wise
         mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
-        #Third: Delete all arrays where number of changes unequal m_new
+        #Third: Delete all arrays where number of changes unequal m1 and dZ1 and m2 and dZ2
         config_num = 0
         while config_num < len(mole_config):
             '''Every configuration has multiple things to fulfill:
@@ -227,34 +227,53 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
                 config_num += 1
             else:
                 mole_config = np.delete(mole_config, config_num, axis = 0)
-        #Now: check that atoms have not been transmuted to negative charges
+        #Check that atoms have not been transmuted to negative charges
         if np.min(mole_config) < 0:
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
-        #Of all those configurations, calculate CN_inertia_moments and save them
-        CIM = np.zeros((config_num, 3))
+        #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
+        CIM = np.zeros((config_num, 3), dtype=object)
+        '''Delta_CIM calculates the inertia moments of a helper molecule with charge 1 at
+        changed sites and 0 elsewhere. In this fashion, we can distinguish alchemically distinct
+        but spacially identical sites by their Delta_Coulomb_inertia moments'''
+        Delta_CIM = np.zeros((config_num, 3), dtype=object)
+        help_mole = temp_mole
+
+        Total_CIM = np.zeros((config_num,3), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments; entry 2: Delta_CN_inertia_moments
         for i in range(config_num):
             for j in range(num_sites):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
-            print(mole_config[i])
-            #print(temp_mole)
+
             CIM[i] = CN_inertia_moment(temp_mole)
             round(CIM[i][0],tolerance)
             round(CIM[i][1],tolerance)
             round(CIM[i][2],tolerance)
             #print(CIM[i])
-            print('---------------')
 
+            #Initalize the helper molecule
+            for j in range(num_sites):
+                if np.subtract(standard_config[j],mole_config[i][j]) == 0:
+                    help_mole[j][0] = inv_elements[0]
+                else:
+                    help_mole[j][0] = inv_elements[1]
+            Delta_CIM[i] = CN_inertia_moment(help_mole)
+            round(Delta_CIM[i][0],tolerance)
+            round(Delta_CIM[i][1],tolerance)
+            round(Delta_CIM[i][2],tolerance)
+            #print(Delta_CIM[i])
+
+            Total_CIM[i][0] = mole_config[i]
+            Total_CIM[i][1] = CIM[i]
+            Total_CIM[i][2] = Delta_CIM[i]
+            print(Total_CIM[i])
+            print('---------------')
         '''Now, all possible configurations are obtained; with np.unique, we can
-        find all unique ones. However, we are not interested in the number of unique
-        configurations but in all unique configurations that experienced changes in
-        any direction (+ or -) at the SAME sites. Thus, if there exists a configuration
-        with the SAME changed sites as another one, then those are alchemical enantiomers!
+        find all unique ones (uniquing CIM). However, we are not interested in the
+        number of unique configurations but in all unique configurations that experienced
+        changes in the SAME sites (uniquing Delta_CIM afterwards).
         Then, this molecule and the number of its enantionmers shall be printed!'''
 
         '''At this point of the algorithm, the np.unique class could be easily used
-        to return the unique configurations, but of the ENTIRE molecule, not just
-        the similars, by saving all temp_mole in another array and deleting the non-
-        unique according to CIM'''
+        to return the unique configurations, but of the ENTIRE molecule.'''
 
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
