@@ -217,13 +217,14 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         #Second: All possible combinations of those atoms with meshgrid
         #The * passes the arrays element wise
         mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
+
         #Third: Delete all arrays where number of changes unequal m1 and dZ1 and m2 and dZ2
         config_num = 0
         while config_num < len(mole_config):
             '''Every configuration has multiple things to fulfill:
             m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2.
             The netto charge conservation is already baked into the code.'''
-            if (m1 == (np.subtract(standard_config,mole_config[config_num]) == dZ1).sum()) and (m2 == (np.subtract(standard_config,mole_config[config_num]) == dZ2).sum()):
+            if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
                 config_num += 1
             else:
                 mole_config = np.delete(mole_config, config_num, axis = 0)
@@ -326,7 +327,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
 
-cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (0,1,0)], ['Al', (0,0,1)],
-['Al', (1,1,0)], ['Al', (1,0,1)], ['Al', (0,1,1)], ['Al', (1,1,1)]]
+cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
+['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
 
-print(num_AEchildren(benzene))
+print(num_AEchildren(benzene, m1=2, dZ1=+1, m2=1, dZ2=-2))
