@@ -1,6 +1,7 @@
 from pyscf import gto, scf
 from pyscf.symm.geom import detect_symm #change TOLERANCE to higher values
 import numpy as np
+import time
 
 elements = {'Ghost':0, 'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -185,7 +186,14 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         CN[i] = round(CN[i],tolerance)
     '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
     their indices'''
-    similars = [np.where(CN == i)[0].tolist() for i in np.unique(CN)]
+    similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
+    #Delete all similars which include only one atom:
+    num_similars = 0
+    while num_similars < len(similars):
+        if len(similars[num_similars])>1:
+            num_similars += 1
+        else:
+            similars = np.delete(similars, num_similars, axis = 0)
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
@@ -330,4 +338,6 @@ benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
 ['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
 
-print(num_AEchildren(benzene, m1=2, dZ1=+1, m2=1, dZ2=-2))
+start_time = time.time()
+print(num_AEchildren(cube, m1=1, dZ1=+1, m2=1, dZ2=-1))
+print("Time:", (time.time() - start_time))
