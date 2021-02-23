@@ -11,7 +11,7 @@ elements = {'Ghost':0, 'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-tolerance = 4 #Rounding to ... digits
+tolerance = 2 #Rounding to ... digits
 
 def delta(i,j):
     #Kronecker Delta
@@ -149,7 +149,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         if np.min(mole_config) < 0:
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
         #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
-        CIM = np.zeros((config_num, 3), dtype=object)
+        CIM = np.zeros((config_num, 3))
         '''Delta_CIM calculates the inertia moments of a helper molecule with charge 1 at
         changed sites and 0 elsewhere. In this fashion, we can distinguish alchemically distinct
         but spacially identical sites by their Delta_Coulomb_inertia moments'''
@@ -182,55 +182,50 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             Total_CIM[i][0] = np.copy(temp_mole)
             Total_CIM[i][1] = CIM[i]
             Total_CIM[i][2] = Delta_CIM[i]
-
         '''Now, all possible configurations are obtained; with two loops, we can
         find all unique ones (uniquing CIM). However, we are not interested in the
         number of unique configurations but in all unique configurations that experienced
         changes in the SAME sites (uniquing Delta_CIM afterwards).
         Then, this molecule and the number of its enantiomers shall be printed!'''
-        #Initalize array of already seen CIMs. Still no better way to do this?
-        seen = [[1.,2.,3.]]
-        seen = np.delete(seen, 0, axis= 0)
-        erased = [[1.,2.,3.]]
-        erased = np.delete(erased, 0, axis= 0)
+
+        unique_CIM = np.unique(np.copy(CIM), axis = 0)
         #Delete all SPACIALLY equivalent configurations
         config_num = 0
         while config_num <len(Total_CIM):
-            #print(seen)
-            #print(Total_CIM[config_num])
-            if Total_CIM[config_num][1] not in seen:
-                seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
-                config_num += 1
-            else:
-                erased = np.append(erased, [Total_CIM[config_num][1]], axis = 0)
-                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        '''Only the second, third, etc. occurence of the configurations are deleted,
-        but not the first one. Hence, if a configuration is in erased, it needs to
-        be deleted explicitly:'''
-        config_num = 0
-        while config_num <len(Total_CIM):
-            if Total_CIM[config_num][1] not in erased:
+            if Total_CIM[config_num][1] in unique_CIM:
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        #print('---------------')
+
         #Initalize array of already seen Delta_CIMs. Still no better way to do this?
         seen = [[1.,2.,3.]]
         seen = np.delete(seen, 0, axis= 0)
         '''Delete all ALCHEMICALLY equivalent configurations, i.e. all second, third, etc.
         occurences of an alchemical configuration'''
         config_num = 0
+
+
+
+        '''The only fucking issue here is the array search in seen, because it
+        screws up massively! It look at the single elements, not at the arrays themselves!'''
         while config_num <len(Total_CIM):
-            #print(seen)
-            #print(Total_CIM[config_num])
-            if Total_CIM[config_num][2] not in seen:
+            print("seen:", seen)
+            print("Total_CIM:", Total_CIM[config_num][2])
+            if np.array(Total_CIM[config_num][2]) not in seen[...]:
                 seen = np.append(seen, [Total_CIM[config_num][2]], axis = 0)
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+            print('-------------------')
         #print(seen)
         #print('---------------')
         #print(Total_CIM)
+
+
+
+
+
+
         '''All is done. Now, print the remaining atoms in sites and their contribution
         to count.'''
         print('---------------')
