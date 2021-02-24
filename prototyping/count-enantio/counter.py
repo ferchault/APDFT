@@ -128,7 +128,12 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
         if m1+m2 > len(similars[alpha]):
-            raise ValueError("Number of changing atoms m1 + m2 = %d exceeds the number of alchemically similar sites in set %d which is %d" %(m1+m2,alpha,num_sites))
+            print('---------------')
+            print("Warning: Number of changing atoms m1 + m2 = %d exceeds the number of alchemically \nsimilar sites in set %d which is %d. Hence, the returned value is 0 at this site." %(m1+m2,alpha,num_sites))
+            print('Number of Alchemical Enantiomers from site with index %d: 0' %alpha)
+            print('---------------')
+            continue
+
         '''Now: go through all configurations of changing m1 + m2 atoms of set similars[alpha]
         with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
@@ -239,9 +244,7 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         print('Number of Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
         print('---------------')
         count += len(Total_CIM)
-        '''At this point of the algorithm, the np.unique class could be easily used
-        to return the unique configurations, but of the ENTIRE molecule.'''
-
+        '''At this point, extract a list [alpha, len(Total_CIM)] for the partition function to count everything.'''
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
@@ -257,7 +260,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
     if partition == True:
         print("Under construction")
     else:
-        raise ValueError("keyword partition must be True or False.")
+        raise ValueError("Keyword partition must be True or False.")
 
 
 #Furthermore: try partitions of m1 and m2 among different sites alpha, try num_AEsibling
@@ -275,5 +278,5 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)]
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
 start_time = time.time()
-print(num_AEchildren(naphthalene, m1=1, dZ1=+1, m2=1, dZ2=-1))
-print("Time:", round((time.time() - start_time),3), "s")
+print(num_AEchildren(naphthalene, m1=4, dZ1=+1, m2=4, dZ2=-1))
+print("Time:", (time.time() - start_time))
