@@ -74,6 +74,16 @@ def CN_inertia_moment(mole):
         moments[i] = round(moments[i],tolerance)
     return moments
 
+def array_compare(arr1, arr2):
+    '''arr1 = [...]
+    arr2 = [[...],[...],[...],...]
+    Is there an exact copy op arr1 in arr2'''
+    within = False
+    for i in range(len(arr2)):
+        if (arr1 == arr2[i]).all():
+            within = True
+    return within
+
 def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
@@ -180,51 +190,44 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             #print(Delta_CIM[i])
 
             Total_CIM[i][0] = np.copy(temp_mole)
-            Total_CIM[i][1] = CIM[i]
-            Total_CIM[i][2] = Delta_CIM[i]
+            Total_CIM[i][1] = np.copy(CIM[i])
+            Total_CIM[i][2] = np.copy(Delta_CIM[i])
         '''Now, all possible configurations are obtained; with two loops, we can
         find all unique ones (uniquing CIM). However, we are not interested in the
         number of unique configurations but in all unique configurations that experienced
         changes in the SAME sites (uniquing Delta_CIM afterwards).
         Then, this molecule and the number of its enantiomers shall be printed!'''
 
-        unique_CIM = np.unique(np.copy(CIM), axis = 0)
-        #Delete all SPACIALLY equivalent configurations
+        '''Delete all SPACIALLY equivalent configurations, i.e. all second, third, etc.
+        occurences of a spacial configuration'''
+        #Initalize array of already seen CIMs. No better way to do this?
+        seen = np.array([[1.,2.,3.]])
+        seen = np.delete(seen, 0, axis= 0)
         config_num = 0
         while config_num <len(Total_CIM):
-            if Total_CIM[config_num][1] in unique_CIM:
+            if not array_compare(Total_CIM[config_num][1], seen):
+                seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-
-        #Initalize array of already seen Delta_CIMs. Still no better way to do this?
-        seen = [[1.,2.,3.]]
-        seen = np.delete(seen, 0, axis= 0)
+                
         '''Delete all ALCHEMICALLY equivalent configurations, i.e. all second, third, etc.
         occurences of an alchemical configuration'''
+        #Initalize array of already seen Delta_CIMs. Still no better way to do this?
+        seen = np.array([[1.,2.,3.]])
+        seen = np.delete(seen, 0, axis= 0)
         config_num = 0
-
-
-
-        '''The only fucking issue here is the array search in seen, because it
-        screws up massively! It look at the single elements, not at the arrays themselves!'''
         while config_num <len(Total_CIM):
-            print("seen:", seen)
-            print("Total_CIM:", Total_CIM[config_num][2])
-            if np.array(Total_CIM[config_num][2]) not in seen[...]:
+            #print("seen:", seen)
+            #print("Total_CIM:", Total_CIM[config_num][2])
+            if not array_compare(Total_CIM[config_num][2], seen):
                 seen = np.append(seen, [Total_CIM[config_num][2]], axis = 0)
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-            print('-------------------')
         #print(seen)
         #print('---------------')
         #print(Total_CIM)
-
-
-
-
-
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
         to count.'''
