@@ -1,5 +1,3 @@
-from pyscf import gto, scf
-from pyscf.symm.geom import detect_symm #change TOLERANCE to higher values
 import numpy as np
 import time
 
@@ -11,7 +9,11 @@ elements = {'Ghost':0, 'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-tolerance = 2 #Rounding to ... digits
+tolerance = 3
+'''Rounding to ... digits. Do not go above 3, if you do not want
+to write down the structure of your molecule up to the gazillion-th digit. Do
+not go below 2, if you do not want the programm to find symmetries where there
+are none.'''
 
 def delta(i,j):
     #Kronecker Delta
@@ -210,7 +212,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-                
+
         '''Delete all ALCHEMICALLY equivalent configurations, i.e. all second, third, etc.
         occurences of an alchemical configuration'''
         #Initalize array of already seen Delta_CIMs. Still no better way to do this?
@@ -246,9 +248,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     return count
 
 
-
-
-#Furthermore: Try out Naphthalene, try num_AEsibling
+#Furthermore: try partitions of m1 and m2 among different sites alpha, try num_AEsibling
 
 benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
@@ -256,6 +256,11 @@ benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
 cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
 ['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
 
+naphthalene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)],
+['C', (0,2*0.866025,1)], ['C', (0,3*0.866025,0.5)], ['C', (0,3*0.866025, -0.5)], ['C', (0,2*0.866025,-1)]]
+
+
 start_time = time.time()
-print(num_AEchildren(benzene, m1=1, dZ1=+1, m2=1, dZ2=-1))
-print("Time:", (time.time() - start_time))
+print(num_AEchildren(naphthalene, m1=1, dZ1=+1, m2=1, dZ2=-1))
+print("Time:", round((time.time() - start_time),3), "s")
