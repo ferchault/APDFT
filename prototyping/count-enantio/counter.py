@@ -86,7 +86,7 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
+def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
     dZ2, respectively.'''
@@ -94,7 +94,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
     if N < m1 + m2:
         raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
     if (m1*dZ1 + m2*dZ2 != 0):
-        raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2")
+        raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
     if (dZ1 == 0) or (dZ2 == 0):
         raise ValueError("0 is not allowed in dZ")
     #Prepare the array mole^
@@ -128,7 +128,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
         if m1+m2 > len(similars[alpha]):
-            raise ValueError("Number of changing atoms m1 + m2 =", m1+m2, "exceeds the number of alchemically similar sites in set", alpha, "which is", num_sites)
+            raise ValueError("Number of changing atoms m1 + m2 = %d exceeds the number of alchemically similar sites in set %d which is %d" %(m1+m2,alpha,num_sites))
         '''Now: go through all configurations of changing m1 + m2 atoms of set similars[alpha]
         with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
@@ -236,7 +236,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         print('---------------')
         for i in range(len(Total_CIM)):
             print(Total_CIM[i][0])
-        print('Number of Alchemical Enantiomers from these sites:', len(Total_CIM))
+        print('Number of Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
         print('---------------')
         count += len(Total_CIM)
         '''At this point of the algorithm, the np.unique class could be easily used
@@ -246,6 +246,18 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
+
+def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
+    '''The partition allows to obtain AE of one molecule where the changed atoms
+    are not restricted to be of one site. Instead, all partitions of m1, m2 are
+    allowed which respect m1*dZ1 = -m2*dZ2 site-wise. Afterwards, all combinations
+    are summed up (each site is only allowed once) such that m1, m2 add up again.'''
+    if partition == False:
+        return num_AEchildren_nopartitions(mole, m1, dZ1, m2, dZ2)
+    if partition == True:
+        print("Under construction")
+    else:
+        raise ValueError("keyword partition must be True or False.")
 
 
 #Furthermore: try partitions of m1 and m2 among different sites alpha, try num_AEsibling
@@ -260,6 +272,7 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)]
 ['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)],
 ['C', (0,2*0.866025,1)], ['C', (0,3*0.866025,0.5)], ['C', (0,3*0.866025, -0.5)], ['C', (0,2*0.866025,-1)]]
 
+triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
 start_time = time.time()
 print(num_AEchildren(naphthalene, m1=1, dZ1=+1, m2=1, dZ2=-1))
