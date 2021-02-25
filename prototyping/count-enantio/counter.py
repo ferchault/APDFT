@@ -1,5 +1,7 @@
 import numpy as np
 import time
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
 elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
 'H':1, 'He':2,
@@ -41,7 +43,7 @@ def Coulomb_matrix(mole):
         for j in range(N):
             if (j == i):
                 charge = elements[mole[i][0]]
-                result[i][i] = np.sign(charge)*pow(np.abs(charge), 2.4)
+                result[i][i] = 0.5*np.sign(charge)*pow(np.abs(charge), 2.4)
             else:
                 result[i][j] = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
     return result
@@ -88,7 +90,7 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
+def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
     dZ2, respectively.'''
@@ -99,7 +101,7 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
     if (dZ1 == 0) or (dZ2 == 0):
         raise ValueError("0 is not allowed in dZ")
-    #Prepare the array mole^
+    #Prepare the molecule
     center_mole(mole)
     mole = np.array(mole, dtype=object)
     #Find the Coulombic neighborhood of each atom in mole
@@ -117,6 +119,13 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             num_similars += 1
         else:
             similars = np.delete(similars, num_similars, axis = 0)
+    '''If partitoning is allowed, all of these sites in each set need to be treated
+    simultaneously. Hence, we flatten the array. However, we later need to make sure
+    that only each set fulfills netto charge change = 0. This is why set is Initalized'''
+    if partition == True:
+        set = np.copy(similars)
+        similars = [np.concatenate((similars).tolist())]
+        print(set[0])
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
@@ -141,7 +150,7 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
         and only count the unique ones'''
         atomwise_config = np.zeros((num_sites, 3)) #Three possible states: 0, dZ1, dZ2
         standard_config = np.zeros((num_sites))
-        #First: All allowed charges for ONE atom at a time
+        #All allowed charges for ONE atom at a time
         for i in range(num_sites):
             #no change:
             atomwise_config[i][0] = elements[temp_mole[i][0]]
@@ -150,18 +159,41 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             #just changes:
             atomwise_config[i][1] = elements[temp_mole[i][0]]+dZ1
             atomwise_config[i][2] = elements[temp_mole[i][0]]+dZ2
-        #Second: All possible combinations of those atoms with meshgrid
+        #All possible combinations of those atoms with meshgrid
         #The * passes the arrays element wise
         mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
-
-        #Third: Delete all arrays where number of changes unequal m1 and dZ1 and m2 and dZ2
         config_num = 0
         while config_num < len(mole_config):
-            '''Every configuration has multiple things to fulfill:
-            m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2.
-            The netto charge conservation is already baked into the code.'''
+            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2.
+            The netto charge conservation is already baked into the code for partition == False.'''
             if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
-                config_num += 1
+                if partition == True:
+
+
+
+
+
+                    '''Check that the netto charge change in every set is 0 (work in progress!!!!)'''
+                    for i in range(len(set)):
+                        sum = 0
+                        #This loop has to start where the last one ended
+                        pos = 0
+                        for j in range(pos,pos+len(set[i])):
+                            sum += mole_config[config_num][j] - standard_config[j]
+                        pos += len(set[i])
+                        if sum != 0:
+                            mole_config = np.delete(mole_config, config_num, axis = 0)
+                            break
+                        if (sum == 0) and (i == len(set)-1):
+                            config_num += 1
+
+
+
+
+
+
+                if partition == False:
+                    config_num += 1
             else:
                 mole_config = np.delete(mole_config, config_num, axis = 0)
         #Check that atoms have not been transmuted to negative charges
@@ -225,40 +257,32 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
                 config_num += 1
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
-        to count.'''
+        to count. We only need one half as we know every AEs partner immediatly.'''
         print('---------------')
         for i in range(len(Total_CIM)):
             print(Total_CIM[i][0])
-        print('Number of Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)/2))
+        print('Number of Alchemical Enantiomers (pairs mean double) from site with index %d: %d' %(alpha,len(Total_CIM)))
         print('---------------')
-        count += len(Total_CIM)/2
+        count += len(Total_CIM)
         '''At this point, extract a list [alpha, len(Total_CIM)] for the partition function to count everything.'''
 
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
-    return count
-
-def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
-    '''The partition allows to obtain AE of one molecule where the changed atoms
-    are not restricted to be of one site. Instead, all partitions of m1, m2 are
-    allowed which respect m1*dZ1 = -m2*dZ2 site-wise. However, this does not work
-    site-wise!!!'''
-    if partition == False:
-        return num_AEchildren_nopartitions(mole, m1, dZ1, m2, dZ2)
-    if partition == True:
-        print("Under construction")
-    else:
-        raise ValueError("Keyword partition must be True or False.")
+    return count/2
 
 
-#Furthermore: try partitions of m1 and m2 among different sites alpha, try num_AEsibling
+
+
+
+'''Furthermore: try partitions of m1 and m2 among different sites alpha, validate with metal_octa
+try num_AEsibling'''
 
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
 
-cube = [['C', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
-['Al', (0,0,1)], ['Al', (1,0,1)], ['C', (1,1,1)], ['Al', (0,1,1)]]
+cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
+['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
 
 naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)],
@@ -266,6 +290,9 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['
 
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
+metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
+['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
+
 start_time = time.time()
-print(num_AEchildren(cube, m1=1, dZ1=+1, m2=1, dZ2=-1))
+print(num_AEchildren(metal_octa, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True))
 print("Time:", (time.time() - start_time))
