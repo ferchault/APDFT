@@ -1,7 +1,8 @@
 import numpy as np
 import time
 
-elements = {'Ghost':0, 'H':1, 'He':2,
+elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
+'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
 'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
@@ -39,7 +40,8 @@ def Coulomb_matrix(mole):
     for i in range(N):
         for j in range(N):
             if (j == i):
-                result[i][i] = pow(elements[mole[i][0]], 2.4)
+                charge = elements[mole[i][0]]
+                result[i][i] = np.sign(charge)*pow(np.abs(charge), 2.4)
             else:
                 result[i][j] = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
     return result
@@ -167,13 +169,8 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
         #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
         CIM = np.zeros((config_num, 3))
-        '''Delta_CIM calculates the inertia moments of a helper molecule with charge 1 at
-        changed sites and 0 elsewhere. In this fashion, we can distinguish alchemically distinct
-        but spacially identical sites by their Delta_Coulomb_inertia moments'''
-        Delta_CIM = np.zeros((config_num, 3), dtype=object)
-        help_mole = np.copy(temp_mole)
 
-        Total_CIM = np.zeros((config_num,3), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments; entry 2: Delta_CN_inertia_moments
+        Total_CIM = np.zeros((config_num,2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
         for i in range(config_num):
             for j in range(num_sites):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
@@ -184,29 +181,14 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
             round(CIM[i][2],tolerance)
             #print(CIM[i])
 
-            #Initalize the helper molecule
-            for j in range(num_sites):
-                if np.subtract(standard_config[j],mole_config[i][j]) == 0:
-                    help_mole[j][0] = inv_elements[0]
-                else:
-                    help_mole[j][0] = inv_elements[1]
-            Delta_CIM[i] = CN_inertia_moment(help_mole)
-            round(Delta_CIM[i][0],tolerance)
-            round(Delta_CIM[i][1],tolerance)
-            round(Delta_CIM[i][2],tolerance)
-            #print(Delta_CIM[i])
-
             Total_CIM[i][0] = np.copy(temp_mole)
             Total_CIM[i][1] = np.copy(CIM[i])
-            Total_CIM[i][2] = np.copy(Delta_CIM[i])
-        '''Now, all possible configurations are obtained; with two loops, we can
-        find all unique ones (uniquing CIM). However, we are not interested in the
-        number of unique configurations but in all unique configurations that experienced
-        changes in the SAME sites (uniquing Delta_CIM afterwards).
-        Then, this molecule and the number of its enantiomers shall be printed!'''
 
-        '''Delete all SPACIALLY equivalent configurations, i.e. all second, third, etc.
-        occurences of a spacial configuration'''
+        '''Now, all possible configurations are obtained; with the following loops,
+        we can get rid of all the spacial enantiomers: Delete all SPACIALLY
+        equivalent configurations, i.e. all second, third, etc. occurences of a
+        spacial configuration'''
+
         #Initalize array of already seen CIMs. No better way to do this?
         seen = np.array([[1.,2.,3.]])
         seen = np.delete(seen, 0, axis= 0)
@@ -217,34 +199,41 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+        #print(Total_CIM)
 
-        '''Delete all ALCHEMICALLY equivalent configurations, i.e. all second, third, etc.
-        occurences of an alchemical configuration'''
-        #Initalize array of already seen Delta_CIMs. Still no better way to do this?
-        seen = np.array([[1.,2.,3.]])
-        seen = np.delete(seen, 0, axis= 0)
+        '''ALCHEMICALLY symmetric molecules are those which do not transmute
+        into themselves under the mirroring in charge, i.e. if one adds the
+        inverted (minus sign) configuration of charge changes to twice the molecule,
+        its CIM has changed.'''
+
         config_num = 0
         while config_num <len(Total_CIM):
-            #print("seen:", seen)
-            #print("Total_CIM:", Total_CIM[config_num][2])
-            if not array_compare(Total_CIM[config_num][2], seen):
-                seen = np.append(seen, [Total_CIM[config_num][2]], axis = 0)
-                config_num += 1
-            else:
+            current_config = np.zeros(num_sites,dtype=object)
+            for i in range(num_sites):
+                current_config[i] = elements[Total_CIM[config_num][0][i][0]]
+            mirror_config = 2*standard_config - current_config
+            #print(current_config)
+            #print(mirror_config)
+            #print(Total_CIM[config_num][1]) #The CIM of current_config
+            for i in range(num_sites):
+                temp_mole[i][0] = inv_elements[mirror_config[i]]
+            #print(CN_inertia_moment(temp_mole))
+            #print('----------')
+            if (Total_CIM[config_num][1] == CN_inertia_moment(temp_mole)).all():
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        #print(seen)
-        #print('---------------')
-        #print(Total_CIM)
+            else:
+                config_num += 1
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
         to count.'''
         print('---------------')
         for i in range(len(Total_CIM)):
             print(Total_CIM[i][0])
-        print('Number of Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
+        print('Number of Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)/2))
         print('---------------')
-        count += len(Total_CIM)
+        count += len(Total_CIM)/2
         '''At this point, extract a list [alpha, len(Total_CIM)] for the partition function to count everything.'''
+
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
@@ -253,8 +242,8 @@ def num_AEchildren_nopartitions(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1):
 def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
     '''The partition allows to obtain AE of one molecule where the changed atoms
     are not restricted to be of one site. Instead, all partitions of m1, m2 are
-    allowed which respect m1*dZ1 = -m2*dZ2 site-wise. Afterwards, all combinations
-    are summed up (each site is only allowed once) such that m1, m2 add up again.'''
+    allowed which respect m1*dZ1 = -m2*dZ2 site-wise. However, this does not work
+    site-wise!!!'''
     if partition == False:
         return num_AEchildren_nopartitions(mole, m1, dZ1, m2, dZ2)
     if partition == True:
@@ -265,18 +254,18 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
 
 #Furthermore: try partitions of m1 and m2 among different sites alpha, try num_AEsibling
 
-benzene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)]]
+benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
 
-cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
-['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
+cube = [['C', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
+['Al', (0,0,1)], ['Al', (1,0,1)], ['C', (1,1,1)], ['Al', (0,1,1)]]
 
-naphthalene = [['C', (0,0,1)], ['C', (0,0.866025,0.5)], ['C', (0,0.866025,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.866025,-0.5)], ['C', (0,-0.866025,0.5)],
-['C', (0,2*0.866025,1)], ['C', (0,3*0.866025,0.5)], ['C', (0,3*0.866025, -0.5)], ['C', (0,2*0.866025,-1)]]
+naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)],
+['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
 
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
 start_time = time.time()
-print(num_AEchildren(naphthalene, m1=4, dZ1=+1, m2=4, dZ2=-1))
+print(num_AEchildren(cube, m1=1, dZ1=+1, m2=1, dZ2=-1))
 print("Time:", (time.time() - start_time))
