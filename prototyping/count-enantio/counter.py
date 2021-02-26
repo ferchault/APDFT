@@ -1,7 +1,6 @@
 import numpy as np
 import time
-import sys
-np.set_printoptions(threshold=sys.maxsize)
+import matplotlib.pyplot as plt
 
 elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
 'H':1, 'He':2,
@@ -90,10 +89,18 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
+def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, debug = False):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
     dZ2, respectively.'''
+
+    '''Partition allows the changed atoms to be of more than one set of points with
+    identical Coulombic neighborhood.'''
+
+    '''In case that the same number of nuclear charges are increased as they are
+    decreased, the set of AE at the end include their own mirror images. Depending
+    on your input constraints, the returned number has to be halfed!'''
+
     N = len(mole)
     if N < m1 + m2:
         raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
@@ -101,6 +108,8 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
         raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
     if (dZ1 == 0) or (dZ2 == 0):
         raise ValueError("0 is not allowed in dZ")
+    if (partition != True) and (partition != False):
+        raise ValueError("Partition must be True or False")
     #Prepare the molecule
     center_mole(mole)
     mole = np.array(mole, dtype=object)
@@ -125,7 +134,6 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
     if partition == True:
         set = np.copy(similars)
         similars = [np.concatenate((similars).tolist())]
-        print(set[0])
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
@@ -168,11 +176,6 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
             The netto charge conservation is already baked into the code for partition == False.'''
             if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
                 if partition == True:
-
-
-
-
-
                     '''Check that the netto charge change in every set is 0 (work in progress!!!!)'''
                     for i in range(len(set)):
                         sum = 0
@@ -186,12 +189,6 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
                             break
                         if (sum == 0) and (i == len(set)-1):
                             config_num += 1
-
-
-
-
-
-
                 if partition == False:
                     config_num += 1
             else:
@@ -258,25 +255,38 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False):
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
         to count. We only need one half as we know every AEs partner immediatly.'''
-        print('---------------')
-        for i in range(len(Total_CIM)):
-            print(Total_CIM[i][0])
-        print('Number of Alchemical Enantiomers (pairs mean double) from site with index %d: %d' %(alpha,len(Total_CIM)))
-        print('---------------')
         count += len(Total_CIM)
-        '''At this point, extract a list [alpha, len(Total_CIM)] for the partition function to count everything.'''
 
+        if debug == True:
+            print('---------------')
+            for i in range(len(Total_CIM)):
+                #This prints the current configuration
+                print(Total_CIM[i][0])
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                #Fill the points into xs,ys,zs
+                xs = np.zeros((num_sites))
+                ys = np.zeros((num_sites))
+                zs = np.zeros((num_sites))
+                for j in range(num_sites):
+                    xs[j] = Total_CIM[i][0][j][1][0]
+                    ys[j] = Total_CIM[i][0][j][1][1]
+                    zs[j] = Total_CIM[i][0][j][1][2]
+                #print(xs,ys,zs)
+                ax.scatter(xs, ys, zs)
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
+                plt.show()
+            print('Number of molecules to be consider Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
+            print('---------------')
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
-    return count/2
+    return count
 
 
-
-
-
-'''Furthermore: try partitions of m1 and m2 among different sites alpha, validate with metal_octa
-try num_AEsibling'''
+'''Furthermore: validate with brute force method, try num_AEsibling'''
 
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
@@ -294,5 +304,5 @@ metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], 
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
 start_time = time.time()
-print(num_AEchildren(metal_octa, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True))
+print(num_AEchildren(benzene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
 print("Time:", (time.time() - start_time))
