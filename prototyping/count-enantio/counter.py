@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import os
 
 elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
 'H':1, 'He':2,
@@ -42,7 +43,7 @@ def Coulomb_matrix(mole):
         for j in range(N):
             if (j == i):
                 charge = elements[mole[i][0]]
-                result[i][i] = 0.5*np.sign(charge)*pow(np.abs(charge), 2.4)
+                result[i][i] = 0.5*pow(charge, 2.4)
             else:
                 result[i][j] = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
     return result
@@ -100,6 +101,8 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
     '''In case that the same number of nuclear charges are increased as they are
     decreased, the set of AE at the end include their own mirror images. Depending
     on your input constraints, the returned number has to be halfed!'''
+
+    start_time = time.time()
 
     N = len(mole)
     if N < m1 + m2:
@@ -260,6 +263,8 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
 
         if debug == True:
             print('---------------')
+            print("Time:", (time.time() - start_time),"s")
+            print('---------------')
             for i in range(len(Total_CIM)):
                 #This prints the current configuration
                 print(Total_CIM[i][0])
@@ -283,12 +288,76 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
                 #ax.set_ylabel('Y')
                 #ax.set_zlabel('Z')
             plt.show()
-            print('Number of molecules to be consider Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
+            print('Number of molecules to be considered Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
             print('---------------')
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
+
+def num_AEchildren_topol(graph, equi_sites = [], m1 = 2, m2 = 2):
+    '''graph = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
+    equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
+    m1, m2 only specify the number of changed sites, not the amount. Since m1/m2 = const.
+    and m1*dZ1 = -m2*dZ2 as demanded, we assume dZ1 = 1 and dZ2 = -m1/m2'''
+    N = np.amax(graph)+1
+    if N == 1:
+        raise ValueError("Graph needs to have at least 2 atoms.")
+    #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
+    command = "echo 'n=" + str(N) + ";"
+    for i in range(N):
+        command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
+    command += "' | /home/simon/Desktop/nauty27r1/dretog | /home/simon/Desktop/nauty27r1/vcolg -T -m3 | awk '{if (($3"
+    for i in range(4,N+3):
+        command += "+$" + str(i)
+    command += ") == " + str(N) + ") print}'"
+    output = os.popen(command).read()
+    print("\n")
+    #Color 1 is the standard, colors 0 and 2 are the deviations
+    #Parse output to an array
+    num_lines = output.count('\n')
+    graph_config = np.zeros((num_lines),dtype=object)
+    for i in range(num_lines):
+        line = output.splitlines(False)[i]
+        #Get rid of everything after '  ':
+        line = line.split('  ')[0]
+        #Parse numbers to integer array:
+        numbers = [int(j) for j in line.split(' ')]
+        #Delete first two elements
+        numbers = np.delete(numbers, (0,1), axis = 0)
+        graph_config[i] = numbers
+    '''The parsed array needs to fulfill two things:
+    1) Is the number of charged sites correct, i.e. sum(elements == 1) == m1+m2
+    2) Is the netto charge within equi_sites conserved?'''
+    config_num = 0
+
+
+
+
+    #Does not work yet!!!!!!
+    while config_num < len(graph_config):
+        if (m1 == (graph_config[config_num] ==  0).sum()) and (m2 == (graph_config[config_num] ==  2).sum()):
+            pos = 0
+            for i in range(len(equi_sites)):
+                sum = 0
+                #This loop has to start where the last one ended
+                for j in range(pos,pos+len(equi_sites[i])):
+                    sum += graph_config[config_num][j] - 1
+                pos += len(equi_sites[i])
+                if sum != 0:
+                    graph_config = np.delete(graph_config, config_num, axis = 0)
+                    break
+                if (sum == 0) and (i == len(equi_sites)-1):
+                    config_num += 1
+        else:
+            graph_config = np.delete(graph_config, config_num, axis = 0)
+    print(graph_config)
+    print(len(graph_config))
+
+
+
+
+
 
 
 '''Furthermore: validate with topolgical graph coloring method, try num_AEsibling'''
@@ -308,6 +377,5 @@ triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-#start_time = time.time()
-print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
-#print("Time:", (time.time() - start_time))
+#print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
+num_AEchildren_topol([[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]], equi_sites = [[0,5],[1,4,6,9],[2,3,7,8]], m1 = 2, m2 = 2)
