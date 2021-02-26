@@ -177,10 +177,10 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, 
             if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
                 if partition == True:
                     '''Check that the netto charge change in every set is 0 (work in progress!!!!)'''
+                    pos = 0
                     for i in range(len(set)):
                         sum = 0
                         #This loop has to start where the last one ended
-                        pos = 0
                         for j in range(pos,pos+len(set[i])):
                             sum += mole_config[config_num][j] - standard_config[j]
                         pos += len(set[i])
@@ -254,7 +254,8 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, 
                 config_num += 1
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
-        to count. We only need one half as we know every AEs partner immediatly.'''
+        to count. We only need one half (in case of symmetric changes) as we know
+        every AEs partner immediatly.'''
         count += len(Total_CIM)
 
         if debug == True:
@@ -268,16 +269,20 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, 
                 xs = np.zeros((num_sites))
                 ys = np.zeros((num_sites))
                 zs = np.zeros((num_sites))
+                n = np.zeros((num_sites),dtype=object)
                 for j in range(num_sites):
                     xs[j] = Total_CIM[i][0][j][1][0]
                     ys[j] = Total_CIM[i][0][j][1][1]
                     zs[j] = Total_CIM[i][0][j][1][2]
-                #print(xs,ys,zs)
-                ax.scatter(xs, ys, zs)
-                ax.set_xlabel('X')
-                ax.set_ylabel('Y')
-                ax.set_zlabel('Z')
-                plt.show()
+                    n[j] = Total_CIM[i][0][j][0]
+                ax.scatter(xs, ys, zs, marker='o', facecolor='black')
+                #print(Total_CIM[i][0][1][0])
+                for j, txt in enumerate(n):
+                    ax.text(xs[j], ys[j], zs[j], n[j])
+                #ax.set_xlabel('X')
+                #ax.set_ylabel('Y')
+                #ax.set_zlabel('Z')
+            plt.show()
             print('Number of molecules to be consider Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
             print('---------------')
         #Clear temp_mole
@@ -303,6 +308,6 @@ triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-start_time = time.time()
-print(num_AEchildren(benzene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
-print("Time:", (time.time() - start_time))
+#start_time = time.time()
+print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
+#print("Time:", (time.time() - start_time))
