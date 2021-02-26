@@ -329,21 +329,15 @@ def num_AEchildren_topol(graph, equi_sites = [], m1 = 2, m2 = 2):
     '''The parsed array needs to fulfill two things:
     1) Is the number of charged sites correct, i.e. sum(elements == 1) == m1+m2
     2) Is the netto charge within equi_sites conserved?'''
+
+    #Still doesn't work...time for weekend...
     config_num = 0
-
-
-
-
-    #Does not work yet!!!!!!
     while config_num < len(graph_config):
         if (m1 == (graph_config[config_num] ==  0).sum()) and (m2 == (graph_config[config_num] ==  2).sum()):
-            pos = 0
             for i in range(len(equi_sites)):
                 sum = 0
-                #This loop has to start where the last one ended
-                for j in range(pos,pos+len(equi_sites[i])):
+                for j in equi_sites[i]:
                     sum += graph_config[config_num][j] - 1
-                pos += len(equi_sites[i])
                 if sum != 0:
                     graph_config = np.delete(graph_config, config_num, axis = 0)
                     break
@@ -377,5 +371,5 @@ triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-#print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
-num_AEchildren_topol([[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]], equi_sites = [[0,5],[1,4,6,9],[2,3,7,8]], m1 = 2, m2 = 2)
+print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = True))
+#num_AEchildren_topol([[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]], equi_sites = [[0,5],[1,4,6,9],[2,3,7,8]], m1 = 2, m2 = 2)
