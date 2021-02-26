@@ -89,7 +89,7 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, debug = False):
+def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = False):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
     dZ2, respectively.'''
@@ -176,7 +176,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, 
             The netto charge conservation is already baked into the code for partition == False.'''
             if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
                 if partition == True:
-                    '''Check that the netto charge change in every set is 0 (work in progress!!!!)'''
+                    '''Check that the netto charge change in every set is 0'''
                     pos = 0
                     for i in range(len(set)):
                         sum = 0
@@ -291,7 +291,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = False, 
     return count
 
 
-'''Furthermore: validate with brute force method, try num_AEsibling'''
+'''Furthermore: validate with topolgical graph coloring method, try num_AEsibling'''
 
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
