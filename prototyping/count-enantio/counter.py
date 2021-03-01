@@ -26,9 +26,6 @@ def delta(i,j):
     else:
         return 0
 
-def are_isomorphic(graph1,graph2):
-    print("Under construction")
-
 def center_mole(mole):
     #Centers a molecule
     sum = (0,0,0)
@@ -316,7 +313,7 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
         command += "+$" + str(i)
     command += ") == " + str(N) + ") print}'"
     output = os.popen(command).read()
-    print(command)
+    #print(command)
     #Color 1 is the standard, colors 0 and 2 are the deviations
     #Parse output to an array
     num_lines = output.count('\n')
@@ -355,13 +352,40 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
                     config_num += 1
         else:
             graph_config = np.delete(graph_config, config_num, axis = 0)
+    #print(graph_config)
+
     #Answering the third question:
+    '''Use networkx's built-in function to delete isomorphic graphs. However, since
+    our nodes have color and apparently nobody in the entire internet knows how to
+    handle the option 'node_match', we instead add 3 fictitious nodes (none for color 0,
+    one (N+1) for color 1 and two (N+2 and N+3) for color 2) and connect the respective nodes to them.
+    These graphs are then compared'''
     config_num = 0
     while config_num < len(graph_config):
-        if are_isomorphic(2*np.ones((N)) - graph_config[config_num],graph_config[config_num]):
+        Current_Graph = nx.Graph([tuple(v) for v in graph])
+        Mirror_Graph = nx.Graph([tuple(v) for v in graph])
+        for i in range(N):
+            if graph_config[config_num][i] == 0: #Mirror graph gets two connections
+                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+2)
+                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+3)
+            if graph_config[config_num][i] == 1: #Both connect to one node
+                Current_Graph.add_edge(i, graph_config[config_num][i]+N+1) #Any offset will do here
+                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+1)
+            if graph_config[config_num][i] == 2: #Current graph gets two connections
+                Current_Graph.add_edge(i, graph_config[config_num][i]+N+2)
+                Current_Graph.add_edge(i, graph_config[config_num][i]+N+3)
+        if nx.is_isomorphic(Current_Graph,Mirror_Graph):
             graph_config = np.delete(graph_config, config_num, axis = 0)
         else:
             config_num += 1
+        #nx.draw_circular(Current_Graph, with_labels=True, style='solid')
+        #plt.show()
+        #nx.draw_circular(Mirror_Graph, with_labels=True, style='dashed')
+        #plt.show()
+        #print(nx.is_isomorphic(Current_Graph,Mirror_Graph))
+        Current_Graph.clear()
+        Mirror_Graph.clear()
+
     count = len(graph_config)
     if debug == True:
         print(graph_config) #prints the number of the respective color along all equivalent sites
@@ -391,5 +415,5 @@ triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-#print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
-print(num_AEchildren_topol(benzene_topol, benzene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = True))
+print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
+#print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False))
