@@ -1,6 +1,8 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import pandas as pd
+import networkx as nx
 import os
 
 elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
@@ -24,6 +26,12 @@ def delta(i,j):
         return 1
     else:
         return 0
+
+def cyclic_perm(input_array):
+    #create array of all cyclic permutations of input_array
+    N = len(input_array)
+    result = np.array([[input_array[i - j] for i in range(N)] for j in range(N)])
+    return result
 
 def center_mole(mole):
     #Centers a molecule
@@ -83,7 +91,7 @@ def CN_inertia_moment(mole):
 def array_compare(arr1, arr2):
     '''arr1 = [...]
     arr2 = [[...],[...],[...],...]
-    Is there an exact copy op arr1 in arr2'''
+    Is there an exact copy of arr1 in arr2'''
     within = False
     for i in range(len(arr2)):
         if (arr1 == arr2[i]).all():
@@ -295,11 +303,11 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
 
-def num_AEchildren_topol(graph, equi_sites = [], m1 = 2, m2 = 2):
+def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False):
     '''graph = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
-    equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
-    m1, m2 only specify the number of changed sites, not the amount. Since m1/m2 = const.
-    and m1*dZ1 = -m2*dZ2 as demanded, we assume dZ1 = 1 and dZ2 = -m1/m2'''
+    equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]'''
+    if (m1*dZ1 + m2*dZ2 != 0):
+        raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
     N = np.amax(graph)+1
     if N == 1:
         raise ValueError("Graph needs to have at least 2 atoms.")
@@ -307,12 +315,12 @@ def num_AEchildren_topol(graph, equi_sites = [], m1 = 2, m2 = 2):
     command = "echo 'n=" + str(N) + ";"
     for i in range(N):
         command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
-    command += "' | /home/simon/Desktop/nauty27r1/dretog | /home/simon/Desktop/nauty27r1/vcolg -T -m3 | awk '{if (($3"
+    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 | awk '{if (($3"
     for i in range(4,N+3):
         command += "+$" + str(i)
     command += ") == " + str(N) + ") print}'"
     output = os.popen(command).read()
-    print("\n")
+    #print(command)
     #Color 1 is the standard, colors 0 and 2 are the deviations
     #Parse output to an array
     num_lines = output.count('\n')
@@ -326,38 +334,51 @@ def num_AEchildren_topol(graph, equi_sites = [], m1 = 2, m2 = 2):
         #Delete first two elements
         numbers = np.delete(numbers, (0,1), axis = 0)
         graph_config[i] = numbers
-    '''The parsed array needs to fulfill two things:
+    '''The parsed array needs to fulfill three things:
     1) Is the number of charged sites correct, i.e. sum(elements == 1) == m1+m2
-    2) Is the netto charge within equi_sites conserved?'''
-
-    #Still doesn't work...time for weekend...
+    2) Is the netto charge within equi_sites conserved?
+    3) Is the graph not its own alchemical mirror image?
+    The third question is the same as asking if graph and mirror are isomorphic.'''
+    #Answering questions one and two:
     config_num = 0
     while config_num < len(graph_config):
         if (m1 == (graph_config[config_num] ==  0).sum()) and (m2 == (graph_config[config_num] ==  2).sum()):
             for i in range(len(equi_sites)):
                 sum = 0
                 for j in equi_sites[i]:
-                    sum += graph_config[config_num][j] - 1
+                    if graph_config[config_num][j] == 0:
+                        sum += dZ1
+                    if graph_config[config_num][j] == 1:
+                        sum += 0
+                    if graph_config[config_num][j] == 2:
+                        sum += dZ2
                 if sum != 0:
                     graph_config = np.delete(graph_config, config_num, axis = 0)
                     break
-                if (sum == 0) and (i == len(equi_sites)-1):
+                if i == len(equi_sites)-1:
                     config_num += 1
         else:
             graph_config = np.delete(graph_config, config_num, axis = 0)
-    print(graph_config)
-    print(len(graph_config))
-
-
-
-
-
+    #Answering the third question:
+    config_num = 0
+    while config_num < len(graph_config):
+        if array_compare(2*np.ones((N)) - graph_config[config_num],cyclic_perm(graph_config[config_num])) or array_compare(np.flip(2*np.ones((N)) - graph_config[config_num],axis = 0),cyclic_perm(graph_config[config_num])):
+            graph_config = np.delete(graph_config, config_num, axis = 0)
+        else:
+            config_num += 1
+    count = len(graph_config)
+    if debug == True:
+        print(graph_config) #prints the number of the respective color
+    return count
 
 
 '''Furthermore: validate with topolgical graph coloring method, try num_AEsibling'''
 
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
+
+benzene_topol = [[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]]
+benzene_equi_sites = [[0,1,2,3,4,5]]
 
 cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
 ['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
@@ -366,10 +387,13 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)],
 ['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
 
+naphthalene_topol = [[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]]
+naphthalene_equi_sites = [[0,5],[2,3,7,8],[1,4,6,9]]
+
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = True))
-#num_AEchildren_topol([[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]], equi_sites = [[0,5],[1,4,6,9],[2,3,7,8]], m1 = 2, m2 = 2)
+#print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = True))
