@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-import pandas as pd
 import networkx as nx
 import os
 
@@ -15,7 +14,7 @@ elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghos
 inv_elements = {v: k for k, v in elements.items()}
 
 tolerance = 3
-'''Rounding to ... digits. Do not go above 3, if you do not want
+'''Rounding to ... digits for geometry-based method. Do not go above 3, if you do not want
 to write down the structure of your molecule up to the gazillion-th digit. Do
 not go below 2, if you do not want the programm to find symmetries where there
 are none.'''
@@ -27,11 +26,8 @@ def delta(i,j):
     else:
         return 0
 
-def cyclic_perm(input_array):
-    #create array of all cyclic permutations of input_array
-    N = len(input_array)
-    result = np.array([[input_array[i - j] for i in range(N)] for j in range(N)])
-    return result
+def are_isomorphic(graph1,graph2):
+    print("Under construction")
 
 def center_mole(mole):
     #Centers a molecule
@@ -320,7 +316,7 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
         command += "+$" + str(i)
     command += ") == " + str(N) + ") print}'"
     output = os.popen(command).read()
-    #print(command)
+    print(command)
     #Color 1 is the standard, colors 0 and 2 are the deviations
     #Parse output to an array
     num_lines = output.count('\n')
@@ -362,13 +358,13 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
     #Answering the third question:
     config_num = 0
     while config_num < len(graph_config):
-        if array_compare(2*np.ones((N)) - graph_config[config_num],cyclic_perm(graph_config[config_num])) or array_compare(np.flip(2*np.ones((N)) - graph_config[config_num],axis = 0),cyclic_perm(graph_config[config_num])):
+        if are_isomorphic(2*np.ones((N)) - graph_config[config_num],graph_config[config_num]):
             graph_config = np.delete(graph_config, config_num, axis = 0)
         else:
             config_num += 1
     count = len(graph_config)
     if debug == True:
-        print(graph_config) #prints the number of the respective color
+        print(graph_config) #prints the number of the respective color along all equivalent sites
     return count
 
 
@@ -396,4 +392,4 @@ metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], 
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
 #print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = True))
+print(num_AEchildren_topol(benzene_topol, benzene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = True))
