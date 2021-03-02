@@ -93,43 +93,32 @@ def run_and_extract(poscar):
 
 
 # region
-nBN = 0
-all_energies = []
-enantiomer_deltas = []
-for i in range(2):
-    f, b, d = random_representative(1, nBN)
-    e_f = run_and_extract(f)
-    e_b = run_and_extract(b)
-    all_energies += [e_f, e_b]
-    enantiomer_deltas.append(e_f - e_b)
+def compare_energy_differences(nBN):
+    all_energies = []
+    enantiomer_deltas = []
+    for i in range(50):
+        f, b, d = random_representative(1, nBN)
+        e_f = run_and_extract(f)
+        e_b = run_and_extract(b)
+        all_energies += [e_f, e_b]
+        enantiomer_deltas.append(e_f - e_b)
 
-# region
-data = np.abs(enantiomer_deltas)
-plt.plot(sorted(data), np.arange(len(data)) / len(data))
-data = ssd.pdist(np.array(all_energies).reshape(-1, 1))
-plt.plot(sorted(data), np.arange(len(data)) / len(data))
-# region
+    plt.title(f"C$_{{{128-2*nBN}}}$(BN)$_{{{nBN}}}$ in the graphene lattice")
+    data = np.abs(enantiomer_deltas)
+    plt.plot(sorted(data), np.arange(len(data)) / len(data) * 100, label="Enantiomers")
+    data = ssd.pdist(np.array(all_energies).reshape(-1, 1))
+    plt.plot(sorted(data), np.arange(len(data)) / len(data) * 100, label="Random pairs")
+    plt.xlabel("$\Delta E$ [Ha]")
+    plt.ylabel("Share [%]")
+    plt.legend()
+    plt.show()
 
 
-# region
-# region
-import matplotlib.pyplot as plt
-
-plt.scatter(A[:, 0], A[:, 1])
-plt.scatter(A[:, 0] + 1 / 3 / 8, A[:, 1] + 2 / 3 / 8)
-
-A[:, 0] + 1 / 3 / 8, A[:, 1] + 2 / 3 / 8
-# region
-
-# region
-import os
-
-os.getcwd()
-# region
-dZ = np.zeros(128)
-dZ[0] = -1
-dZ[1] = 1
-print(get_graphene_poscar(1, dZ))
-# region
-print(random_representative(1, 32)[0])
+compare_energy_differences(64)
+compare_energy_differences(32)
+compare_energy_differences(16)
+compare_energy_differences(8)
+compare_energy_differences(4)
+compare_energy_differences(2)
+compare_energy_differences(1)
 # region
