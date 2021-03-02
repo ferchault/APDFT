@@ -132,7 +132,7 @@ alpha = 2
 (Z + 2) ** alpha + 2 * (Z - 1) ** alpha - (Z - 2) ** alpha - 2 * (Z + 1) ** alpha
 # region
 def get_formation_energy(d, box, elements):
-    total_e = run_and_extract(3, 50, elements)
+    total_e = run_and_extract(d, 50, elements)
     for element in elements.split():
         e = run_and_extract(100, 50, element)
         total_e -= e
@@ -140,7 +140,7 @@ def get_formation_energy(d, box, elements):
 
 
 for case in (UP, UP2, UP3, UP4, UP5):
-    print(get_formation_energy(3, 50, case))
+    print(get_formation_energy(2, 50, case))
 
 # region
 for case in (DN, DN2, DN3, DN4, DN5):
