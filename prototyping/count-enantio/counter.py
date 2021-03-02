@@ -432,7 +432,7 @@ metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], 
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
 start_time = time.time()
-print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = False))
+print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
 print("Time:", (time.time() - start_time),"s")
 
 start_time = time.time()
