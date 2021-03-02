@@ -302,9 +302,12 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
     start_time = time.time()
     if (m1*dZ1 + m2*dZ2 != 0):
         raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
-    N = np.amax(graph)+1
+    max_node_number = np.amax(graph)+1
+    N = len(np.unique(graph))
     if N == 1:
         raise ValueError("Graph needs to have at least 2 atoms.")
+    if N != max_node_number:
+        raise ValueError("Number the nodes with integers without omissions")
     if color_gen != 'nauty' and color_gen != 'meshgrid':
         raise ValueError("Option color_gen must be 'nauty' or 'meshgrid'.")
 
@@ -404,8 +407,6 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
     return count
 
 
-'''Furthermore: try num_AEsibling'''
-
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
 
@@ -430,12 +431,12 @@ triangle_equi_sites = [[0,1,2]]
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-start_time = time.time()
-print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
-print("Time:", (time.time() - start_time),"s")
+#start_time = time.time()
+#print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
+#print("Time:", (time.time() - start_time),"s")
 
 start_time = time.time()
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='nauty'))
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='nauty'))
 print("Time:", (time.time() - start_time),"s")
 
 #start_time = time.time()
