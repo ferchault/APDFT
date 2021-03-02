@@ -91,7 +91,7 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = False):
+def num_AEchildren_geom(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = False):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
     dZ2, respectively.'''
@@ -296,7 +296,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
 
-def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen ='meshgrid'):
+def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen ='nauty'):
     '''graph = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
     equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]'''
 
@@ -313,7 +313,7 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
     if color_gen == 'nauty':
         #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
         command = "echo 'n=" + str(N) + ";"
-        for i in range(N):
+        for i in range(N+1):
             command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
         command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 | awk '{if (($3"
         for i in range(4,N+3):
@@ -384,16 +384,17 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
         else:
             config_num += 1
 
-    #Check for isomorphisms
-    config_num = 0
-    while config_num < len(graph_config):
-        j = config_num+1
-        while j < len(graph_config):
-            if g1.isomorphic_vf2(color1=graph_config[config_num], color2=graph_config[j]):
-                graph_config = np.delete(graph_config, j, axis = 0)
-            else:
-                j += 1
-        config_num += 1
+    #Check for isomorphisms if brute forcing with meshgrid
+    if color_gen == 'meshgrid':
+        config_num = 0
+        while config_num < len(graph_config):
+            j = config_num+1
+            while j < len(graph_config):
+                if g1.isomorphic_vf2(color1=graph_config[config_num], color2=graph_config[j]):
+                    graph_config = np.delete(graph_config, j, axis = 0)
+                else:
+                    j += 1
+            config_num += 1
 
     count = len(graph_config)
     if debug == True:
@@ -404,7 +405,7 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
     return count
 
 
-'''Furthermore: validate with topolgical graph coloring method, try num_AEsibling'''
+'''Furthermore: try num_AEsibling'''
 
 benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
@@ -431,11 +432,13 @@ metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], 
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
 start_time = time.time()
-print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = False))
+print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = False))
 print("Time:", (time.time() - start_time),"s")
+
 start_time = time.time()
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='nauty'))
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='nauty'))
 print("Time:", (time.time() - start_time),"s")
+
 start_time = time.time()
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='meshgrid'))
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='meshgrid'))
 print("Time:", (time.time() - start_time),"s")
