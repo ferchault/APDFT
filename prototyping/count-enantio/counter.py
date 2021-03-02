@@ -1,8 +1,8 @@
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-import networkx as nx
 import os
+import igraph
 
 elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
 'H':1, 'He':2,
@@ -232,7 +232,7 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
                 config_num += 1
             else:
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        #print(Total_CIM)
+        #print(len(Total_CIM))
 
         '''ALCHEMICALLY symmetric molecules are those which do not transmute
         into themselves under the mirroring in charge, i.e. if one adds the
@@ -296,37 +296,56 @@ def num_AEchildren(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, d
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
 
-def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False):
+def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen ='meshgrid'):
     '''graph = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
     equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]'''
+
+    start_time = time.time()
     if (m1*dZ1 + m2*dZ2 != 0):
         raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
     N = np.amax(graph)+1
     if N == 1:
         raise ValueError("Graph needs to have at least 2 atoms.")
-    #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
-    command = "echo 'n=" + str(N) + ";"
-    for i in range(N):
-        command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
-    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 | awk '{if (($3"
-    for i in range(4,N+3):
-        command += "+$" + str(i)
-    command += ") == " + str(N) + ") print}'"
-    output = os.popen(command).read()
-    #print(command)
-    #Color 1 is the standard, colors 0 and 2 are the deviations
-    #Parse output to an array
-    num_lines = output.count('\n')
-    graph_config = np.zeros((num_lines),dtype=object)
-    for i in range(num_lines):
-        line = output.splitlines(False)[i]
-        #Get rid of everything after '  ':
-        line = line.split('  ')[0]
-        #Parse numbers to integer array:
-        numbers = [int(j) for j in line.split(' ')]
-        #Delete first two elements
-        numbers = np.delete(numbers, (0,1), axis = 0)
-        graph_config[i] = numbers
+    if color_gen != 'nauty' and color_gen != 'meshgrid':
+        raise ValueError("Option color_gen must be 'nauty' or 'meshgrid'.")
+
+    #Nauty creation-------------------------------------------------
+    if color_gen == 'nauty':
+        #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
+        command = "echo 'n=" + str(N) + ";"
+        for i in range(N):
+            command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
+        command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 | awk '{if (($3"
+        for i in range(4,N+3):
+            command += "+$" + str(i)
+        command += ") == " + str(N-m1+m2) + ") print}'"
+        output = os.popen(command).read()
+        #print(command)
+        #Color 1 is the standard, colors 0 and 2 are the deviations
+        #Parse output to an array
+        num_lines = output.count('\n')
+        graph_config = np.zeros((num_lines),dtype=object)
+        for i in range(num_lines):
+            line = output.splitlines(False)[i]
+            #Get rid of everything after '  ':
+            line = line.split('  ')[0]
+            #Parse numbers to integer array:
+            numbers = [int(j) for j in line.split(' ')]
+            #Delete first two elements
+            numbers = np.delete(numbers, (0,1), axis = 0)
+            graph_config[i] = numbers
+
+    #Brute force creation-------------------------------------------------
+    if color_gen == 'meshgrid':
+        nodewise_config = np.zeros((N, 3)) #Three possible states: 0, 1, 2
+        #All allowed charges for ONE node at a time
+        for i in range(N):
+            #no change:
+            nodewise_config[i][0] = 0
+            nodewise_config[i][1] = 1
+            nodewise_config[i][2] = 2
+        graph_config = np.array(np.meshgrid(*nodewise_config.tolist())).T.reshape(-1,N)
+
     '''The parsed array needs to fulfill three things:
     1) Is the number of charged sites correct, i.e. sum(elements == 1) == m1+m2
     2) Is the netto charge within equi_sites conserved?
@@ -352,42 +371,35 @@ def num_AEchildren_topol(graph, equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debu
                     config_num += 1
         else:
             graph_config = np.delete(graph_config, config_num, axis = 0)
-    #print(graph_config)
 
     #Answering the third question:
-    '''Use networkx's built-in function to delete isomorphic graphs. However, since
-    our nodes have color and apparently nobody in the entire internet knows how to
-    handle the option 'node_match', we instead add 3 fictitious nodes (none for color 0,
-    one (N+1) for color 1 and two (N+2 and N+3) for color 2) and connect the respective nodes to them.
-    These graphs are then compared'''
+    '''Use igraph's isomorphic-function to delete graphs which are themselves
+    upon transmutation'''
+    g1 = igraph.Graph([tuple(v) for v in graph])
     config_num = 0
     while config_num < len(graph_config):
-        Current_Graph = nx.Graph([tuple(v) for v in graph])
-        Mirror_Graph = nx.Graph([tuple(v) for v in graph])
-        for i in range(N):
-            if graph_config[config_num][i] == 0: #Mirror graph gets two connections
-                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+2)
-                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+3)
-            if graph_config[config_num][i] == 1: #Both connect to one node
-                Current_Graph.add_edge(i, graph_config[config_num][i]+N+1) #Any offset will do here
-                Mirror_Graph.add_edge(i, (2-graph_config[config_num][i])+N+1)
-            if graph_config[config_num][i] == 2: #Current graph gets two connections
-                Current_Graph.add_edge(i, graph_config[config_num][i]+N+2)
-                Current_Graph.add_edge(i, graph_config[config_num][i]+N+3)
-        if nx.is_isomorphic(Current_Graph,Mirror_Graph):
+        #Check for isomorphisms
+        if g1.isomorphic_vf2(color1=graph_config[config_num], color2=[2-graph_config[config_num][i] for i in range(N)]):
             graph_config = np.delete(graph_config, config_num, axis = 0)
         else:
             config_num += 1
-        #nx.draw_circular(Current_Graph, with_labels=True, style='solid')
-        #plt.show()
-        #nx.draw_circular(Mirror_Graph, with_labels=True, style='dashed')
-        #plt.show()
-        #print(nx.is_isomorphic(Current_Graph,Mirror_Graph))
-        Current_Graph.clear()
-        Mirror_Graph.clear()
+
+    #Check for isomorphisms
+    config_num = 0
+    while config_num < len(graph_config):
+        j = config_num+1
+        while j < len(graph_config):
+            if g1.isomorphic_vf2(color1=graph_config[config_num], color2=graph_config[j]):
+                graph_config = np.delete(graph_config, j, axis = 0)
+            else:
+                j += 1
+        config_num += 1
 
     count = len(graph_config)
     if debug == True:
+        print('---------------')
+        print("Time:", (time.time() - start_time),"s")
+        print('---------------')
         print(graph_config) #prints the number of the respective color along all equivalent sites
     return count
 
@@ -407,13 +419,23 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)],
 ['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
 
-naphthalene_topol = [[0,1],[0,5],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]]
+naphthalene_topol = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]]
 naphthalene_equi_sites = [[0,5],[2,3,7,8],[1,4,6,9]]
 
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
 
+triangle_topol = [[0,1],[1,2],[2,0]]
+triangle_equi_sites = [[0,1,2]]
+
 metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], ['Al', (0,-0.5,0.5)],
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
-print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
-#print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False))
+start_time = time.time()
+print(num_AEchildren(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = False))
+print("Time:", (time.time() - start_time),"s")
+start_time = time.time()
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='nauty'))
+print("Time:", (time.time() - start_time),"s")
+start_time = time.time()
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='meshgrid'))
+print("Time:", (time.time() - start_time),"s")
