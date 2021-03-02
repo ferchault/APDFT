@@ -17,6 +17,8 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
     m and dZ are each arrays that include the number and amount of change in nuclear charge'''
     start_time = time.time()
+    m = np.array(m)
+    dZ = np.array(dZ)
     N_m = len(m)
     N_dZ = len(dZ)
     max_node_number = np.amax(graph)+1
@@ -26,26 +28,35 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     if N_m != N_dZ:
         raise ValueError("Number of changes and number of change values do not match!")
     #Check for overall charge conservation
-    if ((N_m*N_dZ).sum() != 0):
+    if (np.sum(np.multiply(m,dZ)) != 0):
         raise ValueError("Netto change in charge must be 0")
     if N == 1:
         raise ValueError("Graph needs to have at least 2 atoms.")
     if N != max_node_number:
         raise ValueError("Enumerate the nodes with integers without omissions")
-    if N_dZ != np.unique(dZ):
+    if N_dZ != len(np.unique(dZ)):
         raise ValueError("Equal values in multiple entries")
+
+
+
+
     #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
     command = "echo 'n=" + str(N) + ";"
     for i in range(len(graph)):
         command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
-    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 | awk '{if (($3"
-    for i in range(4,N+3):
-        command += "+$" + str(i)
-    sum = 0
-    for i in range(N_m):
-        sum += i*m[i]
-    command += ") == " + str(sum) + ") print}'"
-    #This last command is no check for charge conservation; it gets rid of a lot of configurations though
+    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m"#3 | awk '{if (($3"
+    #for i in range(4,N+3):
+    #    command += "+$" + str(i)
+    #sum = 0
+    #for i in range(N_m):
+    #    sum += i*m[i]
+    #command += ") == " + str(sum) + ") print}'"
+    command += str(N_m+1)
+    #Somehow use awk to make sure the number of changed sites is correct
+
+
+
+
     output = os.popen(command).read()
     print(command)
     #Color 0 is the standard, colors 1,2,3,etc. are the deviations
@@ -69,10 +80,16 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     This is the same as asking if graph and mirror are isomorphic but can only happen
     if and only if for each pair of m[i],dZ[i] there exists a pair m[j],-dZ[j]
     that is equal for i != j'''
+
+
+
+
+
     #Answering questions one and two:
     config_num = 0
     while config_num < len(graph_config):
-        if [(graph_config[config_num] == v).sum() for v in range(N_m)].all():
+        #No idea what is happening here !!!???!!!
+        if np.array([(graph_config[config_num] == v+1).sum() for v in range(N_m)]).all():
             for i in range(len(equi_sites)):
                 sum = 0
                 for j in equi_sites[i]:
@@ -89,22 +106,26 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
 
 
 
+    self_mirrorable = np.array([-i in dZ for i in dZ]).all()
+    print(self_mirrorable)
+    print(graph_config)
     #Answering the third question:
-    '''Find our if graph is able to self mirror'''
-    '''Use igraph's isomorphic-function to delete graphs which are themselves
-    upon transmutation'''
-    g1 = igraph.Graph([tuple(v) for v in graph])
-    config_num = 0
-    while config_num < len(graph_config):
-        if g1.isomorphic_vf2(color1=graph_config[config_num], color2=[2-graph_config[config_num][i] for i in range(N)]):
-            graph_config = np.delete(graph_config, config_num, axis = 0)
-        else:
-            config_num += 1
+    '''Find out if graph is able to self mirror'''
+    if self_mirrorable:
+        '''Use igraph's isomorphic-function to delete graphs which are themselves
+        upon transmutation'''
+        color2dZ = {0:0}
+        for i in range(len(dZ)):
+            color2dZ[i+1] = dZ[i]
+        dZ2color = {v: k for k, v in color2dZ.items()}
 
-
-
-
-
+        g1 = igraph.Graph([tuple(v) for v in graph])
+        config_num = 0
+        while config_num < len(graph_config):
+            if g1.isomorphic_vf2(color1=graph_config[config_num], color2=[dZ2color[-color2dZ[graph_config[config_num][i]]] for i in range(N)]):
+                graph_config = np.delete(graph_config, config_num, axis = 0)
+            else:
+                config_num += 1
 
     count = len(graph_config)
     if debug == True:
@@ -124,4 +145,4 @@ naphthalene_equi_sites = [[0,5],[2,3,7,8],[1,4,6,9]]
 triangle_topol = [[0,1],[1,2],[2,0]]
 triangle_equi_sites = [[0,1,2]]
 
-print(nautyAE(naphthalene_topol, naphthalene_equi_sites, m = [2,2], dZ = [1,-1]))
+print(nautyAE(naphthalene_topol, naphthalene_equi_sites, m = [2,1], dZ = [1,-2]))
