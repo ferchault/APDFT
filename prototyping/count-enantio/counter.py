@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import igraph
 
-elements = {'-C': -6, '-B': -5, '-Be': -4, '-Li': -3, '-He': -2, '-H': -1, 'Ghost':0,
-'H':1, 'He':2,
+elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
 'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
@@ -432,13 +431,13 @@ metal_octa = [['Al', (0,0.5,0.5)], ['Al', (0,0.5,-0.5)], ['Al', (0,-0.5,-0.5)], 
 ['C', (0,0,1)],['C', (0,1,0)],['C', (0,0,-1)],['C', (0,-1,0)]]
 
 start_time = time.time()
-print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=2, dZ2=-1, partition = True, debug = False))
+print(num_AEchildren_geom(naphthalene, m1=2, dZ1=+1, m2=1, dZ2=-2, partition = True, debug = True))
 print("Time:", (time.time() - start_time),"s")
 
 start_time = time.time()
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='nauty'))
+print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 1, dZ2=-2, debug = False, color_gen='nauty'))
 print("Time:", (time.time() - start_time),"s")
 
-start_time = time.time()
-print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='meshgrid'))
-print("Time:", (time.time() - start_time),"s")
+#start_time = time.time()
+#print(num_AEchildren_topol(naphthalene_topol, naphthalene_equi_sites, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False, color_gen='meshgrid'))
+#print("Time:", (time.time() - start_time),"s")
