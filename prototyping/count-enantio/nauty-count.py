@@ -20,11 +20,13 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     m = np.array(m)
     dZ = np.array(dZ)
     N_m = len(m)
-    N_dZ = len(dZ)
+    N_dZ = len(dZ) #number of different charge differences = number of colors-1
     max_node_number = np.amax(graph)+1
     N = len(np.unique(graph))
     if 0 in dZ:
         raise ValueError("0 not allowed in array dZ")
+    if N_dZ < 2:
+        raise ValueError("Number of changes in charge must be at least 2")
     if N_m != N_dZ:
         raise ValueError("Number of changes and number of change values do not match!")
     #Check for overall charge conservation
@@ -37,28 +39,28 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     if N_dZ != len(np.unique(dZ)):
         raise ValueError("Equal values in multiple entries")
 
-
-
-
     #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
+    #Command for the standard case looks like:
+    #echo 'n=10;0:1;1:2;2:3;3:4;4:5;5:0;0:6;6:7;7:8;8:9;9:5;' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m3 |
+    #awk '{count1 = 0; count2 = 0; for (i=3; i<13; i++){if ($i == 1) count1++; else if ($i == 2) count2++;} if ((count1 == 2) && (count2 == 2)) print}'
+    #This immediatly checks wether charge conservation and the correct number of colors are given.
     command = "echo 'n=" + str(N) + ";"
     for i in range(len(graph)):
         command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
-    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m"#3 | awk '{if (($3"
-    #for i in range(4,N+3):
-    #    command += "+$" + str(i)
-    #sum = 0
-    #for i in range(N_m):
-    #    sum += i*m[i]
-    #command += ") == " + str(sum) + ") print}'"
-    command += str(N_m+1)
-    #Somehow use awk to make sure the number of changed sites is correct
-
-
-
-
+    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m"
+    command += str(N_dZ+1)
+    command += " | awk '{"
+    for i in range(N_dZ):
+        command += "count"+str(i+1)+"=0; "
+    command += "for (i=3; i<" + str(N+3) + "; i++){if ($i == 1) count1++; else if ($i == 2) count2++;"
+    for color in range(2,N_dZ):
+        command += " else if ($i == " + str(color+1) + ") count" + str(color+1) + "++;"
+    command += "} if ((count1 == " + str(m[0]) + ") && (count2 == " + str(m[1]) + ")"
+    for color in range(2,N_dZ):
+        command += " && (count" + str(color+1) + " == " + str(m[color]) + ")"
+    command += ") print}'"
     output = os.popen(command).read()
-    print(command)
+    #print(command,"\n")
     #Color 0 is the standard, colors 1,2,3,etc. are the deviations
     #Parse output to an array
     num_lines = output.count('\n')
@@ -73,52 +75,42 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
         numbers = np.delete(numbers, (0,1), axis = 0)
         graph_config[i] = numbers
 
-    '''The parsed array needs to fulfill three things:
-    1) Is the number of charged sites correct?
-    2) Is the netto charge within equi_sites conserved?
-    3) Is the graph not its own alchemical mirror image?
+    '''The parsed array needs to fulfill two things:
+    1) Is the netto charge within equi_sites conserved?
+    2) Is the graph not its own alchemical mirror image?
     This is the same as asking if graph and mirror are isomorphic but can only happen
     if and only if for each pair of m[i],dZ[i] there exists a pair m[j],-dZ[j]
     that is equal for i != j'''
 
-
-
-
-
-    #Answering questions one and two:
+    #print(graph_config)
+    #Answering question one:
     config_num = 0
     while config_num < len(graph_config):
-        #No idea what is happening here !!!???!!!
-        if np.array([(graph_config[config_num] == v+1).sum() for v in range(N_m)]).all():
-            for i in range(len(equi_sites)):
-                sum = 0
-                for j in equi_sites[i]:
+        for i in range(len(equi_sites)):
+            sum = 0
+            for j in equi_sites[i]:
+                #Avoid getting the last element
+                if graph_config[config_num][j] != 0:
                     sum += dZ[graph_config[config_num][j]-1]
-                if sum != 0:
-                    graph_config = np.delete(graph_config, config_num, axis = 0)
-                    break
-                if i == len(equi_sites)-1:
-                    config_num += 1
-        else:
-            graph_config = np.delete(graph_config, config_num, axis = 0)
+            if sum != 0:
+                graph_config = np.delete(graph_config, config_num, axis = 0)
+                break
+            if i == len(equi_sites)-1:
+                config_num += 1
+    #print(graph_config)
 
-
-
-
-
+    #Answering the second question:
+    '''Find out if all those graphs are able to self mirror'''
     self_mirrorable = np.array([-i in dZ for i in dZ]).all()
-    print(self_mirrorable)
-    print(graph_config)
-    #Answering the third question:
-    '''Find out if graph is able to self mirror'''
     if self_mirrorable:
         '''Use igraph's isomorphic-function to delete graphs which are themselves
         upon transmutation'''
+        #Prepare some dicts
         color2dZ = {0:0}
-        for i in range(len(dZ)):
+        for i in range(N_dZ):
             color2dZ[i+1] = dZ[i]
         dZ2color = {v: k for k, v in color2dZ.items()}
-
+        #Prepare the graph
         g1 = igraph.Graph([tuple(v) for v in graph])
         config_num = 0
         while config_num < len(graph_config):
@@ -145,4 +137,4 @@ naphthalene_equi_sites = [[0,5],[2,3,7,8],[1,4,6,9]]
 triangle_topol = [[0,1],[1,2],[2,0]]
 triangle_equi_sites = [[0,1,2]]
 
-print(nautyAE(naphthalene_topol, naphthalene_equi_sites, m = [2,1], dZ = [1,-2]))
+print(nautyAE(naphthalene_topol, naphthalene_equi_sites, m = [2,2], dZ = [-1,1], debug = True))
