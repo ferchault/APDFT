@@ -24,7 +24,7 @@ benzene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],[[0,1,2,3,4,5]],[['C
 ['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]])
 triangle = MoleAsGraph([[0,1],[1,2],[2,0]],[[0,1,2]],[['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]])
 
-def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
+def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, draw = False):
     #graph is an instance of the MoleAsGraph class
     #m and dZ are each arrays that include the number and amount of change in nuclear charge
     start_time = time.time()
@@ -136,6 +136,21 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         print('Alchemical Enantiomers:')
         print(graph_config) #prints the number of the respective color along all equivalent sites
         print('---------------')
+
+
+        #In case of naphthalene:
+        Num_C = 10-m.sum()
+        if Num_C == 0:
+            formula = ""
+        else:
+            formula = "C"+str(Num_C)+"H10"
+        for i in range(len(dZ)):
+            formula += inv_elements[6+dZ[i]]
+            if m[i] > 1:
+                formula += str(m[i])
+        print('Sum formula:', formula)
+
+    if draw == True:
         #Look at all possible AEs
         for AE_num in range(0,len(graph_config),30):
             fig = plt.figure()
@@ -157,4 +172,4 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         plt.show()
     return count
 
-print(nautyAE(naphthalene, m = [2,2], dZ = [+1,-1], debug = False))
+print(nautyAE(naphthalene, m = [2,2,2], dZ = [+3,-2,-1], debug = True))
