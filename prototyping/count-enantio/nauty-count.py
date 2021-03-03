@@ -12,17 +12,28 @@ elements = {'Ghost':0,'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
-    '''graph = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
-    equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
-    m and dZ are each arrays that include the number and amount of change in nuclear charge'''
+class MoleAsGraph:
+    def __init__(self, edge_layout, equi_sites, geometry):
+        self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
+        self.equi_sites = equi_sites # equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
+        self.geometry = geometry # geometry = [['Element', (Coordinates)],..., [['Element', (Coordinates)]]]
+
+naphthalene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],[[0,5],[2,3,7,8],[1,4,6,9]],[['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0,1)], ['C', (0,-0.8660254037844386467637231707,0.5)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,0,-1)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]])
+benzene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],[[0,1,2,3,4,5]],[['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]])
+triangle = MoleAsGraph([[0,1],[1,2],[2,0]],[[0,1,2]],[['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]])
+
+def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
+    #graph is an instance of the MoleAsGraph class
+    #m and dZ are each arrays that include the number and amount of change in nuclear charge
     start_time = time.time()
     m = np.array(m)
     dZ = np.array(dZ)
     N_m = len(m)
     N_dZ = len(dZ) #number of different charge differences = number of colors-1
-    max_node_number = np.amax(graph)+1
-    N = len(np.unique(graph))
+    max_node_number = np.amax(graph.edge_layout)+1
+    N = len(np.unique(graph.edge_layout))
     if 0 in dZ:
         raise ValueError("0 not allowed in array dZ")
     if N_dZ < 2:
@@ -45,8 +56,8 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     #awk '{count1 = 0; count2 = 0; for (i=3; i<13; i++){if ($i == 1) count1++; else if ($i == 2) count2++;} if ((count1 == 2) && (count2 == 2)) print}'
     #This immediatly checks wether charge conservation and the correct number of colors are given.
     command = "echo 'n=" + str(N) + ";"
-    for i in range(len(graph)):
-        command += str(graph[i][0]) +":" + str(graph[i][1]) + ";"
+    for i in range(len(graph.edge_layout)):
+        command += str(graph.edge_layout[i][0]) +":" + str(graph.edge_layout[i][1]) + ";"
     command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m"
     command += str(N_dZ+1)
     command += " | awk '{"
@@ -86,16 +97,16 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
     #Answering question one:
     config_num = 0
     while config_num < len(graph_config):
-        for i in range(len(equi_sites)):
+        for i in range(len(graph.equi_sites)):
             sum = 0
-            for j in equi_sites[i]:
+            for j in graph.equi_sites[i]:
                 #Avoid getting the last element
                 if graph_config[config_num][j] != 0:
                     sum += dZ[graph_config[config_num][j]-1]
             if sum != 0:
                 graph_config = np.delete(graph_config, config_num, axis = 0)
                 break
-            if i == len(equi_sites)-1:
+            if i == len(graph.equi_sites)-1:
                 config_num += 1
     #print(graph_config)
 
@@ -111,30 +122,40 @@ def nautyAE(graph, equi_sites, m = [2,2], dZ=[+1,-1], debug = False):
             color2dZ[i+1] = dZ[i]
         dZ2color = {v: k for k, v in color2dZ.items()}
         #Prepare the graph
-        g1 = igraph.Graph([tuple(v) for v in graph])
+        g1 = igraph.Graph([tuple(v) for v in graph.edge_layout])
         config_num = 0
         while config_num < len(graph_config):
             if g1.isomorphic_vf2(color1=graph_config[config_num], color2=[dZ2color[-color2dZ[graph_config[config_num][i]]] for i in range(N)]):
                 graph_config = np.delete(graph_config, config_num, axis = 0)
             else:
                 config_num += 1
-
     count = len(graph_config)
     if debug == True:
         print('---------------')
         print("Time:", (time.time() - start_time),"s")
         print('---------------')
-        #Here, a nice drawing part would be awesome!!!
+        print('Alchemical Enantiomers:')
         print(graph_config) #prints the number of the respective color along all equivalent sites
+        print('---------------')
+        #Look at all possible AEs
+        for AE_num in range(len(graph_config)):
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            #Fill the points into xs,ys,zs
+            xs = np.zeros((N))
+            ys = np.zeros((N))
+            zs = np.zeros((N))
+            n = np.zeros((N),dtype=object)
+            for j in range(N):
+                xs[j] = graph.geometry[j][1][0]
+                ys[j] = graph.geometry[j][1][1]
+                zs[j] = graph.geometry[j][1][2]
+                n[j] = inv_elements[elements[graph.geometry[j][0]]+color2dZ[graph_config[AE_num][j]]]
+            ax.scatter(xs, ys, zs, marker='o', facecolor='black')
+            #print(Total_CIM[i][0][1][0])
+            for j, txt in enumerate(n):
+                ax.text(xs[j], ys[j], zs[j], n[j])
+        plt.show()
     return count
 
-benzene_topol = [[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]]
-benzene_equi_sites = [[0,1,2,3,4,5]]
-
-naphthalene_topol = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]]
-naphthalene_equi_sites = [[0,5],[2,3,7,8],[1,4,6,9]]
-
-triangle_topol = [[0,1],[1,2],[2,0]]
-triangle_equi_sites = [[0,1,2]]
-
-print(nautyAE(naphthalene_topol, naphthalene_equi_sites, m = [2,2], dZ = [-1,1], debug = True))
+print(nautyAE(naphthalene, m = [2,2], dZ = [-1,1], debug = False))
