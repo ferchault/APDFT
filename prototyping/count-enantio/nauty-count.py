@@ -109,18 +109,17 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
             if i == len(graph.equi_sites)-1:
                 config_num += 1
     #print(graph_config)
-
+    #Prepare some dicts
+    color2dZ = {0:0}
+    for i in range(N_dZ):
+        color2dZ[i+1] = dZ[i]
+    dZ2color = {v: k for k, v in color2dZ.items()}
     #Answering the second question:
     '''Find out if all those graphs are able to self mirror'''
     self_mirrorable = np.array([-i in dZ for i in dZ]).all()
     if self_mirrorable:
         '''Use igraph's isomorphic-function to delete graphs which are themselves
         upon transmutation'''
-        #Prepare some dicts
-        color2dZ = {0:0}
-        for i in range(N_dZ):
-            color2dZ[i+1] = dZ[i]
-        dZ2color = {v: k for k, v in color2dZ.items()}
         #Prepare the graph
         g1 = igraph.Graph([tuple(v) for v in graph.edge_layout])
         config_num = 0
@@ -138,7 +137,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         print(graph_config) #prints the number of the respective color along all equivalent sites
         print('---------------')
         #Look at all possible AEs
-        for AE_num in range(len(graph_config)):
+        for AE_num in range(0,len(graph_config),30):
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
             #Fill the points into xs,ys,zs
@@ -158,4 +157,4 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         plt.show()
     return count
 
-print(nautyAE(naphthalene, m = [2,2], dZ = [-1,1], debug = False))
+print(nautyAE(naphthalene, m = [2,2], dZ = [+1,-1], debug = False))
