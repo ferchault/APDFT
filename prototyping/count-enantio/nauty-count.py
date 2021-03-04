@@ -201,7 +201,7 @@ def FindAE(graph, Standard_C, Standard_H):
     print('Total time:', time.time()-start_time)
 
 
-print('Anthracene')
+print('Anthracene\n---------------')
 FindAE(anthracene, 14, 10)
-print('Isochrysene')
+print('Isochrysene\n---------------')
 FindAE(isochrysene, 18, 12)
