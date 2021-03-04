@@ -29,7 +29,7 @@ def get_graphene_poscar(scaling, deltaZ, repeat=8, a=2.46):
 {scaling}
 {a*repeat} 0.0 0.0
 {-a/2*repeat} {a*np.sqrt(3)/2*repeat} 0.0
-0.0 0.0 50
+0.0 0.0 20
 {elementstring} 
 {countstring}
 Direct
@@ -89,7 +89,7 @@ def run_and_extract(poscar):
         .split("\n")
     )
     with open(f"{rundir}/xtbout.json") as fh:
-        return json.load(fh)["total energy"]
+        return json.load(fh)["electronic energy"]
 
 
 # region
@@ -121,4 +121,140 @@ compare_energy_differences(8)
 compare_energy_differences(4)
 compare_energy_differences(2)
 compare_energy_differences(1)
+
+#%%
+# for nBN in (64, 32, 16):
+#     for i in range(1, 51):
+#         poscarup, poscardn, _ = random_representative(1, nBN)
+#         with open(f"/data/guido/graphene-BN/{nBN}/up-{i}/POSCAR", "w") as fh:
+#             fh.write(poscarup)
+#         with open(f"/data/guido/graphene-BN/{nBN}/dn-{i}/POSCAR", "w") as fh:
+#             fh.write(poscardn)
+# region
+
+# region
+import glob
+import pandas as pd
+
+rows = []
+for folder in glob.glob("/data/guido/graphene-BN/*/*"):
+    with open(f"{folder}/OUTCAR") as fh:
+        lines = fh.readlines()
+
+    TEWEN = float([_ for _ in lines if "TEWEN" in _][-1].strip().split()[-1])
+    TOTEN = float([_ for _ in lines if "TOTEN" in _][-1].strip().split()[-2])
+
+    electronic_energy_eV = TOTEN - TEWEN
+    nBN = int(folder.split("/")[-2])
+    calc = int(folder.split("-")[-1])
+    direction = folder.split("/")[-1].split("-")[0]
+
+    rows.append(
+        {
+            "nBN": nBN,
+            "direction": direction,
+            "calc": calc,
+            "electronic": electronic_energy_eV,
+        }
+    )
+
+rows = pd.DataFrame(rows)
+# region
+rows
+# region
+import matplotlib.pyplot as plt
+
+plt.rcParams.update(
+    {
+        "font.size": 18,
+        "font.sans-serif": ["Fira Sans"],
+        "axes.linewidth": 1.5,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "xtick.major.width": 1,
+        "xtick.major.size": 6,
+        "xtick.minor.width": 1,
+        "xtick.minor.size": 3,
+        "ytick.major.width": 1,
+        "ytick.major.size": 6,
+        "ytick.minor.width": 1,
+        "ytick.minor.size": 3,
+        "axes.edgecolor": "#333",
+    }
+)
+f = plt.figure(dpi=70)
+colors = sorted(rows.nBN.unique())
+labels = {16: "C$_{96}$(BN)$_{16}$", 32: "C$_{64}$(BN)$_{32}$", 64: "(BN)$_{64}$"}
+handles = []
+for name, group in rows.groupby("nBN"):
+    coloridx = colors.index(name)
+    merged = pd.merge(
+        group.query("direction == 'dn'"), group.query("direction == 'up'"), on="calc"
+    )
+    data = np.abs(merged.electronic_x.values - merged.electronic_y.values)
+    (handle,) = plt.loglog(
+        sorted(data),
+        np.arange(1, len(data) + 1) / len(data) * 100,
+        label=name,
+        color=f"C{coloridx}",
+    )
+    print(np.average(data))
+    handles.append(handle)
+legend = plt.legend(
+    handles=handles,
+    frameon=False,
+    loc="upper left",
+    bbox_to_anchor=(-0.025, 1.1),
+    ncol=1,
+    title="Alchemical\nEnantiomers",
+    columnspacing=0.5,
+    handlelength=0.8,
+    handletextpad=0.2,
+)
+legend._legend_box.align = "left"
+legend.get_title().set_fontweight("bold")
+legend.get_title().set_multialignment("left")
+legend.get_title().set_color("#666")
+ax = plt.gca().add_artist(legend)
+
+handles = []
+for name, group in rows.groupby("nBN"):
+    coloridx = colors.index(name)
+    data = ssd.pdist(np.array(group.electronic.values).reshape(-1, 1))
+    (handle,) = plt.loglog(
+        sorted(data),
+        np.arange(1, len(data) + 1) / len(data) * 100,
+        label=name,
+        lw=3,
+        color=f"C{coloridx}",
+    )
+    print(np.average(data))
+    handles.append(handle)
+plt.xlabel("$|\Delta E|$ [eV]")
+plt.ylabel("Share of data points [%]")
+legend = plt.legend(
+    handles=handles,
+    frameon=False,
+    loc="upper left",
+    bbox_to_anchor=(0.75, 0.55),
+    ncol=1,
+    title="Random",
+    columnspacing=0.5,
+    handlelength=0.8,
+    handletextpad=0.2,
+)
+legend._legend_box.align = "right"
+legend.get_title().set_fontweight("bold")
+legend.get_title().set_multialignment("right")
+legend.get_title().set_color("#666")
+plt.xlim(5e-3, 500)
+plt.ylim(1, 100)
+plt.show()
+# region
+
+# region
+
+
+# region
+rows.to_csv("/data/guido/graphene-BN/results.csv")
 # region
