@@ -13,18 +13,23 @@ elements = {'Ghost':0,'H':1, 'He':2,
 inv_elements = {v: k for k, v in elements.items()}
 
 class MoleAsGraph:
-    def __init__(self, edge_layout, equi_sites, geometry):
+    def __init__(self, edge_layout, equi_sites):
         self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.equi_sites = equi_sites # equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
-        self.geometry = geometry # geometry = [['Element', (Coordinates)],..., [['Element', (Coordinates)]]]
+        #self.geometry = geometry # geometry = [['Element', (Coordinates)],..., [['Element', (Coordinates)]]]
 
-naphthalene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],[[0,5],[2,3,7,8],[1,4,6,9]],[['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0,1)], ['C', (0,-0.8660254037844386467637231707,0.5)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,0,-1)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]])
-benzene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],[[0,1,2,3,4,5]],[['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]])
-triangle = MoleAsGraph([[0,1],[1,2],[2,0]],[[0,1,2]],[['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]])
+naphthalene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],[[0,5],[2,3,7,8],[1,4,6,9]])
+naphthalene_geom = [['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0,1)], ['C', (0,-0.8660254037844386467637231707,0.5)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,0,-1)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
+benzene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],[[0,1,2,3,4,5]])
+benzene_geom = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
+['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
+triangle = MoleAsGraph([[0,1],[1,2],[2,0]],[[0,1,2]])
+phenanthrene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7]],[[1,6],[2,7],[3,13],[4,12],[5,11],[0,10],[8,9]])
+isochrysene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7],[8,14],[14,15],[15,16],[16,17],[17,9]],[[1,2,6,7,8,9],[0,3,10,13,14,17],[4,5,11,12,15,16]])
+anthracene MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],[[6,9],[0,5,7,8],[1,4,10,13],[2,3,11,12]])
 
-def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, draw = False):
+def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
     #graph is an instance of the MoleAsGraph class
     #m and dZ are each arrays that include the number and amount of change in nuclear charge
     start_time = time.time()
@@ -136,20 +141,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, draw = False):
         print('Alchemical Enantiomers:')
         print(graph_config) #prints the number of the respective color along all equivalent sites
         print('---------------')
-
-
-        #In case of naphthalene:
-        Num_C = 10-m.sum()
-        if Num_C == 0:
-            formula = ""
-        else:
-            formula = "C"+str(Num_C)+"H10"
-        for i in range(len(dZ)):
-            formula += inv_elements[6+dZ[i]]
-            if m[i] > 1:
-                formula += str(m[i])
-        print('Sum formula:', formula)
-
+    '''
     if draw == True:
         #Look at all possible AEs
         for AE_num in range(0,len(graph_config),30):
@@ -170,6 +162,46 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, draw = False):
             for j, txt in enumerate(n):
                 ax.text(xs[j], ys[j], zs[j], n[j])
         plt.show()
+    '''
     return count
 
-print(nautyAE(naphthalene, m = [2,2,2], dZ = [+3,-2,-1], debug = True))
+def FindAE(graph, Standard_C, Standard_H):
+    #Standard_C = Number of carbon atoms in the undoped molecule
+    #Standard_H = Number of Hydrogens
+    '''Below are all the partitions of splitting m_total = np.sum(dZ_all[i])
+    atoms in a pure carbon molecule in n=len(dZ_all[i]) partitions for dZ_max <= 3,
+    up to m_tot = 6 and n = 4'''
+    m_all = np.array([
+    [1,1],[2,1],[2,2],[3,1],[2,3],[3,3],[2,4],
+    [1,1,1],[2,1,1],[1,1,3],[1,2,2],[2,2,2],[1,1,4],
+    [1,1,1,1],[1,1,1,2],[1,1,1,3],[2,2,1,1]
+    ], dtype=object)
+    dZ_all = np.array([
+    [1,-1],[-1,2],[1,-1],[-1,3],[3,-2],[1,-1],[2,-1],
+    [3,-2,-1],[2,-1,-3],[2,1,-1],[-2,2,-1],[3,-2,-1],[3,1,-1],
+    [2,1,-1,-2],[3,2,-1,-2],[3,2,1,-2],[-1,1,-2,2]
+    ],dtype=object)
+
+    start_time = time.time()
+    for i in range(len(m_all)):
+        #print(m_all[i])
+        Num_C = Standard_C-np.sum(m_all[i])
+        if Num_C == 0:
+            formula = ""
+        else:
+            formula = "C"+str(Num_C)
+        for j in range(len(dZ_all[i])):
+            formula += inv_elements[6+dZ_all[i][j]]
+            if m_all[i][j] > 1:
+                formula += str(m_all[i][j])
+        formula += "H" + str(Standard_H)
+        print('Sum formula:', formula)
+        print(nautyAE(graph, m_all[i], dZ_all[i]))
+    print('-------------')
+    print('Total time:', time.time()-start_time)
+
+
+print('Anthracene')
+FindAE(anthracene, 14, 10)
+print('Isochrysene')
+FindAE(isochrysene, 18, 12)
