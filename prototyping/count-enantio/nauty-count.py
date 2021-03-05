@@ -13,21 +13,46 @@ elements = {'Ghost':0,'H':1, 'He':2,
 inv_elements = {v: k for k, v in elements.items()}
 
 class MoleAsGraph:
-    def __init__(self, edge_layout, equi_sites):
+    def __init__(self, edge_layout, equi_sites,elements_at_index, Number_H, chemfig = None):
         self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.equi_sites = equi_sites # equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
-        #self.geometry = geometry # geometry = [['Element', (Coordinates)],..., [['Element', (Coordinates)]]]
+        self.elements_at_index = elements_at_index #Which element is at which index number
+        self.Number_H = Number_H #Number of hydrogens which are ignored throughout the program but necessary for complete sum_formulas
+        self.chemfig = chemfig
+    def sum_formula(self):
+        print(self.Number_H)
+    def equi_sites(self):
+        print('Under construction')
+    def close_equi_sites(self):
+        print('Under construction')
+    def chemfig(self):
+        print("Under construction")
 
-naphthalene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],[[0,5],[2,3,7,8],[1,4,6,9]])
-naphthalene_geom = [['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0,1)], ['C', (0,-0.8660254037844386467637231707,0.5)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,0,-1)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
-benzene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],[[0,1,2,3,4,5]])
-benzene_geom = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
-triangle = MoleAsGraph([[0,1],[1,2],[2,0]],[[0,1,2]])
-phenanthrene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7]],[[1,6],[2,7],[3,13],[4,12],[5,11],[0,10],[8,9]])
-isochrysene = MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7],[8,14],[14,15],[15,16],[16,17],[17,9]],[[1,2,6,7,8,9],[0,3,10,13,14,17],[4,5,11,12,15,16]])
-anthracene MoleAsGraph([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],[[6,9],[0,5,7,8],[1,4,10,13],[2,3,11,12]])
+anthracene = MoleAsGraph(   [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
+                            [[6,9],[0,5,7,8],[1,4,10,13],[2,3,11,12]],
+                            ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
+                            10,
+                            None)
+benzene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],
+                        [[0,1,2,3,4,5]],
+                        ['C','C','C','C','C','C'],
+                        6,
+                        None)
+isochrysene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7],[8,14],[14,15],[15,16],[16,17],[17,9]],
+                            [[1,2,6,7,8,9],[0,3,10,13,14,17],[4,5,11,12,15,16]],
+                            ['C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
+                            12,
+                            None)
+naphthalene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],
+                            [[0,5],[2,3,7,8],[1,4,6,9]],
+                            ['C','C','C','C','C','C','C','C','C','C'],
+                            8,
+                            None)
+phenanthrene = MoleAsGraph( [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7]],
+                            [[1,6],[2,7],[3,13],[4,12],[5,11],[0,10],[8,9]],
+                            ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
+                            10,
+                            None)
 
 def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
     #graph is an instance of the MoleAsGraph class
@@ -54,6 +79,8 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         raise ValueError("Enumerate the nodes with integers without omissions")
     if N_dZ != len(np.unique(dZ)):
         raise ValueError("Equal values in multiple entries")
+    if N < np.sum(m):
+        raise ValueError("Too less atoms in molecule for sum of to be transmuted atoms.")
 
     #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
     #Command for the standard case looks like:
@@ -92,7 +119,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         graph_config[i] = numbers
 
     '''The parsed array needs to fulfill two things:
-    1) Is the netto charge within equi_sites conserved?
+    1) Is the netto charge within equi_sites conserved? Can this be done in vcolg?
     2) Is the graph not its own alchemical mirror image?
     This is the same as asking if graph and mirror are isomorphic but can only happen
     if and only if for each pair of m[i],dZ[i] there exists a pair m[j],-dZ[j]
@@ -139,38 +166,15 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False):
         print("Time:", (time.time() - start_time),"s")
         print('---------------')
         print('Alchemical Enantiomers:')
-        print(graph_config) #prints the number of the respective color along all equivalent sites
+        for i in range(count):
+            print([inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[i][j]]] for j in range(N)]) #prints the number of the respective color along all equivalent sites
         print('---------------')
-    '''
-    if draw == True:
-        #Look at all possible AEs
-        for AE_num in range(0,len(graph_config),30):
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            #Fill the points into xs,ys,zs
-            xs = np.zeros((N))
-            ys = np.zeros((N))
-            zs = np.zeros((N))
-            n = np.zeros((N),dtype=object)
-            for j in range(N):
-                xs[j] = graph.geometry[j][1][0]
-                ys[j] = graph.geometry[j][1][1]
-                zs[j] = graph.geometry[j][1][2]
-                n[j] = inv_elements[elements[graph.geometry[j][0]]+color2dZ[graph_config[AE_num][j]]]
-            ax.scatter(xs, ys, zs, marker='o', facecolor='black')
-            #print(Total_CIM[i][0][1][0])
-            for j, txt in enumerate(n):
-                ax.text(xs[j], ys[j], zs[j], n[j])
-        plt.show()
-    '''
     return count
 
-def FindAE(graph, Standard_C, Standard_H):
-    #Standard_C = Number of carbon atoms in the undoped molecule
-    #Standard_H = Number of Hydrogens
-    '''Below are all the partitions of splitting m_total = np.sum(dZ_all[i])
-    atoms in a pure carbon molecule in n=len(dZ_all[i]) partitions for dZ_max <= 3,
-    up to m_tot = 6 and n = 4'''
+def FindAE(graph):
+    '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
+    atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
+    for dZ_max <= 3 up to m_tot = 6 and n = 4'''
     m_all = np.array([
     [1,1],[2,1],[2,2],[3,1],[2,3],[3,3],[2,4],
     [1,1,1],[2,1,1],[1,1,3],[1,2,2],[2,2,2],[1,1,4],
@@ -184,24 +188,27 @@ def FindAE(graph, Standard_C, Standard_H):
 
     start_time = time.time()
     for i in range(len(m_all)):
-        #print(m_all[i])
-        Num_C = Standard_C-np.sum(m_all[i])
-        if Num_C == 0:
-            formula = ""
-        else:
-            formula = "C"+str(Num_C)
         for j in range(len(dZ_all[i])):
-            formula += inv_elements[6+dZ_all[i][j]]
+            formula += inv_elements[graph.elements_at_index[j]+dZ_all[i][j]]
             if m_all[i][j] > 1:
                 formula += str(m_all[i][j])
-        formula += "H" + str(Standard_H)
+        formula += "H" + str(graph.Number_H)
         print('Sum formula:', formula)
         print(nautyAE(graph, m_all[i], dZ_all[i]))
     print('-------------')
     print('Total time:', time.time()-start_time)
 
+#Function that gives equi_sites for arbitrary molecule
+#Function that finds AEs from target molecule, not just reference (brute force with close_equi_sites)
+#For this to be easy, implement chemfig Function and sum formula Function
+#Optional: Parallelize the for loop in FindAE
+#Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 
-print('Anthracene\n---------------')
-FindAE(anthracene, 14, 10)
-print('Isochrysene\n---------------')
-FindAE(isochrysene, 18, 12)
+#FindAE(naphthalene)
+#FindAE(phenanthrene)
+naphthalene.sum_formula()
+print(nautyAE(naphthalene, debug=True))
+#print('Anthracene\n---------------')
+#FindAE(anthracene)
+#print('Isochrysene\n---------------')
+#FindAE(isochrysene)
