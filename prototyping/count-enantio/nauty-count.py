@@ -3,6 +3,9 @@ import time
 import matplotlib.pyplot as plt
 import os
 import igraph
+import sys
+
+original_stdout = sys.stdout # Save a reference to the original standard output
 
 elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -269,11 +272,14 @@ def FindAE(graph, dZ_max = 3):
 #Function that finds AEs from target molecule, not just reference (brute force with close_equi_sites)
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 
-print('Naphthalene\n------------------------------')
-FindAE(naphthalene)
-print('Phenanthrene\n------------------------------')
-FindAE(phenanthrene)
-print('Anthracene\n------------------------------')
-FindAE(anthracene)
-print('Isochrysene\n------------------------------')
-FindAE(isochrysene)
+with open('log.txt', 'w') as f:
+    sys.stdout = f # Change the standard output to the created file
+    print('\nNaphthalene\n------------------------------')
+    FindAE(naphthalene)
+    #print('\nPhenanthrene\n------------------------------')
+    #FindAE(phenanthrene)
+    #print('\nAnthracene\n------------------------------')
+    #FindAE(anthracene)
+    #print('\nIsochrysene\n------------------------------')
+    #FindAE(isochrysene)
+sys.stdout = original_stdout # Reset the standard output to its original value
