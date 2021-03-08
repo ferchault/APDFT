@@ -64,6 +64,7 @@ phenanthrene = MoleAsGraph( [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,
 def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     #graph is an instance of the MoleAsGraph class
     #m and dZ are each arrays that include the number and amount of change in nuclear charge
+    PathToNauty27r1 = '/home/simon/Desktop/nauty27r1'
     start_time = time.time()
     m = np.array(m)
     dZ = np.array(dZ)
@@ -97,7 +98,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     command = "echo 'n=" + str(N) + ";"
     for i in range(len(graph.edge_layout)):
         command += str(graph.edge_layout[i][0]) +":" + str(graph.edge_layout[i][1]) + ";"
-    command += "' | /home/simon/Desktop/nauty27r1/dretog -q | /home/simon/Desktop/nauty27r1/vcolg -q -T -m"
+    command += "' | "+PathToNauty27r1+"/dretog -q | "+PathToNauty27r1+"/vcolg -q -T -m"
     command += str(N_dZ+1)
     command += " | awk '{"
     for i in range(N_dZ):
