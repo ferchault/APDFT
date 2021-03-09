@@ -1,0 +1,45 @@
+
+Benzene; method = geom
+------------------------------
+C4BN
+0
+C4BeO
+0
+C4FLi
+0
+C3B2O
+6
+C2B2N2
+6
+C2Be2O2
+6
+C2F2Li2
+6
+C2B3F
+6
+CBe3F2
+6
+B3N3
+0
+Be3O3
+0
+F3Li3
+0
+B4O2
+3
+C3BBeF
+10
+C2BLiO2
+16
+CB3NO
+10
+CB2BeO2
+16
+B2Be2F2
+11
+B4FN
+3
+FLi2N3
+6
+Total time: 2.4429633617401123
+Total number of AEs: 111

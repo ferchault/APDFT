@@ -275,10 +275,11 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     #for i in range(len(m_all)):
     #    print(np.array([dZ_all[i][j]*m_all[i][j] for j in range(len(m_all[i]))]).sum())
     start_time = time.time()
-    #Get rid of all m's with more changes than atoms
+    #Get rid of all m's with more changes than atoms in the molecule:
     num = 0
+    available_sites = len(np.hstack(graph.equi_sites).ravel())
     while num < len(m_all):
-        if np.sum(m_all[num])>len(np.array(graph.equi_sites).flatten()):
+        if np.sum(m_all[num]) > available_sites:
             m_all = np.delete(m_all, num, axis = 0)
             dZ_all = np.delete(dZ_all, num, axis = 0)
         else:
@@ -286,10 +287,10 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     #Parallelize this for-loop:
     total_number = 0
     if log == True:
-        log_name = graph.name + ".txt"
+        log_name = graph.name + '_' + method + ".txt"
         with open(log_name, 'w') as f:
             sys.stdout = f # Change the standard output to the created file
-            print('\n'+ graph.name +'\n------------------------------')
+            print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
             for i in range(len(m_all)):
                 if method == 'graph':
                     x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
@@ -301,7 +302,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
             print('Total number of AEs:', total_number)
             sys.stdout = original_stdout # Reset the standard output to its original value
     else:
-        print('\n'+ graph.name +'\n------------------------------')
+        print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
         for i in range(len(m_all)):
             if method == 'graph':
                 x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
@@ -315,9 +316,12 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
 #Function that gives equi_sites for arbitrary molecule
 #Function that finds AEs from target molecule, not just reference (brute force with close_equi_sites)
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
+#Optional: Parallelize the for-loop in FindAE
 
-FindAE(benzene, method = 'geom', dZ_max = 3, log = False)
-#FindAE(naphthalene, method = 'geom', dZ_max = 2)
-#FindAE(phenanthrene)
-#FindAE(anthracene)
-#FindAE(isochrysene)
+FindAE(benzene, method = 'graph')
+FindAE(benzene, method = 'geom')
+FindAE(naphthalene, method = 'graph')
+FindAE(naphthalene, method = 'geom')
+FindAE(phenanthrene)
+FindAE(anthracene)
+FindAE(isochrysene)
