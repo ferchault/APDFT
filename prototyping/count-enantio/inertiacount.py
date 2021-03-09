@@ -224,6 +224,8 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
             else:
                 mole_config = np.delete(mole_config, config_num, axis = 0)
         #Check that atoms have not been transmuted to negative charges
+        if len(mole_config) == 0:
+            return 0
         if np.min(mole_config) < 0:
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
         #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued

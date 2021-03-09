@@ -86,10 +86,12 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
             sys.stdout = f # Change the standard output to the created file
             print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
             for i in range(len(m_all)):
+                m_time = time.time()
                 if method == 'graph':
                     x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
                 if method == 'geom':
                     x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+                primt('Time:', time.time()-m_time)
                 print(x)
                 total_number += x
             print('Total time:', time.time()-start_time)
@@ -98,10 +100,12 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     else:
         print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
         for i in range(len(m_all)):
+            m_time = time.time()
             if method == 'graph':
                 x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
             if method == 'geom':
                 x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+            primt('Time:', time.time()-m_time)
             print(x)
             total_number += x
         print('Total time:', time.time()-start_time)
@@ -113,9 +117,9 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 #Optional: Parallelize the for-loop in FindAE
 
-#FindAE(benzene)
-#FindAE(benzene, method = 'geom')
-#FindAE(naphthalene)
+FindAE(benzene)
+FindAE(benzene, method = 'geom')
+FindAE(naphthalene)
 FindAE(naphthalene, method = 'geom')
 #FindAE(phenanthrene)
 #FindAE(phenanthrene, method = 'geom')
