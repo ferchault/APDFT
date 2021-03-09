@@ -21,12 +21,12 @@ def read_one_log(filename):
     return TOTEN - TEWEN
 
 
-logfiles = [f"/data/guido/graphene-BN/64/up/{_}/OUTCAR" for _ in range(1, 201)]
+logfiles = [f"/data/guido/graphene-BN/64/up/{_}/OUTCAR" for _ in range(1, 2501)]
 energies = [read_one_log(_) for _ in tqdm.tqdm(logfiles)]
 # region
 plt.hist(energies)
 # region
-def build_rep(poscar):
+def build_rep(poscar, symmetrize=False):
     # assumptions: xy plane graphene
     with open(poscar) as fh:
         poslines = fh.readlines()
@@ -53,12 +53,29 @@ def build_rep(poscar):
     if len(coords) != 128:
         raise NotImplementedError()
 
-    charges = 64 * [5] + 64 * [7]
-    charges *= 9
-    charges = np.array(charges)
+    upcharges = 64 * [5] + 64 * [7]
+    upcharges *= 9
+    upcharges = np.array(upcharges)
 
-    return qml.representations.generate_atomic_coulomb_matrix(
-        charges,
+    uprep = qml.representations.generate_atomic_coulomb_matrix(
+        upcharges,
+        padded,
+        sorting="row-norm",
+        central_cutoff=5,
+        size=35,
+        central_decay=1,
+        interaction_cutoff=5,
+        interaction_decay=1,
+        indices=range(128 * 4, 128 * 5),
+    )
+    if not symmetrize:
+        return uprep
+
+    dncharges = 64 * [7] + 64 * [5]
+    dncharges *= 9
+    dncharges = np.array(dncharges)
+    dnrep = qml.representations.generate_atomic_coulomb_matrix(
+        dncharges,
         padded,
         sorting="row-norm",
         central_cutoff=5,
@@ -69,10 +86,17 @@ def build_rep(poscar):
         indices=range(128 * 4, 128 * 5),
     )
 
+    return np.vstack((uprep[:64, :], dnrep[64:, :]))
 
-molids = range(1, 201)
-reps = [
-    build_rep(f"/data/guido/graphene-BN/64/up/{_}/POSCAR") for _ in tqdm.tqdm(molids)
+
+molids = range(1, 2501)
+# reps = [
+#    build_rep(f"/data/guido/graphene-BN/64/up/{_}/POSCAR", symmetrize=False)
+#    for _ in tqdm.tqdm(molids)
+# ]
+reps2 = [
+    build_rep(f"/data/guido/graphene-BN/64/up/{_}/POSCAR", symmetrize=True)
+    for _ in tqdm.tqdm(molids)
 ]
 # reps
 # reps = np.concatenate(reps)
@@ -140,7 +164,61 @@ def get_KRR_learning_curve(reps, Y, k=5):
     return ns[order], maes[order], stds[order]
 
 
-ns, maes, stds = get_KRR_learning_curve(reps, np.array(energies), k=10)
+# ns, maes, stds = get_KRR_learning_curve(reps, np.array(energies), k=10)
+# print(ns, maes, stds)
+ns2, maes2, stds2 = get_KRR_learning_curve(reps2, np.array(energies), k=10)
+print(ns2, maes2, stds2)
 # region
-plt.loglog(ns, maes, "o-")
+# plt.loglog(ns, maes, "o-", label="orig")
+# plt.loglog(ns2, maes2, "o-", label="with symmetry")
+# plt.legend()
+# region
+
+#%%
+xs = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+yswithsymm = np.array(
+    (
+        91.38916025,
+        69.94414159,
+        56.62984254,
+        41.5187096,
+        32.99853503,
+        25.53158878,
+        18.82178703,
+        9.95941045,
+        6.69857606,
+        5.45049415,
+    )
+)
+ysorig = np.array(
+    (
+        106.71834446,
+        83.70406486,
+        67.0399434,
+        44.90289698,
+        33.4512471,
+        27.73255691,
+        24.38229124,
+        14.79122741,
+        10.28452817,
+        7.93315388,
+    )
+)
+plt.loglog(xs, ysorig / 128 * 1000, "o-", color="C0", label="atomic CM w/cutoff")
+plt.loglog(
+    xs[:-1],
+    ysorig[1:] / 128 * 1000,
+    "o-",
+    color="C0",
+    alpha=0.5,
+    label="expected with symmetry",
+)
+plt.loglog(
+    xs, yswithsymm / 128 * 1000, "s-", color="C1", label="same + alchemical symmetry"
+)
+plt.yticks((40, 60, 80, 100, 200, 400, 800), (40, 60, 80, 100, 200, 400, 800))
+plt.xticks(xs, xs)
+plt.ylabel("meV / atom")
+plt.legend()
+plt.xlabel("Training set size")
 # region
