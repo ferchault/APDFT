@@ -1,0 +1,37 @@
+
+Naphthalene; method = geom
+------------------------------
+C8BN
+0
+C8BeO
+0
+C8FLi
+0
+C7B2O
+6
+C6B2N2
+28
+C6Be2O2
+28
+C6F2Li2
+28
+C6B3F
+2
+0
+C4B3N3
+68
+C4Be3O3
+68
+C4F3Li3
+68
+C4B4O2
+36
+C2B6F2
+4
+C2B4N4
+40
+C2Be4O4
+40
+C2F4Li4
+40
+Keyboard Interrupt

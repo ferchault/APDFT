@@ -91,7 +91,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
                     x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
                 if method == 'geom':
                     x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-                primt('Time:', time.time()-m_time)
+                print('Time:', time.time()-m_time)
                 print(x)
                 total_number += x
             print('Total time:', time.time()-start_time)
@@ -105,7 +105,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
                 x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
             if method == 'geom':
                 x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-            primt('Time:', time.time()-m_time)
+            print('Time:', time.time()-m_time)
             print(x)
             total_number += x
         print('Total time:', time.time()-start_time)
