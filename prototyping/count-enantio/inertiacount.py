@@ -90,10 +90,29 @@ def array_compare(arr1, arr2):
             within = True
     return within
 
-def geomAE(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = False):
+def sum_formula(array_of_atoms):
+    values, counts = np.unique(np.array(array_of_atoms), return_counts=True)
+    formula = ''
+    for i in range(len(values)):
+        if values[i] == 'C':
+            if counts[i] > 1:
+                formula = str(counts[i]) + formula
+            formula = 'C' + formula
+        else:
+            formula += str(values[i])
+            if counts[i] > 1:
+                formula += str(counts[i])
+    return formula
+
+def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formula = True):
+    if mole = None:
+        raise ValueError("Variable 'mole' must not be 'None'")
+    m = np.array(m)
+    dZ = np.array(dZ)
+    N_m = len(m)
+    N_dZ = len(dZ)
     '''Returns the number of alchemical enantiomers of mole that can be reached by
-    varying m1 and m2 atoms in mole with identical Coulombic neighborhood by dZ1
-    dZ2, respectively.'''
+    varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].'''
 
     '''Partition allows the changed atoms to be of more than one set of points with
     identical Coulombic neighborhood.'''
@@ -105,12 +124,14 @@ def geomAE(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = F
     start_time = time.time()
 
     N = len(mole)
-    if N < m1 + m2:
-        raise ValueError("Number of changing atoms must not exceed number of atoms in molecule")
-    if (m1*dZ1 + m2*dZ2 != 0):
-        raise ValueError("Netto change in charge must be 0: m1*dZ1 = -m2*dZ2. You entered: %d = %d" %(m1*dZ1, -m2*dZ2))
-    if (dZ1 == 0) or (dZ2 == 0):
-        raise ValueError("0 is not allowed in dZ")
+    if N < np.sum(m):
+        raise ValueError("Too less atoms in molecule for sum of to be transmuted atoms.")
+    if (np.sum(np.multiply(m,dZ)) != 0):
+        raise ValueError("Netto change in charge must be 0")
+    if 0 in dZ:
+        raise ValueError("0 not allowed in array dZ")
+    if N_m != N_dZ:
+        raise ValueError("Number of changes and number of charge values do not match!")
     if (partition != True) and (partition != False):
         raise ValueError("Partition must be True or False")
     #Prepare the molecule
@@ -149,17 +170,17 @@ def geomAE(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = F
         for i in range(num_sites):
             temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
-        if m1+m2 > len(similars[alpha]):
+        if np.sum(m) > len(similars[alpha]):
             print('---------------')
-            print("Warning: Number of changing atoms m1 + m2 = %d exceeds the number of alchemically \nsimilar sites in set %d which is %d. Hence, the returned value is 0 at this site." %(m1+m2,alpha,num_sites))
+            print("Warning: Number of changing atoms m = %d exceeds the number of alchemically \nsimilar sites in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
             print('Number of Alchemical Enantiomers from site with index %d: 0' %alpha)
             print('---------------')
             continue
 
-        '''Now: go through all configurations of changing m1 + m2 atoms of set similars[alpha]
+        '''Now: go through all configurations of changing m atoms of set similars[alpha]
         with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
-        atomwise_config = np.zeros((num_sites, 3)) #Three possible states: 0, dZ1, dZ2
+        atomwise_config = np.zeros((num_sites, N_dZ+1)) #N_dZ+1 possible states: 0, dZ1, dZ2, ...
         standard_config = np.zeros((num_sites))
         #All allowed charges for ONE atom at a time
         for i in range(num_sites):
@@ -168,16 +189,16 @@ def geomAE(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = F
             #Initalize standard_config:
             standard_config[i] = atomwise_config[i][0]
             #just changes:
-            atomwise_config[i][1] = elements[temp_mole[i][0]]+dZ1
-            atomwise_config[i][2] = elements[temp_mole[i][0]]+dZ2
+            for j in range(N_dZ):
+                atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
         #All possible combinations of those atoms with meshgrid
         #The * passes the arrays element wise
         mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
         config_num = 0
         while config_num < len(mole_config):
-            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2.
+            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2, etc...
             The netto charge conservation is already baked into the code for partition == False.'''
-            if (m1 == (np.subtract(mole_config[config_num],standard_config) == dZ1).sum()) and (m2 == (np.subtract(mole_config[config_num],standard_config) == dZ2).sum()):
+            if np.array([(m[j] == (np.subtract(mole_config[config_num],standard_config) == dZ[j]).sum()) for j in range(N_dZ)]).all():
                 if partition == True:
                     '''Check that the netto charge change in every set is 0'''
                     pos = 0
@@ -257,9 +278,17 @@ def geomAE(mole, m1 = 2, dZ1 = +1, m2 = 2, dZ2 = -1, partition = True, debug = F
                 config_num += 1
 
         '''All is done. Now, print the remaining atoms in sites and their contribution
-        to count. We only need one half (in case of symmetric changes) as we know
-        every AEs partner immediatly.'''
+        to count.'''
         count += len(Total_CIM)
+
+        if chem_formula == True:
+            random_config = np.zeros((N))
+            pos = 0
+            for i in range(len(m)):
+                for j in range(m[i]):
+                    random_config[pos] = dZ[i]
+                    pos += 1
+            print(sum_formula([inv_elements[elements[mole[j][0]]+random_config[j]] for j in range(N)]))
 
         if debug == True:
             print('---------------')
@@ -307,7 +336,3 @@ naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['
 ['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
 
 triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]
-
-start_time = time.time()
-print(geomAE(naphthalene, m1 = 2, dZ1=+1, m2 = 2, dZ2=-1, debug = False))
-print("Time:", (time.time() - start_time),"s")
