@@ -16,7 +16,8 @@ elements = {'Ghost':0,'H':1, 'He':2,
 inv_elements = {v: k for k, v in elements.items()}
 
 class MoleAsGraph:
-    def __init__(self, edge_layout, equi_sites, elements_at_index):
+    def __init__(self, name, edge_layout, equi_sites, elements_at_index):
+        self.name = name
         self.edge_layout = np.array(edge_layout, dtype=object) #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.equi_sites = np.array(equi_sites, dtype=object) # equi_sites = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
         self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which index number
@@ -48,19 +49,24 @@ def sum_formula(array_of_atoms):
                 formula += str(counts[i])
     return formula
 
-anthracene = MoleAsGraph(   [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
-                            [[6,9],[0,5,7,8],[1,4,10,13],[2,3,11,12]],
-                            ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'])
-benzene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],
+anthracene = MoleAsGraph('Anthracene',
+                        [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
+                        [[6,9],[0,5,7,8],[1,4,10,13],[2,3,11,12]],
+                        ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'])
+benzene = MoleAsGraph(  'Benzene',
+                        [[0,1],[1,2],[2,3],[3,4],[4,5],[0,5]],
                         [[0,1,2,3,4,5]],
                         ['C','C','C','C','C','C'])
-isochrysene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7],[8,14],[14,15],[15,16],[16,17],[17,9]],
+isochrysene = MoleAsGraph(  'Isochrysene',
+                            [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7],[8,14],[14,15],[15,16],[16,17],[17,9]],
                             [[1,2,6,7,8,9],[0,3,10,13,14,17],[4,5,11,12,15,16]],
                             ['C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C','C'])
-naphthalene = MoleAsGraph(  [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],
+naphthalene = MoleAsGraph(  'Naphthalene',
+                            [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],
                             [[0,5],[2,3,7,8],[1,4,6,9]],
                             ['C','C','C','C','C','C','C','C','C','C'])
-phenanthrene = MoleAsGraph( [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7]],
+phenanthrene = MoleAsGraph( 'Phenanthrene',
+                            [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[2,9],[1,6],[6,7],[7,8],[8,9],[6,10],[10,11],[11,12],[12,13],[13,7]],
                             [[1,6],[2,7],[3,13],[4,12],[5,11],[0,10],[8,9]],
                             ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'])
 
@@ -192,7 +198,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
             print(str(sum_formula([inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[0][j]]] for j in range(N)])))
     return count
 
-def FindAE(graph, dZ_max = 3):
+def FindAE(graph, dZ_max = 3, log = True):
     '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
     atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
     for dZ_max <= 1 or 2 or 3 up to m_tot = 8 and n = 2 and 3'''
@@ -261,25 +267,32 @@ def FindAE(graph, dZ_max = 3):
     start_time = time.time()
     #Parallelize this for-loop:
     total_number = 0
-    for i in range(len(m_all)):
-        x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-        total_number += x
-        print(x)
-    print('Total time:', time.time()-start_time)
-    print('Total number of AEs:', total_number)
+    if log == True:
+        log_name = graph.name + ".txt"
+        with open(log_name, 'w') as f:
+            sys.stdout = f # Change the standard output to the created file
+            print('\n'+ graph.name +'\n------------------------------')
+            for i in range(len(m_all)):
+                x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+                print(x)
+                total_number += x
+            print('Total time:', time.time()-start_time)
+            print('Total number of AEs:', total_number)
+            sys.stdout = original_stdout # Reset the standard output to its original value
+    else:
+        print('\n'+ graph.name +'\n------------------------------')
+        for i in range(len(m_all)):
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+            print(x)
+            total_number += x
+        print('Total time:', time.time()-start_time)
+        print('Total number of AEs:', total_number)
 
 #Function that gives equi_sites for arbitrary molecule
 #Function that finds AEs from target molecule, not just reference (brute force with close_equi_sites)
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 
-with open('log.txt', 'w') as f:
-    sys.stdout = f # Change the standard output to the created file
-    print('\nNaphthalene\n------------------------------')
-    FindAE(naphthalene)
-    #print('\nPhenanthrene\n------------------------------')
-    #FindAE(phenanthrene)
-    #print('\nAnthracene\n------------------------------')
-    #FindAE(anthracene)
-    #print('\nIsochrysene\n------------------------------')
-    #FindAE(isochrysene)
-sys.stdout = original_stdout # Reset the standard output to its original value
+FindAE(naphthalene)
+#FindAE(phenanthrene)
+#FindAE(anthracene)
+#FindAE(isochrysene)

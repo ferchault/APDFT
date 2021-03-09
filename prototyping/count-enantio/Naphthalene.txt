@@ -61,5 +61,5 @@ C2Be4F2N2
 36
 C2B3F3Li2
 60
-Total time: 34.509493827819824
+Total time: 34.91011905670166
 Total number of AEs: 1142
