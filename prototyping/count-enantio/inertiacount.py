@@ -139,12 +139,15 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
     mole = np.array(mole, dtype=object)
     #Find the Coulombic neighborhood of each atom in mole
     CN = Coulomb_neighborhood(mole)
+    #print(CN)
     '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
     for i in range(N):
         CN[i] = round(CN[i],tolerance)
     '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
     their indices'''
     similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
+    #print(similars)
+
     #Delete all similars which include only one atom:
     num_similars = 0
     while num_similars < len(similars):
@@ -152,6 +155,9 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
             num_similars += 1
         else:
             similars = np.delete(similars, num_similars, axis = 0)
+    if len(similars) == 0:
+        print("No sets of equivalent atoms found.")
+        return 0
     '''If partitoning is allowed, all of these sites in each set need to be treated
     simultaneously. Hence, we flatten the array. However, we later need to make sure
     that only each set fulfills netto charge change = 0. This is why set is Initalized'''
@@ -323,16 +329,3 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
-
-
-benzene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)]]
-
-cube = [['Al', (0,0,0)], ['Al', (1,0,0)], ['Al', (1,1,0)], ['Al', (0,1,0)],
-['Al', (0,0,1)], ['Al', (1,0,1)], ['Al', (1,1,1)], ['Al', (0,1,1)]]
-
-naphthalene = [['C', (0,0,1)], ['C', (0,0.8660254037844386467637231707,0.5)], ['C', (0,0.8660254037844386467637231707,-0.5)],
-['C', (0,0,-1)], ['C', (0,-0.8660254037844386467637231707,-0.5)], ['C', (0,-0.8660254037844386467637231707,0.5)],
-['C', (0,2*0.8660254037844386467637231707,1)], ['C', (0,3*0.8660254037844386467637231707,0.5)], ['C', (0,3*0.8660254037844386467637231707, -0.5)], ['C', (0,2*0.8660254037844386467637231707,-1)]]
-
-triangle = [['C', (0,0,1)], ['C', (0,1,0)], ['C', (1,0,0)]]

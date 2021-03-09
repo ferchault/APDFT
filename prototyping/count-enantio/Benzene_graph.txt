@@ -41,5 +41,5 @@ B4FN
 3
 FLi2N3
 6
-Total time: 0.13106656074523926
+Total time: 0.11965608596801758
 Total number of AEs: 111
