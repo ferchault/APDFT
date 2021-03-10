@@ -120,7 +120,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
 FindAE(benzene)
 FindAE(benzene, method = 'geom')
 FindAE(naphthalene)
-FindAE(naphthalene, method = 'geom')
+#FindAE(naphthalene, method = 'geom')
 #FindAE(phenanthrene)
 #FindAE(phenanthrene, method = 'geom')
 #FindAE(anthracene)

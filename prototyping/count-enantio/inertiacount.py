@@ -104,7 +104,7 @@ def sum_formula(array_of_atoms):
                 formula += str(counts[i])
     return formula
 
-def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formula = True):
+def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     if mole == None:
         raise ValueError("Variable 'mole' must not be 'None'")
     m = np.array(m)
@@ -132,8 +132,6 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
         raise ValueError("0 not allowed in array dZ")
     if N_m != N_dZ:
         raise ValueError("Number of changes and number of charge values do not match!")
-    if (partition != True) and (partition != False):
-        raise ValueError("Partition must be True or False")
     #Prepare the molecule
     center_mole(mole)
     mole = np.array(mole, dtype=object)
@@ -161,9 +159,8 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
     '''If partitoning is allowed, all of these sites in each set need to be treated
     simultaneously. Hence, we flatten the array. However, we later need to make sure
     that only each set fulfills netto charge change = 0. This is why set is Initalized'''
-    if partition == True:
-        set = np.copy(similars)
-        similars = [np.concatenate((similars).tolist())]
+    set = np.copy(similars)
+    similars = [np.concatenate((similars).tolist())]
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
@@ -186,7 +183,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
         '''Now: go through all configurations of changing m atoms of set similars[alpha]
         with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
-        atomwise_config = np.zeros((num_sites, N_dZ+1)) #N_dZ+1 possible states: 0, dZ1, dZ2, ...
+        atomwise_config = np.zeros((num_sites, N_dZ+1), dtype='int') #N_dZ+1 possible states: 0, dZ1, dZ2, ...
         standard_config = np.zeros((num_sites))
         #All allowed charges for ONE atom at a time
         for i in range(num_sites):
@@ -199,40 +196,35 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], partition = True, debug = False, chem_formu
                 atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
         #All possible combinations of those atoms with meshgrid
         #The * passes the arrays element wise
-        mole_config = np.array(np.meshgrid(*atomwise_config.tolist())).T.reshape(-1,num_sites)
-        config_num = 0
-        while config_num < len(mole_config):
-            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2, etc...
-            The netto charge conservation is already baked into the code for partition == False.'''
-            if np.array([(m[j] == (np.subtract(mole_config[config_num],standard_config) == dZ[j]).sum()) for j in range(N_dZ)]).all():
-                if partition == True:
-                    '''Check that the netto charge change in every set is 0'''
-                    pos = 0
-                    for i in range(len(set)):
-                        sum = 0
-                        #This loop has to start where the last one ended
-                        for j in range(pos,pos+len(set[i])):
-                            sum += mole_config[config_num][j] - standard_config[j]
-                        pos += len(set[i])
-                        if sum != 0:
-                            mole_config = np.delete(mole_config, config_num, axis = 0)
-                            break
-                        if (sum == 0) and (i == len(set)-1):
-                            config_num += 1
-                if partition == False:
-                    config_num += 1
-            else:
-                mole_config = np.delete(mole_config, config_num, axis = 0)
-        #Check that atoms have not been transmuted to negative charges
+        mole_config_unfiltered = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,num_sites)
+        mole_config = np.zeros((1,num_sites),dtype='int')
+        mole_config = np.delete(mole_config, 0, axis = 0)
+        for k in range(len(mole_config_unfiltered)):
+            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2, etc...'''
+            if np.array([(m[j] == (np.subtract(mole_config_unfiltered[k],standard_config) == dZ[j]).sum()) for j in range(N_dZ)]).all():
+                '''Check that the netto charge change in every set is 0'''
+                pos = 0
+                for i in range(len(set)):
+                    sum = 0
+                    #This loop has to start where the last one ended
+                    for j in range(pos,pos+len(set[i])):
+                        sum += mole_config_unfiltered[k][j] - standard_config[j]
+                    pos += len(set[i])
+                    if sum != 0:
+                        break
+                    if (sum == 0) and (i == len(set)-1):
+                        #print(mole_config_unfiltered[k])
+                        mole_config = np.append(mole_config, [mole_config_unfiltered[k]], axis = 0)
         if len(mole_config) == 0:
             return 0
         if np.min(mole_config) < 0:
+            #Check that atoms have not been transmuted to negative charges
             raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
         #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
-        CIM = np.zeros((config_num, 3))
+        CIM = np.zeros((len(mole_config), 3))
 
-        Total_CIM = np.zeros((config_num,2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
-        for i in range(config_num):
+        Total_CIM = np.zeros((len(mole_config),2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
+        for i in range(len(mole_config)):
             for j in range(num_sites):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
 
