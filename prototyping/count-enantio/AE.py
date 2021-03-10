@@ -79,6 +79,9 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
         else:
             num += 1
     #Parallelize this for-loop:
+    #For plotting: save number of transmuted atoms num_trans and time
+    num_trans = np.array([])
+    times = np.array([])
     total_number = 0
     if log == True:
         log_name = graph.name + '_' + method + ".txt"
@@ -91,11 +94,15 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
                     x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
                 if method == 'geom':
                     x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+                num_trans = np.append(num_trans, np.sum(m_all[i]))
+                times = np.append(times, time.time()-m_time)
                 print('Time:', time.time()-m_time)
                 print(x)
                 total_number += x
             print('Total time:', time.time()-start_time)
             print('Total number of AEs:', total_number)
+            print('Number of transmuted atoms:', list(num_trans))
+            print('Time:', list(times))
             sys.stdout = original_stdout # Reset the standard output to its original value
     else:
         print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
@@ -105,11 +112,15 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
                 x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
             if method == 'geom':
                 x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+            num_trans = np.append(num_trans, np.sum(m_all[i]))
+            times = np.append(times, time.time()-m_time)
             print('Time:', time.time()-m_time)
             print(x)
             total_number += x
         print('Total time:', time.time()-start_time)
         print('Total number of AEs:', total_number)
+        print('Number of transmuted atoms:', list(num_trans))
+        print('Time:', list(times))
 
 #TODOS:
 #Function that gives equi_sites for arbitrary molecule
@@ -120,9 +131,9 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
 FindAE(benzene)
 FindAE(benzene, method = 'geom')
 FindAE(naphthalene)
-#FindAE(naphthalene, method = 'geom')
-#FindAE(phenanthrene)
-#FindAE(phenanthrene, method = 'geom')
+FindAE(naphthalene, method = 'geom')
+FindAE(phenanthrene)
+FindAE(phenanthrene, method = 'geom')
 #FindAE(anthracene)
 #FindAE(anthracene, method = 'geom')
 #FindAE(isochrysene)
