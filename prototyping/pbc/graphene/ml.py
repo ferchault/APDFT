@@ -90,10 +90,9 @@ def build_rep(poscar, symmetrize=False):
     return np.vstack((uprep[:64, :], dnrep[64:, :]))
 
 
-def get_KRR_learning_curve_holdout(representations, Y, k, holdoutshare=0.2):
+def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshare=0.2):
     ndatapoints = len(Y)
     totalidx = np.arange(ndatapoints, dtype=np.int)
-    np.random.shuffle(totalidx)
     holdoutstart = int(len(totalidx) * (1-holdoutshare))
     maxtrainingset = np.floor(np.log(holdoutstart) / np.log(2))
     allsigmas = 2.0 ** np.arange(-2, 15)
@@ -108,82 +107,86 @@ def get_KRR_learning_curve_holdout(representations, Y, k, holdoutshare=0.2):
     )
     os.environ["OMP_NUM_THREADS"] = "1"
 
-    with shared.SharedMemory(
-        {"K": K, "Y": Y, "totalidx": totalidx[:holdoutstart]}, nworkers=os.cpu_count()
-    ) as sm:
+    maes = []
+    for outer in range(kouter):
+        print (f"outer {outer}/{kouter}")
+        np.random.shuffle(totalidx)
+        with shared.SharedMemory(
+            {"K": K, "Y": Y, "totalidx": totalidx[:holdoutstart]}, nworkers=os.cpu_count()
+        ) as sm:
 
-        @sm.register
-        def one_case(sigmaidx, lexp, ntrain, nsplit, chunk):
-            trainvalid = totalidx[:ntrain]
-            Ytrainvalid = Y[trainvalid]
+            @sm.register
+            def one_case(sigmaidx, lexp, ntrain, nsplit, chunk):
+                trainvalid = totalidx[:ntrain]
+                Ytrainvalid = Y[trainvalid]
 
-            # split train into segments
-            width = int(ntrain / nsplit)
-            start = width * chunk
-            end = width * (chunk + 1)
-            if chunk == nsplit:
-                end = ntrain
-            train = np.hstack((trainvalid[:start], trainvalid[end:]))
-            validation = trainvalid[start:end]
-            Y_train = np.hstack((Ytrainvalid[:start], Ytrainvalid[end:]))
-            Y_validation = Ytrainvalid[start:end]
+                # split train into segments
+                width = int(ntrain / nsplit)
+                start = width * chunk
+                end = width * (chunk + 1)
+                if chunk == nsplit:
+                    end = ntrain
+                train = np.hstack((trainvalid[:start], trainvalid[end:]))
+                validation = trainvalid[start:end]
+                Y_train = np.hstack((Ytrainvalid[:start], Ytrainvalid[end:]))
+                Y_validation = Ytrainvalid[start:end]
 
-            # build model
-            lval = 10 ** lexp
-            K_subset = K[sigmaidx][np.ix_(train, train)]
-            K_subset[np.diag_indices_from(K_subset)] += lval
-            alphas = np.linalg.solve(K_subset, Y_train)
+                # build model
+                lval = 10 ** lexp
+                K_subset = K[sigmaidx][np.ix_(train, train)]
+                K_subset[np.diag_indices_from(K_subset)] += lval
+                alphas = np.linalg.solve(K_subset, Y_train)
 
-            # evaluate model
-            K_subset = K[sigmaidx][np.ix_(train, validation)]
-            pred = np.dot(K_subset.transpose(), alphas)
+                # evaluate model
+                K_subset = K[sigmaidx][np.ix_(train, validation)]
+                pred = np.dot(K_subset.transpose(), alphas)
 
-            mae = np.abs(pred - Y_validation).mean()
-            return {
-                "sigmaidx": sigmaidx,
-                "lexp": lexp,
-                "ntrain": ntrain,
-                "chunk": chunk,
-                "mae": mae,
-            }
+                mae = np.abs(pred - Y_validation).mean()
+                return {
+                    "sigmaidx": sigmaidx,
+                    "lexp": lexp,
+                    "ntrain": ntrain,
+                    "chunk": chunk,
+                    "mae": mae,
+                }
 
-        for sigmaidx in range(len(allsigmas)):
-            for lexp in (-7, -9, -11, -13):
-                for ntrain in 2 ** np.arange(6, maxtrainingset + 1).astype(np.int):
-                    for fold in range(k):
-                        one_case(sigmaidx, lexp, ntrain, k, fold)
-        print ("Hyperparameter optimization")
-        foldresults = pd.DataFrame(sm.evaluate(progress=True))
-    
-    with shared.SharedMemory(
-        {"K": K, "Y": Y, "totalidx": totalidx}, nworkers=os.cpu_count()
-    ) as sm:
-        @sm.register
-        def other_case(sigmaidx, lexp, ntrain, holdoutstart):
-            train = totalidx[:ntrain]
-            holdout = totalidx[holdoutstart:]
+            for sigmaidx in range(len(allsigmas)):
+                for lexp in (-7, -9, -11, -13):
+                    for ntrain in 2 ** np.arange(6, maxtrainingset + 1).astype(np.int):
+                        for fold in range(k):
+                            one_case(sigmaidx, lexp, ntrain, k, fold)
+            print ("Hyperparameter optimization")
+            foldresults = pd.DataFrame(sm.evaluate(progress=True))
+        
+        with shared.SharedMemory(
+            {"K": K, "Y": Y, "totalidx": totalidx}, nworkers=os.cpu_count()
+        ) as sm:
+            @sm.register
+            def other_case(sigmaidx, lexp, ntrain, holdoutstart):
+                train = totalidx[:ntrain]
+                holdout = totalidx[holdoutstart:]
 
-            # build model
-            lval = 10 ** lexp
-            K_subset = K[sigmaidx][np.ix_(train, train)]
-            K_subset[np.diag_indices_from(K_subset)] += lval
-            alphas = np.linalg.solve(K_subset, Y[train])
+                # build model
+                lval = 10 ** lexp
+                K_subset = K[sigmaidx][np.ix_(train, train)]
+                K_subset[np.diag_indices_from(K_subset)] += lval
+                alphas = np.linalg.solve(K_subset, Y[train])
 
-            # evaluate model
-            K_subset = K[sigmaidx][np.ix_(train, holdout)]
-            pred = np.dot(K_subset.transpose(), alphas)
+                # evaluate model
+                K_subset = K[sigmaidx][np.ix_(train, holdout)]
+                pred = np.dot(K_subset.transpose(), alphas)
 
-            return np.abs(pred - Y[holdout]).mean()
+                return np.abs(pred - Y[holdout]).mean()
 
-        params = foldresults.groupby("sigmaidx lexp ntrain".split()).mean()['mae'].reset_index().sort_values("ntrain")
-        ns = []
-        for ntrain, group in params.groupby("ntrain"):
-            loc = group.sort_values("mae").iloc[0]
-            ns.append(ntrain)
-            other_case(int(loc.sigmaidx), int(loc.lexp), ntrain, holdoutstart)
-        print ("Build models")
-        maes = sm.evaluate(progress=True)
-        return ns, maes
+            params = foldresults.groupby("sigmaidx lexp ntrain".split()).mean()['mae'].reset_index().sort_values("ntrain")
+            ns = []
+            for ntrain, group in params.groupby("ntrain"):
+                loc = group.sort_values("mae").iloc[0]
+                ns.append(ntrain)
+                other_case(int(loc.sigmaidx), int(loc.lexp), ntrain, holdoutstart)
+            print ("Build models")
+            maes.append(sm.evaluate(progress=True))
+    return ns, np.average(maes, axis=0)
 
 if __name__ == "__main__":
     logfiles = [f"{BASEDIR}/{_}/OUTCAR" for _ in range(1, LIMIT + 1)]
@@ -202,7 +205,7 @@ if __name__ == "__main__":
         reps = sm.evaluate(progress=True)
         reps = np.array(reps)
     # reps2 = [build_rep(f"{BASEDIR}/{_}/POSCAR", symmetrize=True) for _ in molids]
-    q = get_KRR_learning_curve_holdout(reps, energies, 10)
+    q = get_KRR_learning_curve_holdout(reps, energies, 10, kouter=50)
     print (q)
 
 
