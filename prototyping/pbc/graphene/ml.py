@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #%%
 import os
-
+import sys
 os.environ["OMP_NUM_THREADS"] = "1"
 import pandas as pd
 import numpy as np
@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
         @sm.register
         def load_rep(molid):
-            return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
+            return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=bool(sys.argv[1]))
 
         for i in molids:
             load_rep(i)
@@ -204,65 +204,6 @@ if __name__ == "__main__":
         print ("Build representations")
         reps = sm.evaluate(progress=True)
         reps = np.array(reps)
-    # reps2 = [build_rep(f"{BASEDIR}/{_}/POSCAR", symmetrize=True) for _ in molids]
-    q = get_KRR_learning_curve_holdout(reps, energies, 10, kouter=50)
+    q = get_KRR_learning_curve_holdout(reps, energies, 10, kouter=50, holdoutshare=0.15)
     print (q)
-
-
-# ns, maes, stds = get_KRR_learning_curve(reps, np.array(energies), k=10)
-# print(ns, maes, stds)
-# ns2, maes2, stds2 = get_KRR_learning_curve(reps2, np.array(energies), k=10)
-# print(ns2, maes2, stds2)
-# %%
-# plt.loglog(ns, maes, "o-", label="orig")
-# plt.loglog(ns2, maes2, "o-", label="with symmetry")
-# reps.shape
-#df = pd.DataFrame(q)
-#%%
-# xs = (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
-# yswithsymm = np.array(
-#     (
-#         91.38916025,
-#         69.94414159,
-#         56.62984254,
-#         41.5187096,
-#         32.99853503,
-#         25.53158878,
-#         18.82178703,
-#         9.95941045,
-#         6.69857606,
-#         5.45049415,
-#     )
-# )
-# ysorig = np.array(
-#     (
-#         106.71834446,
-#         83.70406486,
-#         67.0399434,
-#         44.90289698,
-#         33.4512471,
-#         27.73255691,
-#         24.38229124,
-#         14.79122741,
-#         10.28452817,
-#         7.93315388,
-#     )
-# )
-# plt.loglog(xs, ysorig / 128 * 1000, "o-", color="C0", label="atomic CM w/cutoff")
-# plt.loglog(
-#     xs[:-1],
-#     ysorig[1:] / 128 * 1000,
-#     "o-",
-#     color="C0",
-#     alpha=0.5,
-#     label="expected with symmetry",
-# )
-# plt.loglog(
-#     xs, yswithsymm / 128 * 1000, "s-", color="C1", label="same + alchemical symmetry"
-# )
-# plt.yticks((40, 60, 80, 100, 200, 400, 800), (40, 60, 80, 100, 200, 400, 800))
-# plt.xticks(xs, xs)
-# plt.ylabel("meV / atom")
-# plt.legend()
-# plt.xlabel("Training set size")
-# %%
+    
