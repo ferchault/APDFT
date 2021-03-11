@@ -24,10 +24,17 @@ y_naphthalene_geom = [1.0235497951507568, 1.0211069583892822, 1.0270884037017822
 x_naphthalene_graph = [2.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 5.0, 6.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 3.0, 4.0, 5.0, 5.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
 y_naphthalene_graph = [0.05203843116760254, 0.05348372459411621, 0.04729747772216797, 0.051151275634765625, 0.07581067085266113, 0.05625557899475098, 0.07397937774658203, 0.06010174751281738, 0.09139895439147949, 0.13733696937561035, 0.1364130973815918, 0.13741540908813477, 0.10596179962158203, 0.07405471801757812, 0.11819124221801758, 0.11025071144104004, 0.10877394676208496, 0.6441943645477295, 0.6590325832366943, 0.7389793395996094, 0.8975772857666016, 2.0682294368743896, 0.8055605888366699, 1.2277007102966309, 0.863776445388794, 0.8683903217315674, 1.2457799911499023, 1.20969820022583, 2.1372721195220947, 3.4326844215393066]
 
+x_phenanthrene_geom = [2.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 5.0, 6.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 3.0, 4.0, 5.0, 5.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+y_phenanthrene_geom =
+x_phenanthrene_graph = [2.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 5.0, 6.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 3.0, 4.0, 5.0, 5.0, 6.0, 6.0, 6.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+y_phenanthrene_graph = [7.096792459487915, 6.938782453536987, 6.856269359588623,7.269430160522461, 8.23498821258545, 7.967238664627075, 7.9096856117248535, 7.3395280838012695, 17.085789680480957, 107.07211780548096, 108.12050366401672, 108.02251744270325, 63.102222204208374, 212.98513770103455, 1401.785100698471, 1410.2719943523407, 1411.6955749988556, 426.9249300956726, 431.1462433338165, 471.003466129303, 522.3381226062775, 2730.2871599197388, 644.0184328556061, 1409.4556698799133, 10218.455395936966]
+
 x_benzene_geom,y_benzene_geom, yerr_benzene_geom = unique_average(x_benzene_geom, y_benzene_geom)
 x_benzene_graph,y_benzene_graph, yerr_benzene_graph = unique_average(x_benzene_graph, y_benzene_graph)
 x_naphthalene_geom,y_naphthalene_geom, yerr_naphthalene_geom = unique_average(x_naphthalene_geom, y_naphthalene_geom)
 x_naphthalene_graph,y_naphthalene_graph, yerr_naphthalene_graph = unique_average(x_naphthalene_graph, y_naphthalene_graph)
+x_phenanthrene_geom,y_phenanthrene_geom, yerr_phenanthrene_geom = unique_average(x_phenanthrene_geom, y_phenanthrene_geom)
+x_phenanthrene_graph,y_phenanthrene_graph, yerr_phenanthrene_graph = unique_average(x_phenanthrene_graph, y_phenanthrene_graph)
 
 fig, ax = plt.subplots()
 ax.scatter(x_benzene_geom, y_benzene_geom, marker='x', color='#1f77b4', label='geometry-based')
@@ -36,9 +43,8 @@ ax.scatter(x_benzene_graph, y_benzene_graph, marker='x', color='#ff7f0e', label=
 plt.errorbar(x_benzene_graph, y_benzene_graph, yerr= yerr_benzene_graph, fmt='none', capsize=4)
 ax.set_xticks(range(2,9))
 ax.set_xlim([1.5, 8.7])
-ax.set(xlabel='Total number of transmuted atoms m', ylabel='Time / s',
-       title='Mean computation time of FindAE for benzene (N = 6)')
-ax.grid(which='both')
+ax.set(xlabel='Total number of transmuted atoms m', ylabel='Time / s')
+#ax.grid(which='both')
 plt.yscale('log')
 ax.legend(loc="lower right",framealpha=1, edgecolor='black')
 fig.savefig("benzene.png", dpi=300)
@@ -50,9 +56,8 @@ ax.scatter(x_naphthalene_graph, y_naphthalene_graph, marker='x', color='#ff7f0e'
 plt.errorbar(x_naphthalene_graph, y_naphthalene_graph, yerr= yerr_naphthalene_graph, fmt='none', capsize=4)
 ax.set_xticks(range(2,9))
 ax.set_xlim([1.5, 8.7])
-ax.set(xlabel='Total number of transmuted atoms m', ylabel='Time / s',
-       title='Mean computation time of FindAE for naphthalene (N = 10)')
-ax.grid(which='both')
+ax.set(xlabel='Total number of transmuted atoms m', ylabel='Time / s')
+#ax.grid(which='both')
 plt.yscale('log')
 ax.legend(loc="lower right",framealpha=1, edgecolor='black')
 fig.savefig("naphthalene.png", dpi=300)

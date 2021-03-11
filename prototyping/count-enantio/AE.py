@@ -71,7 +71,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     start_time = time.time()
     #Get rid of all m's with more changes than atoms in the molecule:
     num = 0
-    available_sites = len(np.hstack(graph.equi_sites).ravel())
+    available_sites = len(np.hstack(graph.orbits).ravel())
     while num < len(m_all):
         if np.sum(m_all[num]) > available_sites:
             m_all = np.delete(m_all, num, axis = 0)
@@ -123,8 +123,7 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
         print('Time:', list(times))
 
 #TODOS:
-#Function that gives equi_sites for arbitrary molecule
-#Function that finds AEs from target molecule, not just reference (brute force with close_equi_sites)
+#Function that finds AEs from target molecule, not just reference (brute force with close_orbits)
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 #Optional: Parallelize the for-loop in FindAE
 

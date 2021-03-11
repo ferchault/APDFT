@@ -31,32 +31,32 @@ def sum_formula(array_of_atoms):
 
 def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     #graph is an instance of the MoleAsGraph class
-    #m and dZ are each arrays that include the number and amount of change in nuclear charge
+    #dZ and m are each arrays that include the transmutations and their number
     PathToNauty27r1 = '/home/simon/Desktop/nauty27r1'
     start_time = time.time()
     m = np.array(m)
     dZ = np.array(dZ)
     N_m = len(m)
-    N_dZ = len(dZ) #number of different charge differences = number of colors-1
+    N_dZ = len(dZ) #number of transmutations = number of colors-1
     max_node_number = np.amax(graph.edge_layout)+1
     N = len(np.unique(graph.edge_layout))
     if 0 in dZ:
         raise ValueError("0 not allowed in array dZ")
     if N_dZ < 2:
-        raise ValueError("Number of changes in charge must be at least 2")
+        raisorbitsor("Number of transmutations must be at least 2")
     if N_m != N_dZ:
-        raise ValueError("Number of changes and number of charge values do not match!")
+        raise ValueError("Number of transmutations does not match their number!")
     #Check for overall charge conservation
     if (np.sum(np.multiply(m,dZ)) != 0):
         raise ValueError("Netto change in charge must be 0")
     if N == 1:
-        raise ValueError("Graph needs to have at least 2 atoms.")
+        raise ValueError("Graph needs to have at least 2 vertices.")
     if N != max_node_number:
-        raise ValueError("Enumerate the nodes with integers without omissions")
+        raise ValueError("Enumerate the vertices with integers without omissions")
     if N_dZ != len(np.unique(dZ)):
         raise ValueError("Equal values in multiple entries")
     if N < np.sum(m):
-        raise ValueError("Too less atoms in molecule for sum of to be transmuted atoms.")
+        raise ValueError("Too less vertices in graph for total number of to be transmuted atoms.")
 
     #Use graph-based algorithm nauty27r1; build the string command to be passed to the bash
     #Command for the standard case looks like:
@@ -80,7 +80,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     command += ") print}'"
     output = os.popen(command).read()
     #print(command,"\n")
-    #Color 0 is the standard, colors 1,2,3,etc. are the deviations
+    #Color 0 is the standard, colors 1,2,3,etc. are the transmutations
     #Parse output to an array
     num_lines = output.count('\n')
     graph_config = np.zeros((num_lines),dtype=object)
@@ -95,26 +95,27 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
         graph_config[i] = numbers
 
     '''The parsed array needs to fulfill two things:
-    1) Is the netto charge within equi_sites conserved? Can this be done in vcolg?
-    2) Is the graph not its own alchemical mirror image?
-    This is the same as asking if graph and mirror are isomorphic but can only happen
+    1) Is the netto charge within all orbits conserved? An orbit is the set of all
+    equivalent atoms in the geometry-based method.
+    2) Is the alchemically mirrored graph not itself?
+    This is the same as asking if graph and mirror are isomorphic which can only happen
     if and only if for each pair of m[i],dZ[i] there exists a pair m[j],-dZ[j]
-    that is equal for i != j'''
+    that is equal.'''
 
     #print(graph_config)
     #Answering question one:
     config_num = 0
     while config_num < len(graph_config):
-        for i in range(len(graph.equi_sites)):
+        for i in range(len(graph.orbits)):
             sum = 0
-            for j in graph.equi_sites[i]:
+            for j in graph.orbits[i]:
                 #Avoid getting the last element
                 if graph_config[config_num][j] != 0:
                     sum += dZ[graph_config[config_num][j]-1]
             if sum != 0:
                 graph_config = np.delete(graph_config, config_num, axis = 0)
                 break
-            if i == len(graph.equi_sites)-1:
+            if i == len(graph.orbits)-1:
                 config_num += 1
     #print(graph_config)
     #Prepare some dicts
@@ -126,8 +127,8 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     '''Find out if all those graphs are able to self mirror'''
     self_mirrorable = np.array([-i in dZ for i in dZ]).all()
     if self_mirrorable:
-        '''Use igraph's isomorphic-function to delete graphs which are themselves
-        upon transmutation'''
+        '''Use igraph's isomorphic-function to delete graphs which are isomorphic
+        after transmutation'''
         #Prepare the graph
         g1 = igraph.Graph([tuple(v) for v in graph.edge_layout])
         config_num = 0

@@ -114,13 +114,6 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].'''
 
-    '''Partition allows the changed atoms to be of more than one set of points with
-    identical Coulombic neighborhood.'''
-
-    '''In case that the same number of nuclear charges are increased as they are
-    decreased, the set of AE at the end include their own mirror images. Depending
-    on your input constraints, the returned number has to be halfed!'''
-
     start_time = time.time()
 
     N = len(mole)
@@ -142,11 +135,10 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     for i in range(N):
         CN[i] = round(CN[i],tolerance)
     '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
-    their indices'''
+    their indices in similars'''
     similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
     #print(similars)
-
-    #Delete all similars which include only one atom:
+    #Delete all elements in similars which include only one atom:
     num_similars = 0
     while num_similars < len(similars):
         if len(similars[num_similars])>1:
@@ -156,9 +148,9 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     if len(similars) == 0:
         print("No sets of equivalent atoms found.")
         return 0
-    '''If partitoning is allowed, all of these sites in each set need to be treated
-    simultaneously. Hence, we flatten the array. However, we later need to make sure
-    that only each set fulfills netto charge change = 0. This is why set is Initalized'''
+    '''All of these sites in each set need to be treated simultaneously. Hence, we
+    flatten the array. However, we later need to make sure that only each set fulfills
+    netto charge conservation. This is why set is initalized'''
     set = np.copy(similars)
     similars = [np.concatenate((similars).tolist())]
     '''This is the list of all atoms which can be transmuted simultaneously.
@@ -175,12 +167,12 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
         if np.sum(m) > len(similars[alpha]):
             print('---------------')
-            print("Warning: Number of changing atoms m = %d exceeds the number of alchemically \nsimilar sites in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
-            print('Number of Alchemical Enantiomers from site with index %d: 0' %alpha)
+            print("Warning: Number of to be transmuted atoms m = %d exceeds the number of electronically equivalent \n atoms in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
+            print('Number of Alchemical Enantiomers from set of equivalent atoms with index %d: 0' %alpha)
             print('---------------')
             continue
 
-        '''Now: go through all configurations of changing m atoms of set similars[alpha]
+        '''Now: go through all combinations of transmuting m atoms of set similars[alpha]
         with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
         and only count the unique ones'''
         atomwise_config = np.zeros((num_sites, N_dZ+1), dtype='int') #N_dZ+1 possible states: 0, dZ1, dZ2, ...
@@ -219,7 +211,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             return 0
         if np.min(mole_config) < 0:
             #Check that atoms have not been transmuted to negative charges
-            raise ValueError("Values in dZ lead to negative nuclear charges in alchemically similar sites")
+            raise ValueError("Values in dZ lead to negative nuclear charges in electronically equivalent atoms.")
         #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
         CIM = np.zeros((len(mole_config), 3))
 
@@ -237,7 +229,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             Total_CIM[i][0] = np.copy(temp_mole)
             Total_CIM[i][1] = np.copy(CIM[i])
 
-        '''Now, all possible configurations are obtained; with the following loops,
+        '''Now, all possible combinations are obtained; with the following loops,
         we can get rid of all the spacial enantiomers: Delete all SPACIALLY
         equivalent configurations, i.e. all second, third, etc. occurences of a
         spacial configuration'''
@@ -254,9 +246,9 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
                 Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
         #print(len(Total_CIM))
 
-        '''ALCHEMICALLY symmetric molecules are those which do not transmute
+        '''Alechemical enantiomers are those molecules which do not transmute
         into themselves under the mirroring in charge, i.e. if one adds the
-        inverted (minus sign) configuration of charge changes to twice the molecule,
+        inverted configuration of transmutations to twice the molecule,
         its CIM has changed.'''
 
         config_num = 0
@@ -277,7 +269,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             else:
                 config_num += 1
 
-        '''All is done. Now, print the remaining atoms in sites and their contribution
+        '''All is done. Now, print the remaining configurations and their contribution
         to count.'''
         count += len(Total_CIM)
 
@@ -317,7 +309,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
                 #ax.set_ylabel('Y')
                 #ax.set_zlabel('Z')
             plt.show()
-            print('Number of molecules to be considered Alchemical Enantiomers from site with index %d: %d' %(alpha,len(Total_CIM)))
+            print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
             print('---------------')
         #Clear temp_mole
         temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
