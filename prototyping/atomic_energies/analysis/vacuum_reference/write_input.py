@@ -15,7 +15,8 @@ import os
 #         f.writelines(file)
         
 def write_input_file(path, c):
-    file = ['basis def2-qzvp\n', 'intg_method simps\n']
+    #file = ['basis def2-qzvp\n', 'intg_method simps\n']
+    file = ['basis def2-qzvp\n']
     file.append(f'structure_file {c}.xyz')
     filepath = os.path.join(path, 'input_parameters')
     with open(filepath, 'w') as f:
