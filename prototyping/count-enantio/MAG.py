@@ -1,24 +1,38 @@
 import numpy as np
 import igraph
 from inertiacount import Coulomb_neighborhood, array_compare
+import os
+from pysmiles import read_smiles
 
 tolerance = 3
 
 class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry, orbits=None):
+        '''Caution: For all methods so far, the indexing of the geometry and the graphs (i.e. all
+        remaining attributes) does not have to match! Keep this in mind: They may have different
+        indices!!!!!!'''
         self.name = name
         self.edge_layout = np.array(edge_layout, dtype=object) #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
-        self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which index number
+        self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which vertex number
         self.geometry = geometry #The usual xyz representation
-        self.number_atoms = len(np.unique(self.edge_layout))
-        self.max_index = np.amax(self.edge_layout)
+        if edge_layout != None:
+            self.number_atoms = len(np.unique(self.edge_layout))
+        elif elements_at_index != None:
+            self.number_atoms = len(self.elements_at_index)
+        else:
+            print(self, "is underdefined.")
+        if len(self.edge_layout) != 0:
+            self.max_index = np.amax(self.edge_layout)
+        else:
+            self.max_index = 0
         if self.number_atoms != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
         if orbits != None:
-            #Orbits can be forced specifically!
+            #Specific orbits can be forced!
             self.orbits = np.array(orbits, dtype=object) # orbits = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
-        elif geometry != None:
-            self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
+        #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
+        #elif geometry != None:
+        #    self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
         elif edge_layout != None:
             self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
         else:
@@ -58,9 +72,40 @@ class MoleAsGraph:
                 similars = np.delete(similars, num_similars, axis = 0)
         return similars
 
-    def close_orbits(self):
-        print('Under construction')
+def parse_QM9toMAG(input_path, input_file):
+    '''MoleAsGraph instance returned'''
+    #check if file is present
+    if os.path.isfile(input_path+input_file):
+        #open text file in read mode
+        f = open(input_path+input_file, "r")
+        data = f.read()
+        f.close()
+    #Get the name of the molecule
+    MAG_name = input_file.split('.')[0]
+    N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+    #Get the geomeztry of the molecule
+    mole = np.array([['C', (1,2,3)]], dtype=object) #Initalize array for molecule (geometric information)
+    mole = np.delete(mole, 0, axis=0)
+    N_heavyatoms = N
+    for i in range(2,N+2): #get the atoms and their coordinates
+        line = data.splitlines(False)[i]
+        if line.split('\t')[0] == 'H':
+            N_heavyatoms -= 1
+            continue
+        else:
+            symbol = line.split('\t')[0]
+            x = float(line.split('\t')[1].strip())
+            y = float(line.split('\t')[2].strip())
+            z = float(line.split('\t')[3].strip())
+            mole = np.append(mole, np.array([[symbol,(x,y,z)]],dtype=object), axis=0)
+    #Get the edges of the molecule as a graph
+    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
+    edge_layout = [list(v) for v in network.edges()]
+    elements_at_index = [v[1] for v in network.nodes(data='element')]
+    return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
+
+#Test-molecules-----------------------------------------------------------------
 anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
                         ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],

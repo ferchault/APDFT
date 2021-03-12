@@ -2,7 +2,7 @@ from nautycount import *
 from inertiacount import *
 from MAG import *
 
-def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
+def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
     '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
     atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
     for dZ_max <= 1 or 2 or 3 up to m_tot = 8 and n = 2 and 3'''
@@ -70,14 +70,15 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     #    print(np.array([dZ_all[i][j]*m_all[i][j] for j in range(len(m_all[i]))]).sum())
     start_time = time.time()
     #Get rid of all m's with more changes than atoms in the molecule:
-    num = 0
-    available_sites = len(np.hstack(graph.orbits).ravel())
-    while num < len(m_all):
-        if np.sum(m_all[num]) > available_sites:
-            m_all = np.delete(m_all, num, axis = 0)
-            dZ_all = np.delete(dZ_all, num, axis = 0)
-        else:
-            num += 1
+    if len(graph.orbits) != 0:
+        num = 0
+        available_sites = len(np.hstack(graph.orbits).ravel())
+        while num < len(m_all):
+            if np.sum(m_all[num]) > available_sites:
+                m_all = np.delete(m_all, num, axis = 0)
+                dZ_all = np.delete(dZ_all, num, axis = 0)
+            else:
+                num += 1
     #Parallelize this for-loop:
     #For plotting: save number of transmuted atoms num_trans and time
     num_trans = np.array([])
@@ -132,19 +133,32 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
         print('Total number of AEs:', total_number)
         print('Number of transmuted atoms:', list(num_trans))
         print('Time:', list(times))
+    if log == 'sparse':
+        print(graph.name + '\t' + str(time.time()-start_time) + '\t' + str(graph.number_atoms) + '\t' + str(total_number))
+    if log == 'quiet':
+        return total_number
+
 
 #TODOS:
 #Function that finds AEs from target molecule, not just reference (brute force with close_orbits)
-#Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
-#Optional: Parallelize the for-loop in FindAE
+#Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python OR take pynauty
+#Optional: Parallelize the for-loop in FindAE_fromref
 
-#FindAE(benzene)
-#FindAE(benzene, method = 'geom')
-#FindAE(naphthalene)
-FindAE(naphthalene, method = 'geom')
-#FindAE(phenanthrene)
-#FindAE(phenanthrene, method = 'geom')
-#FindAE(anthracene)
-#FindAE(anthracene, method = 'geom')
-#FindAE(isochrysene)
-#FindAE(isochrysene, method = 'geom')
+#FindAE_fromref(benzene, log = 'quiet')
+#FindAE_fromref(benzene, method = 'geom', log = 'quiet')
+#FindAE_fromref(naphthalene)
+#FindAE_fromref(naphthalene, method = 'geom')
+#FindAE_fromref(phenanthrene)
+#FindAE_fromref(phenanthrene, method = 'geom')
+#FindAE_fromref(anthracene)
+#FindAE_fromref(anthracene, method = 'geom')
+#FindAE_fromref(isochrysene)
+#FindAE_fromref(isochrysene, method = 'geom')
+
+with open('QM9_log.txt', 'a') as f:
+    sys.stdout = f # Change the standard output to the created file
+    #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
+    for i in range(4,10000):
+        pos = '000000'[:(6-len(str(i)))] + str(i)
+        FindAE_fromref(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+    sys.stdout = original_stdout # Reset the standard output to its original value
