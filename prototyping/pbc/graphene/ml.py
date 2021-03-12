@@ -108,8 +108,8 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
     os.environ["OMP_NUM_THREADS"] = "1"
 
     maes = []
-    for outer in range(kouter):
-        print (f"outer {outer}/{kouter}")
+    np.random.seed(42)
+    for outer in tqdm.tqdm(range(kouter)):
         np.random.shuffle(totalidx)
         with shared.SharedMemory(
             {"K": K, "Y": Y, "totalidx": totalidx[:holdoutstart]}, nworkers=os.cpu_count()
@@ -155,8 +155,7 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
                     for ntrain in 2 ** np.arange(6, maxtrainingset + 1).astype(np.int):
                         for fold in range(k):
                             one_case(sigmaidx, lexp, ntrain, k, fold)
-            print ("Hyperparameter optimization")
-            foldresults = pd.DataFrame(sm.evaluate(progress=True))
+            foldresults = pd.DataFrame(sm.evaluate(progress=False))
         
         with shared.SharedMemory(
             {"K": K, "Y": Y, "totalidx": totalidx}, nworkers=os.cpu_count()
@@ -184,26 +183,33 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
                 loc = group.sort_values("mae").iloc[0]
                 ns.append(ntrain)
                 other_case(int(loc.sigmaidx), int(loc.lexp), ntrain, holdoutstart)
-            print ("Build models")
-            maes.append(sm.evaluate(progress=True))
-    return ns, np.average(maes, axis=0)
+            maes.append(sm.evaluate(progress=False))
+    return ns, np.average(maes, axis=0), np.std(maes, axis=0)
 
 if __name__ == "__main__":
     logfiles = [f"{BASEDIR}/{_}/OUTCAR" for _ in range(1, LIMIT + 1)]
     energies = np.array([read_one_log(_) for _ in logfiles])
     molids = range(1, LIMIT + 1)
+
+    repname = sys.argv[1]
+    print (f"running {repname}")
+
     with shared.SharedMemory({}, nworkers=os.cpu_count()) as sm:
 
         @sm.register
-        def load_rep(molid):
-            return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=bool(sys.argv[1]))
+        def load_rep(molid, repname):
+            if repname == 'aCM':
+                return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
+            if repname == 'aCMs':
+                return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
+            raise NotImplementedError()            
 
         for i in molids:
-            load_rep(i)
+            load_rep(i, repname)
 
         print ("Build representations")
         reps = sm.evaluate(progress=True)
         reps = np.array(reps)
     q = get_KRR_learning_curve_holdout(reps, energies, 10, kouter=50, holdoutshare=0.15)
     print (q)
-    
+
