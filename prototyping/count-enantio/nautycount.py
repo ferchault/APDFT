@@ -40,6 +40,9 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     N_dZ = len(dZ) #number of transmutations = number of colors-1
     max_node_number = np.amax(graph.edge_layout)+1
     N = len(np.unique(graph.edge_layout))
+    if len(graph.orbits) == 0:
+        #There are no orbits, so there are no AE
+        return 0
     if 0 in dZ:
         raise ValueError("0 not allowed in array dZ")
     if N_dZ < 2:

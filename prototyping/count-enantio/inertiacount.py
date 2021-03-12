@@ -105,8 +105,6 @@ def sum_formula(array_of_atoms):
     return formula
 
 def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
-    if mole == None:
-        raise ValueError("Variable 'mole' must not be 'None'")
     m = np.array(m)
     dZ = np.array(dZ)
     N_m = len(m)

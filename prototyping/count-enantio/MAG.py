@@ -44,11 +44,17 @@ class MoleAsGraph:
         else:
             return self.elements_at_index(site_number)
 
+
+
+
+
+
     def get_orbits_from_graph(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
         bws = [round(g.betweenness(vertices=i),tolerance) for i in range(self.number_atoms)]
         similars = np.array([np.where(bws == i)[0] for i in np.unique(bws)],dtype=object)
+        print(similars)
         #Delete all sets of equivalent atoms which include only one atom:
         num_similars = 0
         while num_similars < len(similars):
@@ -57,6 +63,11 @@ class MoleAsGraph:
             else:
                 similars = np.delete(similars, num_similars, axis = 0)
         return similars
+
+
+
+
+
 
     def get_equi_atoms_from_geom(self):
         CN = Coulomb_neighborhood(self.geometry)
@@ -80,6 +91,9 @@ def parse_QM9toMAG(input_path, input_file):
         f = open(input_path+input_file, "r")
         data = f.read()
         f.close()
+    else:
+        print('File', input_file, 'not found.')
+        return 0
     #Get the name of the molecule
     MAG_name = input_file.split('.')[0]
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
@@ -139,3 +153,8 @@ phenanthrene = MoleAsGraph( 'Phenanthrene',
                             ['C', (0,2,-0.8660254037844386467637231707)], ['C', (0,1,-0.8660254037844386467637231707)], ['C', (0,0.5,0)],
                             ['C', (0,0.5,2*0.8660254037844386467637231707)], ['C', (0,-0.5,2*0.8660254037844386467637231707)], ['C', (0,-1,0.8660254037844386467637231707)], ['C', (0,-0.5,0)],
                             ['C', (0,-2,0.8660254037844386467637231707)], ['C', (0,-2.5,0)], ['C', (0,-2,-0.8660254037844386467637231707)], ['C', (0,-1,-0.8660254037844386467637231707)]])
+
+heptagon = MoleAsGraph('Heptagon',
+                        [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]],
+                        ['C','C','C','C','C','C','C'],
+                        None)
