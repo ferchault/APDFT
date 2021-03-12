@@ -273,15 +273,6 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         to count.'''
         count += len(Total_CIM)
 
-        if chem_formula == True:
-            random_config = np.zeros((N))
-            pos = 0
-            for i in range(len(m)):
-                for j in range(m[i]):
-                    random_config[pos] = dZ[i]
-                    pos += 1
-            print(sum_formula([inv_elements[elements[mole[j][0]]+random_config[j]] for j in range(N)]))
-
         if debug == True:
             print('---------------')
             print("Time:", (time.time() - start_time),"s")

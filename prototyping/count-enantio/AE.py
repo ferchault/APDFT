@@ -83,40 +83,51 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
     num_trans = np.array([])
     times = np.array([])
     total_number = 0
+    log_name = graph.name + '_' + method + ".txt"
     if log == True:
-        log_name = graph.name + '_' + method + ".txt"
         with open(log_name, 'w') as f:
             sys.stdout = f # Change the standard output to the created file
             print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
-            for i in range(len(m_all)):
-                m_time = time.time()
-                if method == 'graph':
-                    x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-                if method == 'geom':
-                    x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-                num_trans = np.append(num_trans, np.sum(m_all[i]))
-                times = np.append(times, time.time()-m_time)
+            sys.stdout = original_stdout # Reset the standard output to its original value
+    if log == False:
+        print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
+
+    for i in range(len(m_all)):
+        random_config = np.zeros((graph.number_atoms))
+        pos = 0
+        for j in range(len(m_all[i])):
+            for k in range(m_all[i][j]):
+                random_config[pos] = dZ_all[i][j]
+                pos += 1
+        chem_form = str(sum_formula([inv_elements[elements[graph.elements_at_index[v]]+random_config[v]] for v in range(graph.number_atoms)]))
+        m_time = time.time()
+        if method == 'graph':
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+        if method == 'geom':
+            x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+        if log == True:
+            with open(log_name, 'a') as f:
+                sys.stdout = f # Change the standard output to the created file
+                print(chem_form)
                 print('Time:', time.time()-m_time)
                 print(x)
-                total_number += x
+                sys.stdout = original_stdout # Reset the standard output to its original value
+        if log == False:
+            print(chem_form)
+            print('Time:', time.time()-m_time)
+            print(x)
+        num_trans = np.append(num_trans, np.sum(m_all[i]))
+        times = np.append(times, time.time()-m_time)
+        total_number += x
+    if log == True:
+        with open(log_name, 'a') as f:
+            sys.stdout = f # Change the standard output to the created file
             print('Total time:', time.time()-start_time)
             print('Total number of AEs:', total_number)
             print('Number of transmuted atoms:', list(num_trans))
             print('Time:', list(times))
             sys.stdout = original_stdout # Reset the standard output to its original value
-    else:
-        print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
-        for i in range(len(m_all)):
-            m_time = time.time()
-            if method == 'graph':
-                x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-            if method == 'geom':
-                x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-            num_trans = np.append(num_trans, np.sum(m_all[i]))
-            times = np.append(times, time.time()-m_time)
-            print('Time:', time.time()-m_time)
-            print(x)
-            total_number += x
+    if log == False:
         print('Total time:', time.time()-start_time)
         print('Total number of AEs:', total_number)
         print('Number of transmuted atoms:', list(num_trans))
@@ -127,9 +138,9 @@ def FindAE(graph, dZ_max = 3, log = True, method = 'graph'):
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 #Optional: Parallelize the for-loop in FindAE
 
-FindAE(benzene)
-FindAE(benzene, method = 'geom')
-FindAE(naphthalene)
+#FindAE(benzene)
+#FindAE(benzene, method = 'geom')
+#FindAE(naphthalene)
 FindAE(naphthalene, method = 'geom')
 #FindAE(phenanthrene)
 #FindAE(phenanthrene, method = 'geom')

@@ -145,15 +145,4 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
         for i in range(count):
             x = [inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[i][j]]] for j in range(N)]
             print(str(sum_formula(x)) + ": " + str(x))
-    if chem_formula == True:
-        if count == 0:
-            random_config = np.zeros((N))
-            pos = 0
-            for i in range(len(m)):
-                for j in range(m[i]):
-                    random_config[pos] = dZ[i]
-                    pos += 1
-            print(str(sum_formula([inv_elements[elements[graph.elements_at_index[j]]+random_config[j]] for j in range(N)])))
-        else:
-            print(str(sum_formula([inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[0][j]]] for j in range(N)])))
     return count

@@ -15,6 +15,7 @@ class MoleAsGraph:
         if self.number_atoms != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
         if orbits != None:
+            #Orbits can be forced specifically!
             self.orbits = np.array(orbits, dtype=object) # orbits = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
         elif geometry != None:
             self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
