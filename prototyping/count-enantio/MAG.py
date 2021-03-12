@@ -52,6 +52,9 @@ class MoleAsGraph:
     def get_orbits_from_graph(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
+        #THIS DOES NOT WHAT IT SHOULD DO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        print(g.get_automorphisms_vf2())
+        '''
         bws = [round(g.betweenness(vertices=i),tolerance) for i in range(self.number_atoms)]
         similars = np.array([np.where(bws == i)[0] for i in np.unique(bws)],dtype=object)
         print(similars)
@@ -63,7 +66,7 @@ class MoleAsGraph:
             else:
                 similars = np.delete(similars, num_similars, axis = 0)
         return similars
-
+        '''
 
 
 

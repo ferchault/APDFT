@@ -148,7 +148,7 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
 #Optional: Parallelize the for-loop in FindAE_fromref
 
 #FindAE_fromref(heptagon, log='sparse')
-print(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_002430.xyz').get_orbits_from_graph())
+parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_002430.xyz').get_orbits_from_graph()
 #FindAE_fromref(benzene, log = 'quiet')
 #FindAE_fromref(benzene, method = 'geom', log = 'quiet')
 #FindAE_fromref(naphthalene)
@@ -159,7 +159,7 @@ print(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_002430.xyz').get
 #FindAE_fromref(anthracene, method = 'geom')
 #FindAE_fromref(isochrysene)
 #FindAE_fromref(isochrysene, method = 'geom')
-
+'''
 with open('QM9_log.txt', 'a') as f:
     #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
     for i in range(4,10001):
@@ -168,3 +168,4 @@ with open('QM9_log.txt', 'a') as f:
         FindAE_fromref(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(pos)
+'''
