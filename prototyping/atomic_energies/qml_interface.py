@@ -15,6 +15,25 @@ import qml.fchl
 import numpy as np
 import sklearn.model_selection as sk
 
+def alchpot_lam1(program):
+    files_alch = []
+    if program == 'cpmd':
+        path = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/paths_lam1.txt'
+    elif program == 'pyscf':
+        path = '/home/misa/projects/Atomic-Energies/data/vacuum_reference/qm9_data/alchpots_lam1.txt'
+    with open(path, 'r') as f:
+        for l in f:
+            if not 'dsgdb9nsd_000829' in l:
+                files_alch.append(l.strip('\n'))
+    labels = []
+    for p in files_alch:
+        if program == 'pyscf':
+            labels.extend(np.load(p))
+        elif program == 'cpmd':
+            data_full = np.loadtxt(p)
+            labels.extend(data_full[:,-1]) # alchpot is the last column
+    alch_pots = np.array(labels)
+    return(alch_pots)
 
 def crossvalidate(reps, labels, tr_size, sigma, lam_val, num_cv):
     errors = []

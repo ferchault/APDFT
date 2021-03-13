@@ -37,7 +37,7 @@ class CUBE(object):
         for i in range(self.natoms):
             tkns = f.readline().split()
             self.atoms.append([float(tkns[0]), float(tkns[2]), float(tkns[3]), float(tkns[4])])
-          
+        
         self.atoms = np.array(self.atoms)
         
         self.data = np.zeros((self.NX,self.NY,self.NZ))
@@ -98,6 +98,10 @@ class CUBE(object):
         z_coords = np.linspace(self.origin[2], l_z-self.Z[2], self.NZ)
         # create gridpoints
         meshgrid = np.meshgrid(x_coords, y_coords, z_coords, indexing='ij')
+        #if unit == 'Ang':
+        #for i, g in enumerate(meshgrid):
+         #   tmp = g*Bohr
+          #  meshgrid[i] = tmp
         return(meshgrid)
     
     def get_hmatrix(self):
