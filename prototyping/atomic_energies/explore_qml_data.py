@@ -18,6 +18,10 @@ import os
 from ase import Atoms
 from ase.visualize import view
 
+from rdkit import Chem
+from rdkit.Chem import rdDepictor
+from rdkit.Chem.Draw import rdMolDraw2D
+
 ###############################################################################
 ###                                I/O-functions
 ###############################################################################
@@ -127,19 +131,57 @@ def show(compound, viewer='Avogadro'):
     shows molecular geometry in Avogadro
     """
     com = Atoms(positions=compound.coordinates, symbols=compound.atomtypes)
-    view(com, viewer=viewer)
+    view(com)
     
+def moltosvg(mol, molSize = (300,300), kekulize = True):
+    """
+    show structure of rdkit mol object
+    """
+    
+    mc = Chem.Mol(mol.ToBinary())
+    if kekulize:
+        try:
+            Chem.Kekulize(mc)
+        except:
+            mc = Chem.Mol(mol.ToBinary())
+    if not mc.GetNumConformers():
+        rdDepictor.Compute2DCoords(mc)
+    drawer = rdMolDraw2D.MolDraw2DSVG(molSize[0],molSize[1])
+    drawer.DrawMolecule(mc)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+    return svg.replace('svg:','')
+
+def mol_with_atom_index(mol):
+    for atom in mol.GetAtoms():
+        atom.SetAtomMapNum(atom.GetIdx())
+    return mol
+
 ###############################################################################
 ###                                other
 ###############################################################################
 
-def shift2center(coordinates_initial, centroid_final):
+def get_charge_neighbours(mol):
     """
-    shifts set of coordinates so that centroid is at centroid_final
+    returns the nuclear charge of the bonding partners for all atoms in mol
+    if mol has hydrogens added, also their neighbours will be considered
     """
-    centroid_initial = np.mean(coordinates_initial, axis=0)
-    shift = centroid_final - centroid_initial
-    return(coordinates_initial+shift)
+    charge_neighbours = []
+    chN = []
+    chH = []
+    for atom in mol.GetAtoms():
+        degree = atom.GetTotalDegree() # number of binding partners
+        neighbors = atom.GetNeighbors()
+        charges_neighbors = 0
+        for n in neighbors:
+            charges_neighbors += n.GetAtomicNum()
+        chN.append(charges_neighbors)
+        charge_H = degree - len(neighbors) # number of hydrogens bonded that are not explicit; is equal to charge of implicit hydrogens
+        chH.append(charge_H)
+        charge = (charges_neighbors + charge_H)
+        charge_neighbours.append(charge)
+    return(charge_neighbours)  
+
 
 def get_num_val_elec(nuclear_charges):
     """
@@ -232,3 +274,10 @@ def get_property(path, prop):
     else:
         raise Exception("Unknown Property")
 
+def shift2center(coordinates_initial, centroid_final):
+    """
+    shifts set of coordinates so that centroid is at centroid_final
+    """
+    centroid_initial = np.mean(coordinates_initial, axis=0)
+    shift = centroid_final - centroid_initial
+    return(coordinates_initial+shift)
