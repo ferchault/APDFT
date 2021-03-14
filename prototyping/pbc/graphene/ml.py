@@ -14,7 +14,7 @@ import contextshare as shared
 #%%
 
 BASEDIR = "/data/guido/graphene-BN/64/up"
-LIMIT = 2500
+LIMIT = 250
 
 
 def read_one_log(filename):
@@ -175,7 +175,7 @@ def build_rep_static_order(poscar):
     coords = []
     for scaledpos in poslines[8:]:
         parts = scaledpos.strip().split()
-        coords.append(float(parts[0]), float(parts[1]))
+        coords.append((float(parts[0]), float(parts[1])))
     coords = np.array(coords)
     order = np.lexsort((coords[:, 0], coords[:, 1]))
 
@@ -330,5 +330,9 @@ if __name__ == "__main__":
         print("Build representations")
         reps = sm.evaluate(progress=True)
         reps = np.array(reps)
-    q = get_KRR_learning_curve_holdout(reps, energies, 10, kouter=10, holdoutshare=0.15)
-    print(q)
+    ns, maes, stddevs = get_KRR_learning_curve_holdout(
+        reps, energies, 10, kouter=10, holdoutshare=0.15
+    )
+    print("N " + " ".join([str(_) for _ in ns]))
+    print("M " + " ".join([str(_) for _ in maes]))
+    print("S " + " ".join([str(_) for _ in stddevs]))
