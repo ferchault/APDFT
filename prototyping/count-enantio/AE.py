@@ -159,9 +159,9 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
 #FindAE_fromref(isochrysene)
 #FindAE_fromref(isochrysene, method = 'geom')
 
-with open('QM9_log05.txt', 'a') as f:
+with open('QM9_log07.txt', 'a') as f:
     #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
-    for i in range(40000,50000):
+    for i in range(60000,70000):
         pos = '000000'[:(6-len(str(i)))] + str(i)
         sys.stdout = f # Change the standard output to the created file
         FindAE_fromref(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
