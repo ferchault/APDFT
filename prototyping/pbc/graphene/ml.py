@@ -153,10 +153,11 @@ def build_rep_global(poscar, symmetrize=False):
         cm_up = _get_cm(coords, Zs, hmat)
         cm_dn = _get_cm(coords, 12 - Zs, hmat)
 
-        cm = np.array([fn(cm_up[i], cm_dn[i]) for i in range(128)])
-        norms = np.linalg.norm(cm, axis=0)
+        cm = [fn(cm_up[i], cm_dn[i]) for i in range(128)]
+
+        norms = np.array([np.linalg.norm(_) for _ in cm])
         order = np.argsort(norms)
-        cm = cm[np.ix_(order, order)]
+        cm = np.array(cm)[np.ix_(order, order)]
         return cm[np.triu_indices(128)]
     else:
         cm = _get_cm(coords, Zs, hmat)
@@ -165,8 +166,28 @@ def build_rep_global(poscar, symmetrize=False):
         cm = cm[np.ix_(order, order)]
         return cm[np.triu_indices(128)]
 
-    # dZ = (Zs - 6)[order]
-    # return np.outer(dZ, dZ)[np.triu_indices(128)]
+
+def build_rep_static_order(poscar):
+    # input
+    with open(poscar) as fh:
+        poslines = fh.readlines()
+
+    coords = []
+    for scaledpos in poslines[8:]:
+        parts = scaledpos.strip().split()
+        coords.append(float(parts[0]), float(parts[1]))
+    coords = np.array(coords)
+    order = np.lexsort((coords[:, 0], coords[:, 1]))
+
+    # nuclear charges
+    elements = poslines[5].strip().split()
+    counts = [int(_) for _ in poslines[6].strip().split()]
+    Zs = []
+    for element, count in zip(elements, counts):
+        Zs += [{"B": 5, "C": 6, "N": 7}[element]] * count
+    Zs = np.array(Zs)[order] - 6
+
+    return np.outer(Zs, Zs)[np.triu_indices(128)]
 
 
 def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshare=0.2):
@@ -299,6 +320,8 @@ if __name__ == "__main__":
                 return build_rep_global(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
             if repname == "CMs":
                 return build_rep_global(f"{BASEDIR}/{molid}/POSCAR", symmetrize=True)
+            if repname == "dZs":
+                return build_rep_static_order(f"{BASEDIR}/{molid}/POSCAR")
             raise NotImplementedError()
 
         for i in molids:
