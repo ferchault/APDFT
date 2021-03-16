@@ -72,18 +72,31 @@ def get_CDF(bin_size = 50):
     return binning, num_AE
 
 bin_size = 50
+color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
 N, times, SD = get_times()
 binning, num_AE = get_CDF(bin_size=bin_size)
 num_AE *= 100
 #print(binning, num_AE)
-plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
-plt.ylabel('Percentage of AEs among all molecules with 9 heavy atoms')
-plt.set_xlim([0,1000])
+fig, ax = plt.subplots()
 for i in N:
-    plt.bar(binning,num_AE[i-2], width=bin_size)
+    ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
+    ax.set_ylabel('Percentage of AEs among all molecules with'+ str(i) +'heavy atoms')
+    ax.set_ylim([0,105])
+    ax.bar(binning[:20],num_AE[i-2][:20], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     #plt.xscale('log')
-    plt.savefig('CDF_AE_N'+str(i)+'.png', dpi=300)
+    ax.legend(loc="upper right",framealpha=1, edgecolor='black')
+    fig.savefig('CDF_AE_N'+str(i)+'.png', dpi=300)
+    ax.clear()
+
+plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
+plt.ylabel('Percentage of AEs among all molecules with'+ str(i) +'heavy atoms')
+plt.ylim([0,105])
+for i in N:
+    plt.bar(binning[:20],num_AE[i-2][:20], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
+    #plt.xscale('log')
+    plt.legend(loc="upper right",framealpha=1, edgecolor='black')
+    plt.savefig('CDF_AE.png', dpi=300)
 
 #Plot the times
 fig, ax = plt.subplots()
