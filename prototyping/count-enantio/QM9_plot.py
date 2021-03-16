@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 14})
 import numpy as np
 import os
 import sys
@@ -12,8 +13,8 @@ def get_times():
     times = np.zeros((len(N))) #Times of calculating for N atoms
     times_variance = np.zeros((len(N)))
     max_time = 0
-    for log_num in range(1,9):
-        f = open('QM9_log0'+ str(log_num) +'.txt', 'r')
+    for log_num in range(1,11):
+        f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -37,7 +38,7 @@ def get_CDF(bin_size = 50):
     N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
     num_moles = np.zeros((8), dtype='int') #Number of times a molecule with N atoms occurs
     max = 0
-    for log_num in range(1,8):
+    for log_num in range(1,11):
         f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
@@ -81,7 +82,7 @@ num_AE *= 100
 fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
-    ax.set_ylabel('Percentage of AEs among all molecules with'+ str(i) +'heavy atoms')
+    ax.set_ylabel('Percentage of AEs among all molecules')
     ax.set_ylim([0,105])
     ax.bar(binning[:20],num_AE[i-2][:20], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     #plt.xscale('log')
