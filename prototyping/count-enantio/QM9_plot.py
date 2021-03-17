@@ -5,6 +5,8 @@ import os
 import sys
 
 np.set_printoptions(threshold=sys.maxsize)
+last_log_num = 4
+
 
 #Initalize all variables:
 def get_times():
@@ -13,7 +15,7 @@ def get_times():
     times = np.zeros((len(N))) #Times of calculating for N atoms
     times_variance = np.zeros((len(N)))
     max_time = 0
-    for log_num in range(1,11):
+    for log_num in range(1,last_log_num+1):
         f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
@@ -38,7 +40,7 @@ def get_CDF(bin_size = 50):
     N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
     num_moles = np.zeros((8), dtype='int') #Number of times a molecule with N atoms occurs
     max = 0
-    for log_num in range(1,11):
+    for log_num in range(1,last_log_num+1):
         f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
@@ -56,7 +58,7 @@ def get_CDF(bin_size = 50):
     #Initalize array to save the binning; for each N there are num_bin bins
     num_AE = np.zeros((len(N),num_bin), dtype=object)
     #Go through all files again, get number of AEs per bin per N
-    for log_num in range(1,9):
+    for log_num in range(1,last_log_num+1):
         f = open('QM9_log0'+ str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
@@ -101,7 +103,7 @@ ax.set_ylim([0,18])
 ax.bar(binning,num_AE[7], width=bin_size, label='N = 9', alpha=0.5, edgecolor=color[7], facecolor=color[7], joinstyle='miter')
 #plt.xscale('log')
 ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-fig.savefig('CDF_AE_N9_2.png', dpi=300)
+fig.savefig('CDF_AE_N9_zoomed.png', dpi=300)
 ax.clear()
 
 

@@ -107,7 +107,7 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
         chem_form = str(sum_formula([inv_elements[elements[graph.elements_at_index[v]]+random_config[v]] for v in range(graph.number_atoms)]))
         m_time = time.time()
         if method == 'graph':
-            x = nautyAE(graph, m_all[i], dZ_all[i], debug= True, chem_formula = True)
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
         if method == 'geom':
             x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
         if log == True:
