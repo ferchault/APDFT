@@ -3,8 +3,8 @@ import igraph
 from inertiacount import Coulomb_neighborhood, array_compare
 import os
 from pysmiles import read_smiles
+from config import *
 
-tolerance = 3
 
 class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry, orbits=None):
@@ -47,18 +47,31 @@ class MoleAsGraph:
     def get_orbits_from_graph(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
-        #THIS DOES NOT WHAT IT SHOULD DO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        bws = [round(g.betweenness(vertices=i),tolerance) for i in range(self.number_atoms)]
-        similars = np.array([np.where(bws == i)[0] for i in np.unique(bws)],dtype=object)
-        #print(similars)
-        #Delete all sets of equivalent atoms which include only one atom:
-        num_similars = 0
-        while num_similars < len(similars):
-            if len(similars[num_similars])>1:
-                num_similars += 1
-            else:
-                similars = np.delete(similars, num_similars, axis = 0)
-        return similars
+        #Get all automorphisms with colored vertices according to self.elements_at_index
+        automorphisms = g.get_automorphisms_vf2(color=[elements[self.elements_at_index[i]] for i in range(self.number_atoms)])
+        #Get rid of all molecules without any orbits (the identity does not count):
+        if len(automorphisms) == 1:
+            return [[]]
+        else:
+            '''Any element of the list of vertices = set of elements, that moves along
+            a fixed path upon the group acting on the set is part of an orbit. Since we know
+            all allowed automorphisms, we can check for all the possible vertices at positions
+            that are reached through the permutations = automorphisms'''
+            #print('----------------')
+            #print(self.name)
+            #print(automorphisms)
+            #print('----------------')
+            similars = np.array(np.zeros(self.number_atoms), dtype=object)
+            for i in range(self.number_atoms):
+                orbit = []
+                for j in range(len(automorphisms)):
+                    orbit = np.append(orbit, automorphisms[j][i])
+                orbit = np.unique(orbit)
+                #print(orbit)
+                similars[i] = orbit
+            #Unique the list:
+            unique_similars = [list(x) for x in set(tuple(x) for x in similars)]
+            print(unique_similars)
 
     def get_equi_atoms_from_geom(self):
         CN = Coulomb_neighborhood(self.geometry)
@@ -111,7 +124,7 @@ def parse_QM9toMAG(input_path, input_file):
 
 
 #Test-molecules-----------------------------------------------------------------
-'''anthracene = MoleAsGraph('Anthracene',
+anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
                         ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
                         [['C', (0,0,0.5)], ['C', (0,0.8660254037844386467637231707,1)], ['C', (0,2*0.8660254037844386467637231707,0.5)],
@@ -148,4 +161,4 @@ phenanthrene = MoleAsGraph( 'Phenanthrene',
 heptagon = MoleAsGraph('Heptagon',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]],
                         ['C','C','C','C','C','C','C'],
-                        None)'''
+                        None)

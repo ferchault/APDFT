@@ -1,6 +1,7 @@
 from nautycount import *
 from inertiacount import *
 from MAG import *
+from config import *
 
 def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
     '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
@@ -106,7 +107,7 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
         chem_form = str(sum_formula([inv_elements[elements[graph.elements_at_index[v]]+random_config[v]] for v in range(graph.number_atoms)]))
         m_time = time.time()
         if method == 'graph':
-            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= True, chem_formula = True)
         if method == 'geom':
             x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
         if log == True:
@@ -142,29 +143,17 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
         return total_number
 
 
-#FindAE_fromref(heptagon, log='sparse')
-#FindAE_fromref(benzene, log = 'quiet')
-#FindAE_fromref(benzene, method = 'geom', log = 'quiet')
-#FindAE_fromref(naphthalene)
-#FindAE_fromref(naphthalene, method = 'geom')
-#FindAE_fromref(phenanthrene)
-#FindAE_fromref(phenanthrene, method = 'geom')
-#FindAE_fromref(anthracene)
-#FindAE_fromref(anthracene, method = 'geom')
-#FindAE_fromref(isochrysene)
-#FindAE_fromref(isochrysene, method = 'geom')
-
-with open('QM9_log07.txt', 'a') as f:
+with open('QM9_log01.txt', 'a') as f:
     #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
-    for i in range(60000,70000):
+    for i in range(4,10000):
         pos = '000000'[:(6-len(str(i)))] + str(i)
         sys.stdout = f # Change the standard output to the created file
-        FindAE_fromref(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+        FindAE_fromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(pos)
 
-#Find 'bad' entires in the logs
-#print(FindAE_fromref(parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_084478.xyz'), log='sparse', dZ_max=2))
+#Testing
+#parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_022079.xyz')
 
 #TODOS:
 #Function that finds AEs from target molecule, not just reference (brute force with close_orbits)

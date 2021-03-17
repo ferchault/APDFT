@@ -65,6 +65,8 @@ def get_CDF(bin_size = 50):
                 num_AE[int(x[2])-2][0] += 1
             else:
                 num_AE[int(x[2])-2][int(float(x[3])/bin_size)+1] += 1
+                if int(x[3]) > 900:
+                    print(x)
         f.close()
     #Normalize the function for percentages
     for i in range(len(N)):
@@ -84,11 +86,24 @@ for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
     ax.set_ylabel('Percentage of AEs among all molecules')
     ax.set_ylim([0,105])
-    ax.bar(binning[:20],num_AE[i-2][:20], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
+    ax.bar(binning[:20], num_AE[i-2][:20], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     #plt.xscale('log')
     ax.legend(loc="upper right",framealpha=1, edgecolor='black')
     fig.savefig('CDF_AE_N'+str(i)+'.png', dpi=300)
     ax.clear()
+
+
+#Large histogram for N = 9
+fig, ax = plt.subplots()
+ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
+ax.set_ylabel('Percentage of AEs among all molecules')
+ax.set_ylim([0,18])
+ax.bar(binning,num_AE[7], width=bin_size, label='N = 9', alpha=0.5, edgecolor=color[7], facecolor=color[7], joinstyle='miter')
+#plt.xscale('log')
+ax.legend(loc="upper right",framealpha=1, edgecolor='black')
+fig.savefig('CDF_AE_N9_2.png', dpi=300)
+ax.clear()
+
 
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
 plt.ylabel('Percentage of AEs among all molecules with'+ str(i) +'heavy atoms')
