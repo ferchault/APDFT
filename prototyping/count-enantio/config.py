@@ -8,6 +8,6 @@ elements = {'Ghost':0,'H':1, 'He':2,
 
 inv_elements = {v: k for k, v in elements.items()}
 
-PathToNauty27r1 = '/home/simon/Desktop/nauty27r1'
+PathToNauty27r1 = '/home/simon/Desktop/nauty27r1/'
 
 PathToQM9XYZ = '/home/simon/Desktop/QM9/XYZ/'

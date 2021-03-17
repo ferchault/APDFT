@@ -71,7 +71,7 @@ class MoleAsGraph:
                 similars[i] = orbit
             #Unique the list:
             unique_similars = [list(x) for x in set(tuple(x) for x in similars)]
-            print(unique_similars)
+            return [list(map(int,i)) for i in unique_similars]
 
     def get_equi_atoms_from_geom(self):
         CN = Coulomb_neighborhood(self.geometry)

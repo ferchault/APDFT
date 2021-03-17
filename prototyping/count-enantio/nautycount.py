@@ -62,7 +62,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
     command = "echo 'n=" + str(N) + ";"
     for i in range(len(graph.edge_layout)):
         command += str(graph.edge_layout[i][0]) +":" + str(graph.edge_layout[i][1]) + ";"
-    command += "' | "+PathToNauty27r1+"/dretog -q | "+PathToNauty27r1+"/vcolg -q -T -m"
+    command += "' | "+PathToNauty27r1+"dretog -q | "+PathToNauty27r1+"vcolg -q -T -m"
     command += str(N_dZ+1)
     command += " | awk '{"
     for i in range(N_dZ):
