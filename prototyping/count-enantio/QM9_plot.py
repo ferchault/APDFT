@@ -6,7 +6,7 @@ import sys
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
-last_log_num = 8
+last_log_num = 9
 bin_size = 30
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 

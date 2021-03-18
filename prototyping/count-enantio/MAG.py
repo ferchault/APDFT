@@ -124,7 +124,7 @@ def parse_QM9toMAG(input_path, input_file):
 
 
 #Test-molecules-----------------------------------------------------------------
-'''anthracene = MoleAsGraph('Anthracene',
+anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
                         ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
                         [['C', (0,0,0.5)], ['C', (0,0.8660254037844386467637231707,1)], ['C', (0,2*0.8660254037844386467637231707,0.5)],
@@ -161,4 +161,4 @@ phenanthrene = MoleAsGraph( 'Phenanthrene',
 heptagon = MoleAsGraph('Heptagon',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]],
                         ['C','C','C','C','C','C','C'],
-                        None)'''
+                        None)
