@@ -6,7 +6,7 @@ import sys
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
-last_log_num = 9
+last_log_num = 10
 bin_size = 30
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
@@ -62,7 +62,7 @@ def get_CDF(bin_size = 50):
     num_AE = np.zeros((len(N),num_bin), dtype=object)
     #Go through all files again, get number of AEs per bin per N
     for log_num in range(1,last_log_num+1):
-        f = open('QM9_log0'+ str(log_num) +'.txt', 'r')
+        f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
