@@ -6,7 +6,7 @@ import sys
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
-last_log_num = 6
+last_log_num = 8
 bin_size = 30
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
@@ -54,6 +54,7 @@ def get_CDF(bin_size = 50):
                 #print(x[0], str(max))
         f.close()
     #print(max)
+    print('Outstanding candidates:')
     #Get number of necessary bins:
     num_bin = int(max/bin_size)+2 #One bin just for the zeros
     binning = np.array(range(0,num_bin))*bin_size
@@ -65,6 +66,7 @@ def get_CDF(bin_size = 50):
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
+            #Fill the bins:
             if int(x[3]) == 0: #0 is a special bin
                 num_AE[int(x[2])-2][0] += 1
             else:
@@ -76,33 +78,40 @@ def get_CDF(bin_size = 50):
     for i in range(len(N)):
         for j in range(num_bin):
             num_AE[i][j] /= num_moles[i]
-    return binning, num_AE
+    return binning, num_AE, num_moles
 
 N, times, SD = get_times()
-binning, num_AE = get_CDF(bin_size=bin_size)
+binning, num_AE, num_moles = get_CDF(bin_size=bin_size)
 num_AE *= 100
 #print(binning, num_AE)
 fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
-    ax.set_ylabel('Percentage of AEs among all molecules')
+    ax.set_ylabel('AEs among all molecules with same N / %')
     ax.set_ylim([0.0012,120])
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
     ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-    fig.savefig('CDF_AE_N'+str(i)+'.png', dpi=300)
+    fig.savefig('CDF_AE_N'+str(i)+'.png', dpi=500)
     ax.clear()
 
-
+#num_moles is needed to rescale the number of AEs depending on their N
+all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
-plt.ylabel('Percentage of AEs among all molecules')
-plt.ylim([0.0012,120])
+plt.ylabel('AEs among all molecules / %')
+plt.ylim([0.001,1.3])
 plt.yscale('log')
-for i in N:
-    plt.bar(binning,num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
-    #plt.xscale('log')
-    plt.legend(loc="upper right",framealpha=1, edgecolor='black')
-    plt.savefig('CDF_AE.png', dpi=300)
+#plt.xscale('log')
+bottom = np.zeros((len(binning[1:])))
+for i in N[1:]: #exclude the 2, because it does not have any AEs
+    #Calculate bottom:
+    plt.bar(binning[1:],num_AE[i-2][1:]*num_moles[i-2]/all_moles, width=bin_size, bottom=bottom, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
+    #Update bottom:
+    #print(bottom)
+    #print(num_AE[i-2][1:]*num_moles[i-2]/all_moles)
+    bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
+    plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
+    plt.savefig('CDF_AE.png', dpi=500)
 
 #Plot the times
 fig, ax = plt.subplots()
@@ -114,7 +123,7 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
-fig.savefig("QM9_times.png", dpi=300)
+fig.savefig("QM9_times.png", dpi=500)
 
 
 #Plot the CDF; make a histogram here

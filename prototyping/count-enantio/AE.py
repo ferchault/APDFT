@@ -4,72 +4,20 @@ from MAG import *
 from config import *
 
 def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
-    '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
-    atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
-    for dZ_max <= 1 or 2 or 3 up to m_tot = 8 and n = 2 and 3'''
-    if dZ_max == 3:
-        m_all = np.array([
-        [1,1],[1,1],[1,1],
-        [2,1],
-        [2,2],[2,2],[2,2],[3,1],
-        [2,3],
-        [3,3],[3,3],[3,3],[2,4],
-        [2,6],[4,4],[4,4],[4,4],
-        [1,1,1],
-        [2,1,1],
-        [1,1,3],[1,2,2],
-        [2,2,2],[1,1,4],[1,2,3],
-        [1,2,5],[1,2,5],[1,3,4],[1,3,4],[2,2,4],[2,3,3]
-        ], dtype=object)
-        dZ_all = np.array([
-        [1,-1],[2,-2],[3,-3],
-        [-1,2],
-        [1,-1],[2,-2],[3,-3],[-1,3],
-        [3,-2],
-        [1,-1],[+2,-2],[3,-3],[2,-1],
-        [3,-1],[1,-1],[2,-2],[3,-3],
-        [3,-2,-1],
-        [2,-1,-3],
-        [2,1,-1],[-2,2,-1],
-        [3,-2,-1],[3,1,-1],[3,-3,1],
-        [3,1,-1],[1,2,-1],[-2,2,-1],[-1,3,-2],[1,3,-2],[-3,3,-1]
-        ],dtype=object)
-    if dZ_max == 2:
-        m_all = np.array([
-        [1,1],[1,1],
-        [2,1],
-        [2,2],[2,2],
-        [3,3],[3,3],[2,4],
-        [4,4],[4,4],
-        [1,1,3],[1,2,2],
-        [1,2,5],[1,3,4]
-        ], dtype=object)
-        dZ_all = np.array([
-        [1,-1],[2,-2],
-        [-1,2],
-        [1,-1],[2,-2],
-        [1,-1],[+2,-2],[2,-1],
-        [1,-1],[2,-2],
-        [2,1,-1],[-2,2,-1],
-        [1,2,-1],[-2,2,-1]
-        ],dtype=object)
-    if dZ_max == 1:
-        m_all = np.array([
-        [1,1],
-        [2,2],
-        [3,3],
-        [4,4]
-        ], dtype=object)
-        dZ_all = np.array([
-        [1,-1],
-        [1,-1],
-        [1,-1],
-        [1,-1]
-        ],dtype=object)
+    dZ_all = np.copy(dZ_possibilities)
+    m_all = np.copy(m_possibilities)
+    start_time = time.time()
+    #Get rid of all dZs > dZ_max:
+    num = 0
+    while num < len(dZ_all):
+        if np.max(dZ_all[num]) > dZ_max:
+            m_all = np.delete(m_all, num, axis = 0)
+            dZ_all = np.delete(dZ_all, num, axis = 0)
+        else:
+            num += 1
     #Check if they are overall netto charge is conserved
     #for i in range(len(m_all)):
     #    print(np.array([dZ_all[i][j]*m_all[i][j] for j in range(len(m_all[i]))]).sum())
-    start_time = time.time()
     #Get rid of all m's with more changes than atoms in the molecule:
     if len(graph.orbits) != 0:
         num = 0
@@ -143,17 +91,20 @@ def FindAE_fromref(graph, dZ_max = 3, log = True, method = 'graph'):
         return total_number
 
 
-with open('QM9_log01.txt', 'a') as f:
+'''with open('QM9_log01.txt', 'a') as f:
     #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
     for i in range(4,10000):
         pos = '000000'[:(6-len(str(i)))] + str(i)
         sys.stdout = f # Change the standard output to the created file
         FindAE_fromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(pos)
+        print(pos)'''
+
 
 #Testing
 #parse_QM9toMAG('/home/simon/Desktop/QM9/XYZ/', 'dsgdb9nsd_022079.xyz')
+#FindAE_fromref(naphthalene, log='sparse', dZ_max=1)
+
 
 #TODOS:
 #Function that finds AEs from target molecule, not just reference (brute force with close_orbits)

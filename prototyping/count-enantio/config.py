@@ -1,3 +1,5 @@
+import numpy as np
+
 tolerance = 3
 
 elements = {'Ghost':0,'H':1, 'He':2,
@@ -11,3 +13,33 @@ inv_elements = {v: k for k, v in elements.items()}
 PathToNauty27r1 = '/home/simon/Desktop/nauty27r1/'
 
 PathToQM9XYZ = '/home/simon/Desktop/QM9/XYZ/'
+
+'''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
+atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
+for dZ_max = 3 up to m_tot = 8 and n = 2 and 3'''
+m_possibilities = np.array([
+[1,1],[1,1],[1,1],
+[2,1],
+[2,2],[2,2],[2,2],[3,1],
+[2,3],
+[3,3],[3,3],[3,3],[2,4],
+[2,6],[4,4],[4,4],[4,4],
+[1,1,1],
+[2,1,1],
+[1,1,3],[1,2,2],
+[2,2,2],[1,1,4],[1,2,3],
+[1,2,5],[1,2,5],[1,3,4],[1,3,4],[2,2,4],[2,3,3]
+], dtype=object)
+dZ_possibilities = np.array([
+[1,-1],[2,-2],[3,-3],
+[-1,2],
+[1,-1],[2,-2],[3,-3],[-1,3],
+[3,-2],
+[1,-1],[+2,-2],[3,-3],[2,-1],
+[3,-1],[1,-1],[2,-2],[3,-3],
+[3,-2,-1],
+[2,-1,-3],
+[2,1,-1],[-2,2,-1],
+[3,-2,-1],[3,1,-1],[3,-3,1],
+[3,1,-1],[1,2,-1],[-2,2,-1],[-1,3,-2],[1,3,-2],[-3,3,-1]
+],dtype=object)
