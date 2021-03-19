@@ -10,6 +10,7 @@ def analyse_logfile(logfile):
     for i, line in enumerate(logfile):
         if ' JOB LIMIT TIME EXCEEDED FOR A NEW LOOP' in line:
             status = 'not converged'
+            break
         # FINAL RESULTS also appears in unconverged calculations but only after JOB LIMIT ..., so this should never be seen for unconverged calcs
         elif 'FINAL RESULTS' in line and not status == 'not converged': 
             iteration, conv, success = check_convergence(logfile, i)
@@ -20,17 +21,17 @@ def analyse_logfile(logfile):
             else:
                 status = 'not converged'
                 #print('CPMD did not run out of time and the calculation terminated normally, but it did apparently not converge.')
-        elif 'CPU TIME' in line:
-            timeline = line.split()
-            time = float(timeline[3])*3600 + float(timeline[5])*60 + float(timeline[7])
+#         elif 'CPU TIME' in line:
+#             timeline = line.split()
+#             time = float(timeline[3])*3600 + float(timeline[5])*60 + float(timeline[7])
 
-    if status == 'broken':
-        time = None
-    return(status, time)
+#     if status == 'broken':
+#         time = None
+    return(status)
 
 def check_convergence(file, linenumber):
     """
-    if converged9 lines above FINAL RESULTS should be last iteration
+    if converged 8 or 9 lines above FINAL RESULTS should be last iteration
     try to parse this one
     """
     success = True
@@ -47,6 +48,36 @@ def check_convergence(file, linenumber):
             print("Could not parse log-file")
             success = False
     return(iteration, conv, success)
+
+def check_errorfile(workdir):
+    """
+    parses latest errorfile for errors
+    """
+    
+    ### find last error file
+    error_files = glob.glob(os.path.join(workdir, 'error.*'))
+    error_files.extend(glob.glob(os.path.join(workdir, 'slurm*')))
+    error_files_ct = []
+    for e in error_files:
+        fname = pathlib.Path(e)
+        error_files_ct.append((fname.stat().st_mtime, fname.stat().st_size, e))
+    error_files_ct.sort()
+    last_errorfile_size = error_files_ct[-1][1]
+    last_errorfile = error_files_ct[-1][2]
+    
+    if last_errorfile_size == 0: # error file empty
+        status = 'no error'
+    else:
+        # read error file
+        status = 'no error'
+        allowed_warning1 = 'Note: The following floating-point exceptions are signalling: IEEE_DENORMAL'
+        allowed_warning2 = '*_SG_LDA’: No such file or directory'
+        with open(last_errorfile, 'r') as f:
+            for line in f:
+                if not allowed_warning1 in line and not allowed_warning2 in line:
+                    status = 'broken'
+                    break
+    return(status)
 
 def enable_restart(database):
     # enable restart option
@@ -136,29 +167,27 @@ def get_status(workdir):
     time = None
     if os.path.isfile(os.path.join(workdir, 'finished')):
         # either converged, not converged, broken
-        status, time = get_status_finished(workdir)
+        status = get_status_finished(workdir)
     elif os.path.isfile(os.path.join(workdir, 'submitted')):
         status = 'submitted'
     elif os.path.isfile(os.path.join(workdir, 'running')):
         status = 'running'
     elif os.path.isfile(os.path.join(workdir, 'run.log')):
-        status, time = get_status_finished(workdir)
+        status = get_status_finished(workdir)
     else:
         status = 'undefined'
 
-    return(status, time)
+    return(status)
 
 def get_status_finished(workdir):
-    # is the latest error file not empty? -> if yes, broken
-    if not error_empty(workdir):
-        status = 'broken'
-        time = None
-    else: # read logfile
+    # read last error file
+    status = check_errorfile(workdir)
+    if status == 'no error':
         logfile = []
         with open(os.path.join(workdir, 'run.log'), 'r') as f:
             logfile = f.readlines()
-        status, time = analyse_logfile(logfile)
-    return(status, time)
+        status = analyse_logfile(logfile)
+    return(status)
 
 def status_report(db, save_path):
     not_converged = db.loc[db['status']=='not converged', 'workdir']
@@ -190,13 +219,13 @@ def update(database):
     """
     for wd in database['workdir']:
         #print(workdir)
-        status, time = get_status(wd)
+        status = get_status(wd)
         database.loc[database['workdir'] == wd ,'status'] = status
-        if time:
-            if np.isnan(database.loc[database['workdir'] == wd, 'time'].item()):
-                database.loc[database['workdir'] == wd , 'time'] = time
-            else:
-                database.loc[database['workdir'] == wd ,'time'] += time
+#         if time:
+#             if np.isnan(database.loc[database['workdir'] == wd, 'time'].item()):
+#                 database.loc[database['workdir'] == wd , 'time'] = time
+#             else:
+#                 database.loc[database['workdir'] == wd ,'time'] += time
                               
 if __name__ == "__main__":
     # load database
