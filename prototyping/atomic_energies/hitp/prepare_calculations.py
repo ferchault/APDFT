@@ -86,13 +86,13 @@ def get_lambda(lam_val, num_ve):
     new_lambda = scaled_ve/num_ve
     return(new_lambda, scaled_ve)
 
-def write_atom(atomsym, coordinates):
+def write_atom(atomsym, coordinates, pp_type='GH_PBE'):
     """
     prepare the input for one atom:
     the name of the pp is 'element_name' + idx of atom in Compound object + '_SG_LDA'
     the coordinates are read from Compund as well (must be shifted to center before)
     """
-    line1 = f'*{atomsym}_SG_LDA FRAC\n'
+    line1 = f'*{atomsym}_{pp_type} FRAC\n'
     line2 = ' LMAX=S\n'
     line3 = ' 1\n'
     line4 = ' ' + str(coordinates[0]) + ' ' + str(coordinates[1]) + ' ' + str(coordinates[2]) + '\n'
@@ -115,7 +115,7 @@ def write_input(atomsymbols, charge, coordinates, gpts, L, write_path, template_
     """
     writes input file for molecule with specified parameters boxisze L, charge, number of gpts for mesh
     """
-    param_section = write_params(L, charge, gpts, template_path='/home/misa/projects/Atomic-Energies/data/cpmd_params_template.inp')
+    param_section = write_params(L, charge, gpts, template_path)
     atom_section = write_atom_section(atomsymbols, coordinates)
     with open(write_path, 'w') as f:
         f.writelines(param_section+['\n']+atom_section)
@@ -170,11 +170,19 @@ def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp
     new_pp_file[len(new_pp_file)-1] = new_pp_file[len(new_pp_file)-1].rstrip('\n')
     return(new_pp_file)
     
-def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='_SG_LDA'):  
-    for k in compound.natypes.keys():
-        pp_file = generate_pp_file(lamb, k)
-        path_file = os.path.join(calc_dir, k + pp_type)
-        with open(path_file, 'w') as f:
-            f.writelines(pp_file)
+def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='_SG_LDA'):
+    if type(compound) == list:
+        for k in compound:
+            pp_file = generate_pp_file(lamb, k, pp_dir, pp_type)
+            path_file = os.path.join(calc_dir, k + pp_type)
+            with open(path_file, 'w') as f:
+                f.writelines(pp_file)
+    else:
+        for k in compound.natypes.keys():
+            pp_file = generate_pp_file(lamb, k)
+            path_file = os.path.join(calc_dir, k + pp_type)
+            with open(path_file, 'w') as f:
+                f.writelines(pp_file)
+
 
 
