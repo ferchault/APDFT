@@ -129,21 +129,15 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
     '''With sites defined, find all nuclear configurations of allowed Z (i.e. within dZ_max)
     within each and every list of elements in sites. Discard all that have a different
     Z for every atom (i.e. there is no orbit, only unit sets | there is no equivalent set
-    of size greater 1). Unique the list of configurations for every element in sites.
-    Then, return all combinations of these configuratios.'''
+    of size greater 1).'''
     for alpha in range(len(sites)):
         #Get all possible configurations
         atomwise_config = np.zeros((len(sites[alpha]), 2*dZ_max+1), dtype='int')
         for i in range(len(sites[alpha])):
-
-
-
-
-            #Fill in the original configuration first
-            for j in range(dZ_max):
-                atomwise_config[i][2*j+1] = j+1
-                atomwise_config[i][j*j+2] = -j-1
-            print(atomwise_config[i])
+            #Fill in all the dZs and the skip last on for the case of dZ = 0
+            dZs = range(elements[graph.elements_at_index[sites[alpha][0]]]-dZ_max,elements[graph.elements_at_index[sites[alpha][0]]]+dZ_max+1)
+            for j in range(len(dZs)):
+                atomwise_config[i][j] = dZs[j]
         graph_config = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,len(sites[alpha]))
         #Discard everything where the number of changes is equal to the size of the orbit/equivalent site
         num = 0
@@ -152,16 +146,19 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
                 graph_config = np.delete(graph_config, num, axis = 0)
             else:
                 num += 1
-        print(alpha)
-        print(graph_config)
+        '''Then, unique the list of configurations for every element in sites.'''
 
+        '''All configurations without a single pair of atoms in an orbit/equivalent site
+        are discarded. Now, filter out all configurations that include not a single subset
+        of orbits/equivalent sites.'''
 
+        '''Then, return all combinations of these remaining configuratios.'''
 
 
 
 
 '''with open('QM9_log01.txt', 'a') as f:
-    #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
+    #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
     for i in range(4,10000):
         pos = '000000'[:(6-len(str(i)))] + str(i)
         sys.stdout = f # Change the standard output to the created file
