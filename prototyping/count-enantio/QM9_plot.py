@@ -6,7 +6,7 @@ import sys
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
-last_log_num = 10
+last_log_num = 14
 bin_size = 30
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
@@ -110,7 +110,8 @@ for i in N[1:]: #exclude the 2, because it does not have any AEs
     #print(bottom)
     #print(num_AE[i-2][1:]*num_moles[i-2]/all_moles)
     bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
-    plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
+    plt.legend(loc="upper right",framealpha=1, edgecolor='black')
+    #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
     plt.savefig('CDF_AE.png', dpi=500)
 
 #Plot the times
