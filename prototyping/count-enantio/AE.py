@@ -91,7 +91,12 @@ def Find_AEfromref(graph, dZ_max = 3, log = True, method = 'graph'):
         return total_number
 
 def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
-    '''Find all orbits/equivalent sets if the molecule is colorless/isoatomic
+    '''Find the most symmetric reference molecule, not all  of them. Most symmetric
+    means here the least amount of atoms not part of a orbis/equivalent sets. Less
+    symmetric is always possible and included in most symmetric (and appears specifically,
+    when searching for AEs)
+
+    Find all orbits/equivalent sets if the molecule is colorless/isoatomic
     and save them in a list of lists called sites. This is the reason why we
     dropped the more precise terms "orbit" and "similars"'''
     if method == 'graph':
@@ -111,8 +116,8 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
                 #print(all_orbits)
                 similars[i] = all_orbits
             #Unique the list and obtain the orbits of the uncolored graph
-            unique_similars = [list(x) for x in set(tuple(x) for x in similars)]
-            sites = [list(map(int,i)) for i in unique_similars]
+            unique_similars = np.array([list(x) for x in set(tuple(x) for x in similars)], dtype=object)
+            sites = np.array([np.array(v) for v in unique_similars], dtype=object)
     if method == 'geom':
         #This is basically the same as MoleAsGraph's get_equi_atoms_from_geom method
         CN = Coulomb_neighborhood(graph.geometry)
@@ -126,50 +131,43 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
                 num_similars += 1
             else:
                 sites = np.delete(sites, num_similars, axis = 0)
-    '''With sites defined, find all nuclear configurations of allowed Z (i.e. within dZ_max)
-    within each and every list of elements in sites. Discard all that have a different
-    Z for every atom (i.e. there is no orbit, only unit sets | there is no equivalent set
-    of size greater 1).'''
+    #Initalize array for deviations; this can be a flat array, we only need a mapping of atom_ID
+    #to the deviation
+    dev = np.zeros((len(np.hstack(sites).ravel()),2))
+    #Initalize mu
+    mu = np.zeros(len(sites))
+    '''Initalize elements_at_index-like vector with all entries mu[alpha] except the atoms
+    which are not in sites, they are their original chemical element.'''
+    chem_config = np.copy(graph.elements_at_index)
+    pos = 0
     for alpha in range(len(sites)):
-        #Get all possible configurations
-        atomwise_config = np.zeros((len(sites[alpha]), 2*dZ_max+1), dtype='int')
-        for i in range(len(sites[alpha])):
-            #Fill in all the dZs and the skip last on for the case of dZ = 0
-            dZs = range(elements[graph.elements_at_index[sites[alpha][0]]]-dZ_max,elements[graph.elements_at_index[sites[alpha][0]]]+dZ_max+1)
-            for j in range(len(dZs)):
-                atomwise_config[i][j] = dZs[j]
-        graph_config = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,len(sites[alpha]))
-        #Discard everything where the number of changes is equal to the size of the orbit/equivalent site
-        num = 0
-        while num < len(graph_config):
-            if len(np.unique(graph_config[num])) == len(graph_config[num]):
-                graph_config = np.delete(graph_config, num, axis = 0)
-            else:
-                num += 1
-        '''Then, unique the list of configurations for every element in sites.'''
-
-        '''All configurations without a single pair of atoms in an orbit/equivalent site
-        are discarded. Now, filter out all configurations that include not a single subset
-        of orbits/equivalent sites.'''
-
-        '''Then, return all combinations of these remaining configuratios.'''
+        #Find average; this is a little tricky for mu should be an integer:
+        mu[alpha] = int(np.sum([elements[graph.elements_at_index[int(sites[alpha][i])]] for i in range(len(sites[alpha]))])/len(sites[alpha]))
+        #Find deviations:
+        for i in sites[alpha]:
+            dev[pos][0] = i #Index
+            dev[pos][1] = mu-elements[graph.elements_at_index[int(sites[alpha][i])]]
+            chem_config[i] = inv_elements[int(mu[alpha])]
+        pos += len(sites[alpha])
+    #Special case: All is fine and within dZ_max:
+    if np.max(dev[...][1])-np.min(def[...][1]) <= 2*dZ_max:
+        return MoleAsGraph('reffrom'+graph.name, graph.edge_layout, chem_config, graph.geometry)
 
 
-
-
-'''with open('QM9_log01.txt', 'a') as f:
-    #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
-    for i in range(4,10000):
-        pos = '000000'[:(6-len(str(i)))] + str(i)
-        sys.stdout = f # Change the standard output to the created file
-        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
-        sys.stdout = original_stdout # Reset the standard output to its original value
-        print(pos)'''
-
-#Testing
-#parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-#Find_AEfromref(naphthalene, log='sparse', dZ_max=1)
-Find_reffromtar(naphthalene, method = 'graph')
+if __name__ == "__main__":
+    '''with open('QM9_log01.txt', 'a') as f:
+        #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
+        for i in range(4,10000):
+            pos = '000000'[:(6-len(str(i)))] + str(i)
+            sys.stdout = f # Change the standard output to the created file
+            Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+            sys.stdout = original_stdout # Reset the standard output to its original value
+            print(pos)'''
+    #Testing
+    #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
+    #Find_AEfromref(naphthalene, log='sparse', dZ_max=1)
+    Find_reffromtar(naphthalene, method = 'graph')
+    #print(naphthalene.get_energy_NN())
 
 #TODOS:
 #Function that finds references from target molecule, not just reference (brute force with close_orbits)

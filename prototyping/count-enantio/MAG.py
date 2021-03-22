@@ -10,12 +10,12 @@ class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry, orbits=None):
         '''Caution: For all methods so far, the indexing of the geometry and the graphs (i.e. all
         remaining attributes) does not have to match! Keep this in mind: They may have different
-        indices!!!!!!'''
+        indices!!!!!! In general, they have not, however.'''
         self.name = name
         self.edge_layout = np.array(edge_layout, dtype=object) #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which vertex number
         self.geometry = geometry #The usual xyz representation
-        if edge_layout != None:
+        if np.array(edge_layout).any() != None:
             self.number_atoms = len(np.unique(self.edge_layout))
         elif elements_at_index != None:
             self.number_atoms = len(self.elements_at_index)
@@ -33,12 +33,12 @@ class MoleAsGraph:
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
         #elif geometry != None:
         #    self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
-        elif edge_layout != None:
+        elif np.array(edge_layout).any() != None:
             self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
         else:
             print(self, "is underdefined.")
 
-    def site(self,site_number):
+    def get_site(self,site_number):
         if site_number >= self.number_atoms:
             raise ValueError("Cannot return site with index "+str(site_number)+". Molecule only has "+str(self.number_atoms)+" atoms.")
         else:
@@ -86,6 +86,14 @@ class MoleAsGraph:
             else:
                 similars = np.delete(similars, num_similars, axis = 0)
         return similars
+
+    def get_energy_NN(self):
+        #Calculate the nuclear energy of the molecule
+        sum = 0
+        for i in range(self.number_atoms):
+            for j in range(i+1,self.number_atoms):
+                sum += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.array(self.geometry[i][1])-np.array(self.geometry[j][1]))
+        return 0.5*sum
 
 def parse_QM9toMAG(input_path, input_file):
     '''MoleAsGraph instance returned'''
