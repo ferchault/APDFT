@@ -7,7 +7,7 @@ from config import *
 
 
 class MoleAsGraph:
-    def __init__(self, name, edge_layout, elements_at_index, geometry, orbits=None):
+    def __init__(self, name, edge_layout, elements_at_index, geometry):
         '''Caution: For all methods so far, the indexing of the geometry and the graphs (i.e. all
         remaining attributes) does not have to match! Keep this in mind: They may have different
         indices!!!!!! In general, they have not, however.'''
@@ -15,28 +15,19 @@ class MoleAsGraph:
         self.edge_layout = np.array(edge_layout, dtype=object) #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which vertex number
         self.geometry = geometry #The usual xyz representation
-        if np.array(edge_layout).any() != None:
+        if len(np.unique(self.edge_layout)) == len(self.elements_at_index):
             self.number_atoms = len(np.unique(self.edge_layout))
-        elif elements_at_index != None:
-            self.number_atoms = len(self.elements_at_index)
         else:
-            print(self, "is underdefined.")
+            print('Number of vertices and number of elements do not match!')
         if len(self.edge_layout) != 0:
             self.max_index = np.amax(self.edge_layout)
         else:
             self.max_index = 0
         if self.number_atoms != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
-        if orbits != None:
-            #Specific orbits can be forced!
-            self.orbits = np.array(orbits, dtype=object) # orbits = [[equivalent sites of type 1],[equivalent sites of type 2],[...]]
+        self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
-        #elif geometry != None:
-        #    self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
-        elif np.array(edge_layout).any() != None:
-            self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
-        else:
-            print(self, "is underdefined.")
+        #self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
 
     def get_site(self,site_number):
         if site_number >= self.number_atoms:
@@ -51,7 +42,8 @@ class MoleAsGraph:
         automorphisms = g.get_automorphisms_vf2(color=[elements[self.elements_at_index[i]] for i in range(self.number_atoms)])
         #Get rid of all molecules without any orbits (the identity does not count):
         if len(automorphisms) == 1:
-            return [[]]
+            similars = [[]]
+            return similars
         else:
             '''Any element of the list of vertices = set of elements, that moves along
             a fixed path upon the group acting on the set is part of an orbit. Since we know
