@@ -3,6 +3,7 @@ from inertiacount import *
 from MAG import *
 from config import *
 
+
 def Find_AEfromref(graph, dZ_max = 3, log = True, method = 'graph'):
     dZ_all = np.copy(dZ_possibilities)
     m_all = np.copy(m_possibilities)
@@ -90,13 +91,38 @@ def Find_AEfromref(graph, dZ_max = 3, log = True, method = 'graph'):
     if log == 'quiet':
         return total_number
 
-def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
-    '''Find the most symmetric reference molecule, not all  of them. Most symmetric
-    means here the least amount of atoms not part of a orbis/equivalent sets. Less
-    symmetric is always possible and included in most symmetric (and appears specifically,
-    when searching for AEs)
 
-    Find all orbits/equivalent sets if the molecule is colorless/isoatomic
+def bestest(list, dx):
+    '''Given a list and distance dx, find an integer x such that the interval [x-dx,x+dx]
+    has the most elements of list in it and return the x and the indices of those elements.'''
+    min_val = min(list)
+    max_val = max(list)
+    x_range = [i for i in range(int(min_val), int(max_val)+1)]
+    count = [0 for i in x_range]
+    for i in range(len(x_range)):
+        for j in range(len(list)):
+            if (list[j] <= x_range[i]+dx) and (list[j] >= x_range[i]-dx):
+                count[i] += 1
+    best_x = x_range[count.index(max(count))]
+    result = []
+    for i in range(len(list)):
+        if (list[i] <= best_x+dx) and (list[i] >= best_x-dx):
+            result.append(i)
+    return best_x, result
+
+
+def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
+    '''Find the most symmetric reference molecule, not all of them. Most symmetric
+    means here the least amount of atoms are not part of an orbit/equivalent set. Less
+    symmetric is always possible and included in most symmetric (and appears specifically
+    when searching for AEs)'''
+    #Initalize original state:
+    if method == 'graph':
+        chem_config = np.copy(graph.elements_at_index)
+    if method == 'geom':
+        chem_config = np.array([graph.geometry[i][0] for i in range(graph.number_atoms)])
+    Geom = np.array(graph.geometry, copy=True, dtype=object)
+    '''Find all orbits/equivalent sets if the molecule is colorless/isoatomic
     and save them in a list of lists called sites. This is the reason why we
     dropped the more precise terms "orbit" and "similars"'''
     if method == 'graph':
@@ -120,8 +146,12 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
             sites = np.array([np.array(v) for v in unique_similars], dtype=object)
     if method == 'geom':
         #This is basically the same as MoleAsGraph's get_equi_atoms_from_geom method
-        CN = Coulomb_neighborhood(graph.geometry)
-        for i in range(len(graph.geometry)):
+        #Change all atoms to be of the same chemical element
+        for i in range(len(Geom)):
+            Geom[i][0] = 'C'
+        #print(Geom)
+        CN = Coulomb_neighborhood(Geom)
+        for i in range(len(Geom)):
             CN[i] = round(CN[i],tolerance)
         sites = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
         #Delete all similars which include only one atom:
@@ -131,31 +161,33 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
                 num_similars += 1
             else:
                 sites = np.delete(sites, num_similars, axis = 0)
-    #Initalize array for deviations; this can be a flat array, we only need a mapping of atom_ID
-    #to the deviation
-    dev = np.zeros((len(np.hstack(sites).ravel()),2))
-    #Initalize mu
-    mu = np.zeros(len(sites))
-    '''Initalize elements_at_index-like vector with all entries mu[alpha] except the atoms
-    which are not in sites, they are their original chemical element.'''
-    chem_config = np.copy(graph.elements_at_index)
-    pos = 0
-    for alpha in range(len(sites)):
-        #Find average; this is a little tricky for mu should be an integer:
-        mu[alpha] = int(np.sum([elements[graph.elements_at_index[int(sites[alpha][i])]] for i in range(len(sites[alpha]))])/len(sites[alpha]))
-        #Find deviations:
-        for i in sites[alpha]:
-            #print(mu-elements[graph.elements_at_index[int(sites[alpha][int(i)])]])
-            dev[pos][0] = int(i) #Index
-            dev[pos][1] = mu[alpha]-elements[graph.elements_at_index[int(i)]]
-            chem_config[int(i)] = inv_elements[int(mu[alpha])]
-            pos += 1
-    #Special case: All is fine and within dZ_max:
-    if np.max(dev[...][1])-np.min(dev[...][1]) <= 2*dZ_max:
-        print(chem_config)
-        print(dev)
-        return MoleAsGraph('reffrom'+graph.name, graph.edge_layout, chem_config, graph.geometry)
-
+    '''We want to maximize the number of elements per orbit/equivalent set. Use bestest()'''
+    for alpha in sites:
+        #Get the colors/chemical elements of this orbit/equivalent set
+        if method == 'graph':
+            nodes = [elements[graph.elements_at_index[int(i)]] for i in alpha]
+        if method == 'geom':
+            nodes = [elements[graph.geometry[int(i)][0]] for i in alpha]
+        #print(alpha)
+        #print(nodes)
+        #Initalize optimum in this orbit/equivalent set and the indices
+        opt, indices = bestest(nodes, dZ_max)
+        vertices = [int(alpha[i]) for i in indices] #We do not need the internal indexing of bestest
+        #print(opt)
+        #print(vertices)
+        #Update chem_config
+        if len(vertices) > 1:
+            for i in vertices:
+                chem_config[i] = inv_elements[opt]
+    #Return a MoleAsGraph object
+    for i in range(len(chem_config)):
+        Geom[i][0] = chem_config[i]
+    if log == True:
+        print('NAME:\nreffrom'+str(graph.name))
+        print('EDGE LAYOUT:\n'+str(graph.edge_layout))
+        print('ELEMENTS AT INDEX:\n'+str(chem_config))
+        print('GEOMETRY:\n' +str(Geom))
+    return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config, Geom)
 
 if __name__ == "__main__":
     '''with open('QM9_log01.txt', 'a') as f:
@@ -169,10 +201,9 @@ if __name__ == "__main__":
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
     #Find_AEfromref(naphthalene, log='sparse', dZ_max=1)
-    Find_reffromtar(naphthalene, method = 'graph')
+    #Find_reffromtar(naphthalene, method = 'geom', dZ_max = 2, log= True)
     #print(naphthalene.get_energy_NN())
 
 #TODOS:
-#Function that finds references from target molecule, not just reference (brute force with close_orbits)
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 #Optional: Parallelize the for-loop in Find_AEfromref
