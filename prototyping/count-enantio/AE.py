@@ -145,12 +145,15 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph'):
         mu[alpha] = int(np.sum([elements[graph.elements_at_index[int(sites[alpha][i])]] for i in range(len(sites[alpha]))])/len(sites[alpha]))
         #Find deviations:
         for i in sites[alpha]:
-            dev[pos][0] = i #Index
-            dev[pos][1] = mu-elements[graph.elements_at_index[int(sites[alpha][i])]]
-            chem_config[i] = inv_elements[int(mu[alpha])]
-        pos += len(sites[alpha])
+            #print(mu-elements[graph.elements_at_index[int(sites[alpha][int(i)])]])
+            dev[pos][0] = int(i) #Index
+            dev[pos][1] = mu[alpha]-elements[graph.elements_at_index[int(i)]]
+            chem_config[int(i)] = inv_elements[int(mu[alpha])]
+            pos += 1
     #Special case: All is fine and within dZ_max:
-    if np.max(dev[...][1])-np.min(def[...][1]) <= 2*dZ_max:
+    if np.max(dev[...][1])-np.min(dev[...][1]) <= 2*dZ_max:
+        print(chem_config)
+        print(dev)
         return MoleAsGraph('reffrom'+graph.name, graph.edge_layout, chem_config, graph.geometry)
 
 
