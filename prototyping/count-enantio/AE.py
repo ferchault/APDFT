@@ -206,24 +206,24 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
         return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config, Geom)
 
 if __name__ == "__main__":
-    '''with open('QM9_log01.txt', 'a') as f:
+    #with open('QM9_log01.txt', 'a') as f:
         #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
-        for i in range(4,10000):
-            pos = '000000'[:(6-len(str(i)))] + str(i)
-            sys.stdout = f # Change the standard output to the created file
-            Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
-            sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')'''
-    with open('QM9_target_log01.txt', 'a') as f:
+    #for i in range(4,10000):
+    #    pos = '000000'[:(6-len(str(i)))] + str(i)
+        #sys.stdout = f # Change the standard output to the created file
+    #    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+        #sys.stdout = original_stdout # Reset the standard output to its original value
+        #print(str(pos)+' -> Done')
+    '''with open('QM9_target_log01.txt', 'a') as f:
         for i in range(4,10000):
             pos = '000000'[:(6-len(str(i)))] + str(i)
             sys.stdout = f # Change the standard output to the created file
             Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
             sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')
+            print(str(pos)+' -> Done')'''
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    #Find_AEfromref(naphthalene, log='sparse', dZ_max=1)
+    Find_AEfromref(naphthalene, log='sparse', dZ_max=2)
     #Find_reffromtar(naphthalene, method = 'geom', dZ_max = 2, log= True)
     #print(naphthalene.get_energy_NN())
 

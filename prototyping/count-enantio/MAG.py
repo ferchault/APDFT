@@ -12,18 +12,18 @@ class MoleAsGraph:
         remaining attributes) does not have to match! Keep this in mind: They may have different
         indices!!!!!! In general, they have not, however.'''
         self.name = name
-        self.edge_layout = np.array(edge_layout, dtype=object) #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
-        self.elements_at_index = np.array(elements_at_index, dtype=object) #Which element is at which vertex number
+        self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
+        self.elements_at_index = elements_at_index #Which element is at which vertex number
         self.geometry = geometry #The usual xyz representation
-        if len(np.unique(self.edge_layout)) == len(self.elements_at_index):
-            self.number_atoms = len(np.unique(self.edge_layout))
+        if len(np.unique(edge_layout)) == len(elements_at_index):
+            self.number_atoms = len(elements_at_index)
         else:
             print('Number of vertices and number of elements do not match!')
-        if len(self.edge_layout) != 0:
-            self.max_index = np.amax(self.edge_layout)
+        if len(edge_layout) != 0:
+            self.max_index = max([max(sublist) for sublist in edge_layout])
         else:
             self.max_index = 0
-        if self.number_atoms != self.max_index+1:
+        if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
         self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
