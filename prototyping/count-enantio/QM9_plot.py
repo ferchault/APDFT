@@ -79,7 +79,7 @@ def get_CDF(input_file_prefix, bin_size = 50):
     return binning, num_AE, num_moles
 
 #--------------------------QM9 as references-----------------------------------
-last_log_num = 1
+last_log_num = 2
 bin_size = 30
 
 N, times, SD = get_times('QM9_log')
@@ -89,7 +89,7 @@ num_AE *= 100
 fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
-    ax.set_ylabel('AEs among all reference molecules with same N / %')
+    ax.set_ylabel('AEs among all molecules (ref) with same N / %')
     ax.set_ylim([0.0012,120])
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
@@ -100,7 +100,7 @@ for i in N:
 #num_moles is needed to rescale the number of AEs depending on their N
 all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
-plt.ylabel('AEs among all molecules / %')
+plt.ylabel('AEs among all molecules (ref) / %')
 plt.ylim([0.001,1.3])
 plt.yscale('log')
 #plt.xscale('log')
@@ -131,7 +131,7 @@ fig.savefig("QM9_times.png", dpi=500)
 
 
 #--------------------------QM9 as targets--------------------------------------
-last_log_num = 1
+last_log_num = 2
 bin_size = 30
 
 N, times, SD = get_times('QM9_target_log')
@@ -141,7 +141,7 @@ num_AE *= 100
 fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
-    ax.set_ylabel('AEs among all target molecules with same N / %')
+    ax.set_ylabel('AEs among all molecules (tar) with same N / %')
     ax.set_ylim([0.0012,120])
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
@@ -152,7 +152,7 @@ for i in N:
 #num_moles is needed to rescale the number of AEs depending on their N
 all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
-plt.ylabel('AEs among all molecules / %')
+plt.ylabel('AEs among all molecules (tar) / %')
 plt.ylim([0.001,10])
 plt.yscale('log')
 #plt.xscale('log')
