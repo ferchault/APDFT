@@ -10,7 +10,8 @@ class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry):
         '''Caution: For all methods so far, the indexing of the geometry and the graphs (i.e. all
         remaining attributes) does not have to match! Keep this in mind: They may have different
-        indices!!!!!! In general, they have not, however.'''
+        indices!!!!!! They do not even have to be the same molecules but then the Constructor may
+        print a Warning'''
         self.name = name
         self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.elements_at_index = elements_at_index #Which element is at which vertex number
@@ -28,6 +29,10 @@ class MoleAsGraph:
         self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
         #self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
+
+        #If the indexing of vertices does not match the indexing of geometry:
+        #if not np.array([elements_at_index[i] == geometry[i][0] for i in range(self.number_atoms)]).all():
+        #    print("Warning in MoleAsGraph: Indexing of atoms in attribute 'geometry' does not match indexing in attribute 'elements_at_index' of molecule "+name)
 
     def get_site(self,site_number):
         if site_number >= self.number_atoms:
@@ -124,7 +129,7 @@ def parse_QM9toMAG(input_path, input_file):
 
 
 #Test-molecules-----------------------------------------------------------------
-anthracene = MoleAsGraph('Anthracene',
+'''anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
                         ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
                         [['C', (0,0,0.5)], ['C', (0,0.8660254037844386467637231707,1)], ['C', (0,2*0.8660254037844386467637231707,0.5)],
@@ -157,8 +162,4 @@ phenanthrene = MoleAsGraph( 'Phenanthrene',
                             ['C', (0,2,-0.8660254037844386467637231707)], ['C', (0,1,-0.8660254037844386467637231707)], ['C', (0,0.5,0)],
                             ['C', (0,0.5,2*0.8660254037844386467637231707)], ['C', (0,-0.5,2*0.8660254037844386467637231707)], ['C', (0,-1,0.8660254037844386467637231707)], ['C', (0,-0.5,0)],
                             ['C', (0,-2,0.8660254037844386467637231707)], ['C', (0,-2.5,0)], ['C', (0,-2,-0.8660254037844386467637231707)], ['C', (0,-1,-0.8660254037844386467637231707)]])
-
-heptagon = MoleAsGraph('Heptagon',
-                        [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]],
-                        ['C','C','C','C','C','C','C'],
-                        None)
+'''
