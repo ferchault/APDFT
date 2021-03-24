@@ -168,62 +168,57 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
                 num_similars += 1
             else:
                 sites = np.delete(sites, num_similars, axis = 0)
-    if len(sites) == 1:
-        if len(sites[0]) == 0:
-            if log == True:
-                print('NAME:\nreffrom'+str(graph.name))
-                print('EDGE LAYOUT:\n'+str(graph.edge_layout))
-                print('ELEMENTS AT INDEX:\n'+str(graph.elements_at_index))
-                print('GEOMETRY:\n' +str(graph.geometry))
-            return MoleAsGraph('reffrom'+graph.name, graph.edge_layout, chem_config, graph.geometry)
-    else:
-        '''We want to maximize the number of elements per orbit/equivalent set. Use bestest()'''
-        for alpha in sites:
-            #Get the colors/chemical elements of this orbit/equivalent set
-            if method == 'graph':
-                nodes = [elements[graph.elements_at_index[int(i)]] for i in alpha]
-            if method == 'geom':
-                nodes = [elements[graph.geometry[int(i)][0]] for i in alpha]
-            #print(alpha)
-            #print(nodes)
-            #Initalize optimum in this orbit/equivalent set and the indices
-            opt, indices = bestest(nodes, dZ_max)
-            vertices = [int(alpha[i]) for i in indices] #We do not need the internal indexing of bestest
-            #print(opt)
-            #print(vertices)
-            #Update chem_config
-            if len(vertices) > 1:
-                for i in vertices:
-                    chem_config[i] = inv_elements[opt]
-        #Return a MoleAsGraph object
-        for i in range(len(chem_config)):
-            Geom[i][0] = chem_config[i]
-        if log == True:
-            print('NAME:\nreffrom'+str(graph.name))
-            print('EDGE LAYOUT:\n'+str(graph.edge_layout))
-            print('ELEMENTS AT INDEX:\n'+str(chem_config))
-            print('GEOMETRY:\n' +str(Geom))
-        return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config, Geom)
+    '''We want to maximize the number of elements per orbit/equivalent set. Use bestest()'''
+    for alpha in sites:
+        if len(alpha) == 0:
+            break
+        #Get the colors/chemical elements of this orbit/equivalent set
+        if method == 'graph':
+            nodes = [elements[graph.elements_at_index[int(i)]] for i in alpha]
+        if method == 'geom':
+            nodes = [elements[graph.geometry[int(i)][0]] for i in alpha]
+        #print(alpha)
+        #print(nodes)
+        #Initalize optimum in this orbit/equivalent set and the indices
+        opt, indices = bestest(nodes, dZ_max)
+        vertices = [int(alpha[i]) for i in indices] #We do not need the internal indexing of bestest
+        #print(opt)
+        #print(vertices)
+        #Update chem_config
+        if len(vertices) > 1:
+            for i in vertices:
+                chem_config[i] = inv_elements[opt]
+    #Return a MoleAsGraph object
+    for i in range(len(chem_config)):
+        Geom[i][0] = chem_config[i]
+    if log == True:
+        print('NAME:\nreffrom'+str(graph.name))
+        print('EDGE LAYOUT:\n'+str(graph.edge_layout))
+        print('ELEMENTS AT INDEX:\n'+str(chem_config))
+        print('GEOMETRY:\n' +str(Geom))
+    return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config.tolist(), Geom)
 
 if __name__ == "__main__":
-    #with open('QM9_log01.txt', 'a') as f:
+    '''with open('QM9_log01.txt', 'a') as f:
         #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
-    #for i in range(4,10000):
-    #    pos = '000000'[:(6-len(str(i)))] + str(i)
-        #sys.stdout = f # Change the standard output to the created file
-    #    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
-        #sys.stdout = original_stdout # Reset the standard output to its original value
-        #print(str(pos)+' -> Done')
-    '''with open('QM9_target_log01.txt', 'a') as f:
+        for i in range(4,10000):
+            pos = '000000'[:(6-len(str(i)))] + str(i)
+            sys.stdout = f # Change the standard output to the created file
+            Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+            sys.stdout = original_stdout # Reset the standard output to its original value
+            print(str(pos)+' -> Done')'''
+
+    with open('QM9_target_log01.txt', 'a') as f:
         for i in range(4,10000):
             pos = '000000'[:(6-len(str(i)))] + str(i)
             sys.stdout = f # Change the standard output to the created file
             Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
             sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')'''
+            print(str(pos)+' -> Done')
+
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    Find_AEfromref(naphthalene, log='sparse', dZ_max=2)
+    #Find_AEfromref(naphthalene, log='sparse', dZ_max=2)
     #Find_reffromtar(naphthalene, method = 'geom', dZ_max = 2, log= True)
     #print(naphthalene.get_energy_NN())
 
