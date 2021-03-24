@@ -79,7 +79,7 @@ def get_CDF(input_file_prefix, bin_size = 50):
     return binning, num_AE, num_moles
 
 #--------------------------QM9 as references-----------------------------------
-last_log_num = 14
+last_log_num = 1
 bin_size = 30
 
 N, times, SD = get_times('QM9_log')
@@ -122,6 +122,7 @@ ax.scatter(N, times, marker='x', color='#1f77b4', label='geometry-based')
 plt.errorbar(N, times, yerr=SD, fmt='none', capsize=4, color='#1f77b4')
 ax.set_xticks(range(2,10))
 ax.set_xlim([1.5, 9.7])
+ax.set_ylim([0.001,5])
 ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
@@ -130,7 +131,7 @@ fig.savefig("QM9_times.png", dpi=500)
 
 
 #--------------------------QM9 as targets--------------------------------------
-last_log_num = 2
+last_log_num = 1
 bin_size = 30
 
 N, times, SD = get_times('QM9_target_log')
@@ -173,6 +174,7 @@ ax.scatter(N, times, marker='x', color='#1f77b4', label='geometry-based')
 plt.errorbar(N, times, yerr=SD, fmt='none', capsize=4, color='#1f77b4')
 ax.set_xticks(range(2,10))
 ax.set_xlim([1.5, 9.7])
+ax.set_ylim([0.001,5])
 ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
