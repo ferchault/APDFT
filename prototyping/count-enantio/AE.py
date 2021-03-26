@@ -192,28 +192,32 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
     if method == 'graph':
         #Initalize graph
         g = igraph.Graph([tuple(v) for v in graph.edge_layout])
-        #Initalize target, reference and mirror configuration
+        #Initalize target, reference and mirror configuration and netto charge
         reference_config = [elements[np.copy(chem_config)[i]] for i in range(graph.number_atoms)]
         target_config = [elements[np.copy(graph.elements_at_index)[i]] for i in range(graph.number_atoms)]
         mirror_config = np.copy(target_config)
+        netto_charge = 0
         #print(reference_config)
         #print(target_config)
         for i in range(graph.number_atoms):
             mirror_config[i] = 2*reference_config[i] - target_config[i]
+            netto_charge += reference_config[i] - target_config[i]
         #print(mirror_config)
-        if g.isomorphic_vf2(color1=target_config, color2=mirror_config):
+        if g.isomorphic_vf2(color1=target_config, color2=mirror_config) or (netto_charge != 0):
             #If yes, wipe chem_config such that the original molecule is returned
             chem_config = np.copy(graph.elements_at_index)
     if method == 'geom':
-        #Initalize target, reference and mirror configuration
+        #Initalize target, reference and mirror configuration and netto chage
         reference_config = np.array(graph.geometry, copy=True, dtype=object)
         target_config = np.array(graph.geometry, copy=True, dtype=object)
         mirror_config = np.array(graph.geometry, copy=True, dtype=object)
+        netto_charge = 0
         for i in range(graph.number_atoms):
             reference_config[i][0] = chem_config[i]
             mirror_config[i][0] = inv_elements[2*elements[reference_config[i][0]] - elements[target_config[i][0]]]
-        #Test if the target is its own mirror:
-        if (CN_inertia_moment(target_config) == CN_inertia_moment(mirror_config)).all():
+            netto_charge += elements[reference_config[i][0]] - elements[target_config[i][0]]
+        #Test if the target is its own mirror or charge is not conserved:
+        if (CN_inertia_moment(target_config) == CN_inertia_moment(mirror_config)).all() or (netto_charge != 0):
             #If yes, wipe chem_config such that the original molecule is returned
             chem_config = np.array([graph.geometry[i][0] for i in range(graph.number_atoms)], copy=True)
     #Return a MoleAsGraph object
@@ -227,29 +231,38 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
     return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config.tolist(), Geom)
 
 if __name__ == "__main__":
-    with open('QM9_log01.txt', 'a') as f:
-        #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4, end at index 133885
-        for i in range(4,10000):
-            pos = '000000'[:(6-len(str(i)))] + str(i)
-            sys.stdout = f # Change the standard output to the created file
-            Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
-            sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')
+    for count in range(1,14+1):
+        #Start at 1, end at 14+1
+        start_tag = (count-1)*10000
+        end_tag = count*10000
+        if count == 1:
+            #Skip everything with only one heavy atom: water, methane, ammonia. Start at index 4
+            start_tag = 4
+        if count == 14:
+            end_tag = 133885+1
+        batch_index = '00'[:(2-len(str(count)))] + str(count)
+        '''with open('QM9_log'+batch_index+'.txt', 'a') as f:
+            for i in range(start_tag,end_tag):
+                pos = '000000'[:(6-len(str(i)))] + str(i)
+                sys.stdout = f # Change the standard output to the created file
+                Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
+                sys.stdout = original_stdout # Reset the standard output to its original value
+                print(str(pos)+' -> Done')'''
 
-    with open('QM9_target_log01.txt', 'a') as f:
-        for i in range(4,10000):
-            pos = '000000'[:(6-len(str(i)))] + str(i)
-            sys.stdout = f # Change the standard output to the created file
-            Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
-            sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')
+        with open('QM9_target_log'+batch_index+'.txt', 'a') as f:
+            for i in range(start_tag,end_tag):
+                pos = '000000'[:(6-len(str(i)))] + str(i)
+                sys.stdout = f # Change the standard output to the created file
+                Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
+                sys.stdout = original_stdout # Reset the standard output to its original value
+                print(str(pos)+' -> Done')
 
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    #Find_AEfromref(naphthalene, log='sparse', dZ_max=2)
+    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    #Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_017954.xyz'), dZ_max=2, log = True), log='sparse', dZ_max=2)
+    #Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_017976.xyz'), dZ_max=2, log = True), log='sparse', dZ_max=2)
 
 #TODOS:
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python

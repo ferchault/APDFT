@@ -79,7 +79,7 @@ def get_CDF(input_file_prefix, bin_size = 50):
     return binning, num_AE, num_moles
 
 #--------------------------QM9 as references-----------------------------------
-last_log_num = 2
+last_log_num = 14
 bin_size = 30
 
 N, times, SD = get_times('QM9_log')
@@ -90,6 +90,7 @@ fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
     ax.set_ylabel('AEs among all molecules (ref) with same N / %')
+    ax.set_xlim([-bin_size/2,1090])
     ax.set_ylim([0.0012,120])
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
@@ -102,6 +103,7 @@ all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
 plt.ylabel('AEs among all molecules (ref) / %')
 plt.ylim([0.001,1.3])
+plt.xlim([-bin_size/2,1090])
 plt.yscale('log')
 #plt.xscale('log')
 bottom = np.zeros((len(binning[1:])))
@@ -142,6 +144,7 @@ fig, ax = plt.subplots()
 for i in N:
     ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
     ax.set_ylabel('AEs among all molecules (tar) with same N / %')
+    ax.set_xlim([-bin_size/2,1090])
     ax.set_ylim([0.0012,120])
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
@@ -154,6 +157,7 @@ all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
 plt.ylabel('AEs among all molecules (tar) / %')
 plt.ylim([0.001,10])
+plt.xlim([-bin_size/2,1090])
 plt.yscale('log')
 #plt.xscale('log')
 bottom = np.zeros((len(binning[1:])))
