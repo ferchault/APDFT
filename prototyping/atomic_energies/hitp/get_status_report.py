@@ -230,7 +230,7 @@ def update(database):
 if __name__ == "__main__":
     # load database
     print('Loading Database...', flush = True)
-    db = pd.read_pickle("/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/other_slices/calculation_database.pd")
+    db = pd.read_pickle('/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons/calculation_manager.pd')
     # update
     print('Updating database...', flush = True)
     update(db)
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     enable_restart(db)
     # save results
     print('Writing status report...', flush = True)
-    status_report(db, '/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/other_slices')
+    status_report(db, '/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons')
     print('Saving Database...', flush = True)
-    db.to_pickle("/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/other_slices/calculation_database.pd")
+    db.to_pickle('/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons/calculation_manager.pd')
     print('All done! Maybe the restart option should be enabled in some input files.', flush= True)
