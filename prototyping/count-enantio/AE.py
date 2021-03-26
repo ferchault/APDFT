@@ -231,7 +231,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
     return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config.tolist(), Geom)
 
 if __name__ == "__main__":
-    for count in range(1,14+1):
+    '''for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -241,13 +241,13 @@ if __name__ == "__main__":
         if count == 14:
             end_tag = 133885+1
         batch_index = '00'[:(2-len(str(count)))] + str(count)
-        '''with open('QM9_log'+batch_index+'.txt', 'a') as f:
+        with open('QM9_log'+batch_index+'.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
                 Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
                 sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')'''
+                print(str(pos)+' -> Done')
 
         with open('QM9_target_log'+batch_index+'.txt', 'a') as f:
             for i in range(start_tag,end_tag):
@@ -255,14 +255,14 @@ if __name__ == "__main__":
                 sys.stdout = f # Change the standard output to the created file
                 Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
                 sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')
+                print(str(pos)+' -> Done')'''
 
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    #Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_017976.xyz'), dZ_max=2, log = True), log='sparse', dZ_max=2)
+    nautyAE(benzene, dZ=[2,1,-1,-2], m=[1,1,1,1], debug = False, bond_energy_rules = True, chem_formula = True)
 
 #TODOS:
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python

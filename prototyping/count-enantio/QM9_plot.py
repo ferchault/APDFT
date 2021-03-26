@@ -133,7 +133,7 @@ fig.savefig("QM9_times.png", dpi=500)
 
 
 #--------------------------QM9 as targets--------------------------------------
-last_log_num = 2
+last_log_num = 5
 bin_size = 30
 
 N, times, SD = get_times('QM9_target_log')
