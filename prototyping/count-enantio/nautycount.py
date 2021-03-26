@@ -23,7 +23,18 @@ def sum_formula(array_of_atoms):
                 formula += str(counts[i])
     return formula
 
-def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
+def bond_count(edge_layout, elements_at_index):
+    '''Count all the bonds of edge_layout with the vertices defined in
+    elements_at_index and return them'''
+    #First: Translate all edges into bond-strings
+    collect_bonds = []
+    for edge in edge_layout:
+        bond_vertices = [inv_elements[i] for i in np.sort([elements[elements_at_index[edge[0]]], elements[elements_at_index[edge[1]]]])]
+        bond_name = bond_vertices[0]+bond_vertices[1]
+        collect_bonds = np.append(collect_bonds, bond_name)
+    return collect_bonds
+
+def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bond_energy_rules = False):
     #graph is an instance of the MoleAsGraph class
     #dZ and m are each arrays that include the transmutations and their number
     start_time = time.time()
@@ -134,9 +145,73 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True):
             else:
                 config_num += 1
     count = len(graph_config)
+
+
+    
+    #Find all the rules for bond energies between the AEs in one pair:
+    if bond_energy_rules == True:
+        #Initalize vector to hold all coefficients of all possible bonds
+        #Find all possible nuclear charges:
+        chem_elem = np.copy(graph.elements_at_index)
+        transmutations = dZ
+        transmutations = np.append(transmutations,0)
+        available_charges = np.unique([elements[chem_elem[i]] for i in range(len(chem_elem))])
+        possible_charges = np.unique([[i+j for i in available_charges] for j in transmutations])
+        #Sort the vector
+        possible_charges = np.sort(possible_charges)
+        #Create the vector of all possible combinations
+        possible_bonds = []
+        for i in range(len(possible_charges)):
+            for j in range(i, len(possible_charges)):
+                possible_bonds = np.append(possible_bonds, inv_elements[possible_charges[i]]+inv_elements[possible_charges[j]])
+        #print(possible_bonds)
+        ref_bonds = bond_count(graph.edge_layout, graph.elements_at_index)
+        multip = np.zeros((len(possible_bonds)), dtype='int')
+        for j in range(len(ref_bonds)):
+            for k in range(len(possible_bonds)):
+                if ref_bonds[j] == possible_bonds[k]:
+                    multip[k] += 1
+        #Prelimenary printout:
+        out = ''
+        for i in range(len(multip)):
+            if multip[i] != 0:
+                out += '  '+str(multip[i])+' '+str(possible_bonds[i])
+        rule = []
+        print(out+' = E_elec')
+
+        for i in range(count):
+            #We need the bonds of both molecules of the pair of AE!!!
+            bonds1 = bond_count(graph.edge_layout, [inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[i][j]]] for j in range(N)])
+            bonds2 = bond_count(graph.edge_layout, [inv_elements[elements[graph.elements_at_index[j]]-color2dZ[graph_config[i][j]]] for j in range(N)])
+            #Count the multiplicities of each bond and store them in a possible_bonds-like vector:
+            multip1 = np.zeros((len(possible_bonds)), dtype='int')
+            multip2 = np.zeros((len(possible_bonds)), dtype='int')
+            for j in range(len(bonds1)):
+                for k in range(len(possible_bonds)):
+                    if bonds1[j] == possible_bonds[k]:
+                        multip1[k] += 1
+                    if bonds2[j] == possible_bonds[k]:
+                        multip2[k] += 1
+            #Prelimenary printout:
+            out =''
+            sign = 1
+            first_nonzero = False
+            for i in range(len(multip1)):
+                if multip1[i]-multip2[i] != 0:
+                    if first_nonzero == False:
+                        first_nonzero = True
+                        if multip1[i]-multip2[i] < 0:
+                            sign = -1
+                    out += '  '+str(sign*(multip1[i]-multip2[i]))+' '+str(possible_bonds[i])
+            if len(out.strip()) != 0:
+                rule = np.append(rule, out+' = 0')
+        print(np.unique(rule))
+
+
     if debug == True:
         print('---------------')
         print("Time:", (time.time() - start_time),"s")
+        print('---------------')
         print('Alchemical Enantiomers:')
         for i in range(count):
             x = [inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[i][j]]] for j in range(N)]
