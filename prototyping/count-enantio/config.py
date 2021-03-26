@@ -1,3 +1,9 @@
+#For plotting all data: python3 QM9_plot.py &
+#For drawing a molecule from the QM9 dataset: python3 draw_smiles.py $molecule tag$
+#For executing the entire search within QM9 (make sure to increase connection timeout):
+#ssh -o ConnectTimeout=86400 user@workernode
+#python3 AE.py &
+
 import numpy as np
 
 tolerance = 3
@@ -15,7 +21,7 @@ PathToNauty27r1 = '/home/simon/Desktop/nauty27r1/'
 PathToQM9XYZ = '/home/simon/Desktop/QM9/XYZ/'
 
 '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
-atoms in a pure (i.e. uncolored) molecule in n=len(dZ_all[i]) partitions
+atoms in a pure (i.e. uncolored/isoatomic) molecule in n=len(dZ_all[i]) partitions
 for dZ_max = 3 up to m_tot = 8 and n = 2 and 3'''
 m_possibilities = np.array([
 [1,1],[1,1],[1,1],
