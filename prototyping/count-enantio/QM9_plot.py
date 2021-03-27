@@ -133,7 +133,7 @@ fig.savefig("QM9_times.png", dpi=500)
 
 
 #--------------------------QM9 as targets--------------------------------------
-last_log_num = 5
+last_log_num = 14
 bin_size = 30
 
 N, times, SD = get_times('QM9_target_log')
@@ -156,7 +156,7 @@ for i in N:
 all_moles = np.sum(num_moles)
 plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
 plt.ylabel('AEs among all molecules (tar) / %')
-plt.ylim([0.001,10])
+plt.ylim([0.001,1.3])
 plt.xlim([-bin_size/2,1090])
 plt.yscale('log')
 #plt.xscale('log')
