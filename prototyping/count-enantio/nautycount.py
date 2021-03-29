@@ -147,7 +147,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bo
     count = len(graph_config)
 
 
-    
+    #-----------------------------Very optional, very prelimenary-------------------------
     #Find all the rules for bond energies between the AEs in one pair:
     if bond_energy_rules == True:
         #Initalize vector to hold all coefficients of all possible bonds
@@ -202,7 +202,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bo
                         first_nonzero = True
                         if multip1[i]-multip2[i] < 0:
                             sign = -1
-                    out += '  '+str(sign*(multip1[i]-multip2[i]))+' '+str(possible_bonds[i])
+                    out += '  '+str(sign*(multip1[i]-multip2[i]))+' E_'+str(possible_bonds[i])
             if len(out.strip()) != 0:
                 rule = np.append(rule, out+' = 0')
         print(np.unique(rule))

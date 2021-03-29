@@ -1,5 +1,5 @@
 #For plotting all data: python3 QM9_plot.py &
-#For drawing a molecule from the QM9 dataset: python3 draw_smiles.py $molecule tag$
+#For drawing a molecule from the QM9 dataset: python3 draw_smiles.py $mode$ $molecule tag$
 #For executing the entire search within QM9 (make sure to increase connection timeout):
 #ssh -o ConnectTimeout=86400 user@workernode
 #python3 AE.py &

@@ -4,7 +4,9 @@ from MAG import *
 from config import *
 
 
-def Find_AEfromref(graph, dZ_max = 3, log = True, method = 'graph'):
+def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False):
+    if method == 'geom' and bond_energy_rules != False:
+        print("Warning: argument 'bond_energy_rules' is only supported for method 'geom'")
     dZ_all = np.copy(dZ_possibilities)
     m_all = np.copy(m_possibilities)
     start_time = time.time()
@@ -56,7 +58,7 @@ def Find_AEfromref(graph, dZ_max = 3, log = True, method = 'graph'):
         chem_form = str(sum_formula([inv_elements[elements[graph.elements_at_index[v]]+random_config[v]] for v in range(graph.number_atoms)]))
         m_time = time.time()
         if method == 'graph':
-            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True)
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True, bond_energy_rules = bond_energy_rules)
         if method == 'geom':
             x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
         if log == True:
@@ -230,8 +232,22 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
         print('GEOMETRY:\n' +str(Geom))
     return MoleAsGraph('reffrom'+graph.name, graph.edge_layout,chem_config.tolist(), Geom)
 
+
+def uncolor(graph):
+    '''Find the most symmetric reference molecule by setting all atoms to the
+    rounded average integer charge.'''
+    tot_nuc_charge = 0
+    for i in range(graph.number_atoms):
+        tot_nuc_charge += elements[graph.elements_at_index[i]]
+    average_element = inv_elements[int(tot_nuc_charge/graph.number_atoms)]
+    new_elements = np.empty((graph.number_atoms), dtype='str')
+    for i in range(graph.number_atoms):
+        new_elements[i] = average_element
+    return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,graph.geometry)
+
 if __name__ == "__main__":
-    '''for count in range(1,14+1):
+    #Going through QM9 and counting AEs with molecules as targets and references
+    for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -241,7 +257,7 @@ if __name__ == "__main__":
         if count == 14:
             end_tag = 133885+1
         batch_index = '00'[:(2-len(str(count)))] + str(count)
-        with open('QM9_log'+batch_index+'.txt', 'a') as f:
+        '''with open('QM9_log'+batch_index+'.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
@@ -257,12 +273,26 @@ if __name__ == "__main__":
                 sys.stdout = original_stdout # Reset the standard output to its original value
                 print(str(pos)+' -> Done')'''
 
+
+        with open('QM9_uncolored_log'+batch_index+'.txt', 'a') as f:
+            for i in range(start_tag,end_tag):
+                pos = '000000'[:(6-len(str(i)))] + str(i)
+                sys.stdout = f # Change the standard output to the created file
+                Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2)
+                sys.stdout = original_stdout # Reset the standard output to its original value
+                print(str(pos)+' -> Done')
+
+    #Checking for bond energy rules
+    '''for i in range(4,48):
+        pos = '000000'[:(6-len(str(i)))] + str(i)
+        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), bond_energy_rules = True, dZ_max=2, log = 'quiet')'''
+
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    nautyAE(benzene, dZ=[2,1,-1,-2], m=[1,1,1,1], debug = False, bond_energy_rules = True, chem_formula = True)
+
 
 #TODOS:
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python

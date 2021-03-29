@@ -95,7 +95,7 @@ for i in N:
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
     ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-    fig.savefig('CDF_AE_N'+str(i)+'.png', dpi=500)
+    fig.savefig('figures/CDF_AE_N'+str(i)+'.png', dpi=500)
     ax.clear()
 
 #num_moles is needed to rescale the number of AEs depending on their N
@@ -116,7 +116,7 @@ for i in N[1:]: #exclude the 2, because it does not have any AEs
     bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
     plt.legend(loc="upper right",framealpha=1, edgecolor='black')
     #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
-    plt.savefig('CDF_AE.png', dpi=500)
+    plt.savefig('figures/CDF_AE.png', dpi=500)
 
 #Plot the times
 fig, ax = plt.subplots()
@@ -129,7 +129,7 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
-fig.savefig("QM9_times.png", dpi=500)
+fig.savefig("figures/QM9_times.png", dpi=500)
 
 
 #--------------------------QM9 as targets--------------------------------------
@@ -149,7 +149,7 @@ for i in N:
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
     ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-    fig.savefig('CDF_AE_N'+str(i)+'_target.png', dpi=500)
+    fig.savefig('figures/CDF_AE_N'+str(i)+'_target.png', dpi=500)
     ax.clear()
 
 #num_moles is needed to rescale the number of AEs depending on their N
@@ -170,7 +170,7 @@ for i in N[1:]: #exclude the 2, because it does not have any AEs
     bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
     plt.legend(loc="upper right",framealpha=1, edgecolor='black')
     #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
-    plt.savefig('CDF_AE_target.png', dpi=500)
+    plt.savefig('figures/CDF_AE_target.png', dpi=500)
 
 #Plot the times
 fig, ax = plt.subplots()
@@ -183,4 +183,4 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
-fig.savefig("QM9_times_target.png", dpi=500)
+fig.savefig("figures/QM9_times_target.png", dpi=500)
