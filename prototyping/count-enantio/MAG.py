@@ -40,6 +40,15 @@ class MoleAsGraph:
         else:
             return self.elements_at_index(site_number)
 
+    def count_automorphisms(self):
+        #Prepare the graph
+        g = igraph.Graph([tuple(v) for v in self.edge_layout])
+        #Get all automorphisms with colored vertices according to self.elements_at_index
+        automorphisms = g.get_automorphisms_vf2(color=[elements[self.elements_at_index[i]] for i in range(self.number_atoms)])
+        #Get rid of all molecules without any orbits (the identity does not count):
+        return len(automorphisms)
+
+
     def get_orbits_from_graph(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
@@ -67,8 +76,16 @@ class MoleAsGraph:
                 #print(orbit)
                 similars[i] = orbit
             #Unique the list:
-            unique_similars = [list(x) for x in set(tuple(x) for x in similars)]
-            return [list(map(int,i)) for i in unique_similars]
+            sites = [list(x) for x in set(tuple(x) for x in similars)]
+            #Delete all similars which include only one atom:
+            num_sites = 0
+            while num_sites < len(sites):
+                if len(sites[num_sites])>1:
+                    num_sites += 1
+                    #Convert to list:
+                else:
+                    sites = np.delete(sites, num_sites, axis = 0)
+        return sites
 
     def get_equi_atoms_from_geom(self):
         CN = Coulomb_neighborhood(self.geometry)

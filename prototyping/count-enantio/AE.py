@@ -2,7 +2,7 @@ from nautycount import *
 from inertiacount import *
 from MAG import *
 from config import *
-
+import os
 
 def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False):
     if method == 'geom' and bond_energy_rules != False:
@@ -245,6 +245,37 @@ def uncolor(graph):
         new_elements[i] = average_element
     return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,graph.geometry)
 
+def Find_theoAEfromgraph(N = 4, dZ_max=3):
+    '''Find the theoretical possible upper limit for the number of possible molecules. Use
+    nauty's geng to generate all possible connected graphs with at least 1 degree and at most
+    4 (organic molecules only) and pipe that into vcolg'''
+    count = 0
+    N_dZ = 1+2*dZ_max
+    command = PathToNauty27r1+"geng -c "+str(N)+" -d1 -D4 -q | "+PathToNauty27r1+"vcolg -q -T -m"+str(N_dZ)
+    output = os.popen(command).read()
+    #--------------------------------------------------------------------------
+    num_lines = output.count('\n')
+    element_config = np.empty((num_lines),dtype='str')
+    for i in range(num_lines):
+        line = output.splitlines(False)[i]
+        #Split at '  ':
+        colors = line.split('  ')[0]
+        noding = line.split('  ')[1]
+
+        #Parse numbers to integer array and create a fictional molecule
+        chem_elements = np.array([inv_elements[int(j)+6] for j in colors.split(' ')],dtype=object)
+        edges = [int(j) for j in noding.split(' ')]
+        #Delete first two elements
+        chem_elements = np.delete(chem_elements, (0,1), axis = 0)
+        #Initalize the edge_layout of the fictional molecule
+        edge_layout = [[edges[2*j], edges[2*j-1]] for j in range(int(len(edges)/2))]
+        #Create the fictional molecule as MoleAsGraph object and call Find_AEfromref
+        fict_mole = MoleAsGraph('spamandeggs',edge_layout ,chem_elements.tolist(), ['C', (1,1,1)])
+        if Find_AEfromref(fict_mole, dZ_max=dZ_max, method='graph', log ='quiet') > 0:
+            count += 1
+    return count, num_lines
+
+
 if __name__ == "__main__":
     #Going through QM9 and counting AEs with molecules as targets and references
     for count in range(1,14+1):
@@ -271,7 +302,7 @@ if __name__ == "__main__":
                 sys.stdout = f # Change the standard output to the created file
                 Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
                 sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')'''
+                print(str(pos)+' -> Done')
 
 
         with open('QM9_uncolored_log'+batch_index+'.txt', 'a') as f:
@@ -281,6 +312,26 @@ if __name__ == "__main__":
                 Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2)
                 sys.stdout = original_stdout # Reset the standard output to its original value
                 print(str(pos)+' -> Done')
+
+        #Find orbits
+        with open('QM9_orbit_log'+batch_index+'.txt', 'a') as f:
+            for i in range(start_tag,end_tag):
+                pos = '000000'[:(6-len(str(i)))] + str(i)
+                sys.stdout = f # Change the standard output to the created file
+                result = parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').get_orbits_from_graph()
+                if len(result[0]) == 0:
+                    num_orbits = 0
+                else:
+                    num_orbits = len(result)
+                num_vertices = 0
+                max_sized_orbit = 2
+                for i in range(len(result)):
+                    num_vertices += len(result[i])
+                    if len(result[i]) > max_sized_orbit:
+                        max_sized_orbit = len(result[i])
+                print(pos+'\t'+str(num_orbits)+'\t'+str(num_vertices)+'\t'+str(max_sized_orbit))
+                sys.stdout = original_stdout # Reset the standard output to its original value
+                print(str(pos)+' -> Done')'''
 
     #Checking for bond energy rules
     '''for i in range(4,48):
@@ -292,7 +343,9 @@ if __name__ == "__main__":
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-
+    for i in range(5,6):
+        perc, total = Find_theoAEfromgraph(N=i, dZ_max=1)
+        print(100*perc/total)
 
 #TODOS:
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
