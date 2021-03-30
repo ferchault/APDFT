@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import numpy as np
 import os
 import sys
+from draw_smiles import draw
 
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
-
+'''
 def get_times(input_file_prefix):
     N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
     num_moles = np.zeros((len(N)), dtype='int') #Number of times a molecule with N atoms occurs
@@ -184,3 +186,49 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
 fig.savefig("figures/QM9_times_target.png", dpi=500)
+'''
+
+#--------------------------Orbits in QM9---------------------------------------
+last_log_num = 14
+
+#Initalize x and y array, i.e. AEs and related orbit quantity
+AEs = np.empty((133885+1-4), dtype='int')
+orbit_quantity = np.empty((133885+1-4), dtype='int')
+
+#Get all the data:
+a = 0
+for log_num in range(1,last_log_num+1):
+    f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+    Lines = f.readlines()
+    for line in Lines:
+        x = line.split('\t')
+        AEs[a] = int(x[3]) #1: time; 2: number of heavy atoms; 3: number of AEs
+        a += 1
+    f.close()
+
+a = 0
+for log_num in range(1,last_log_num+1):
+    f = open('QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+    Lines = f.readlines()
+    for line in Lines:
+        x = line.split('\t')
+        orbit_quantity[a] = int(x[2]) #1: number of orbits; 2: number of atoms in orbits; 3: maximum sized orbit
+
+        #print out all surprisingly cold contestants:
+        if x[3] == 2 and AEs[a] == 0:
+            print('tag: '+x[0]+'\tNumber of atoms in orbits: '+str(x[2])+'\tNumber of AEs: '+str(AEs[a])+'\tMax orbit size: '+str(x[3]))
+            #Draw those outliers in subfolder
+            draw(x[0],'file')
+
+        a += 1
+    f.close()
+
+#Find ranges
+
+
+
+fig, ax = plt.subplots()
+hist = ax.hist2d(orbit_quantity, AEs, bins=10, norm = colors.LogNorm(), alpha=1)
+ax.set(xlabel='Number of heavy atoms in orbits', ylabel='Number of AEs')
+fig.savefig("figures/histogram2d_Symmetry_vs_AE.png",dpi=500)
+ax.clear()

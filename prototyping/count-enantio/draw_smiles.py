@@ -30,8 +30,8 @@ def draw(tag, out='bash'):
         #img=Draw.MolsToGridImage(Chem.MolFromSmiles(smiles),molsPerRow=4,subImgSize=(200,200),legends=smiles)
         #img.save('chem_fig')
         mol = Chem.MolFromSmiles(smiles)
-        Draw.MolToFile(mol, 'figures/'+tag+'.png')
-
+        #Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
+        Draw.MolToFile(mol, 'figures/outliers/'+tag+'.png')
 
 if __name__ == "__main__":
     draw(sys.argv[2], sys.argv[1])
