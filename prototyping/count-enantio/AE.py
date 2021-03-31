@@ -245,18 +245,24 @@ def uncolor(graph):
         new_elements[i] = average_element
     return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,graph.geometry)
 
-def Find_theoAEfromgraph(N = 4, dZ_max=3):
+
+def Find_theoAEfromgraph(N = 3, dZ_max=1):
     '''Find the theoretical possible upper limit for the number of possible molecules. Use
     nauty's geng to generate all possible connected graphs with at least 1 degree and at most
     4 (organic molecules only) and pipe that into vcolg'''
     count = 0
     N_dZ = 1+2*dZ_max
     command = PathToNauty27r1+"geng -c "+str(N)+" -d1 -D4 -q | "+PathToNauty27r1+"vcolg -q -T -m"+str(N_dZ)
+    #print(command)
     output = os.popen(command).read()
     #--------------------------------------------------------------------------
     num_lines = output.count('\n')
     element_config = np.empty((num_lines),dtype='str')
-    for i in range(num_lines):
+    #Use dynamic stepsizes for nice random batching
+    batching = 1
+    if N > 4 or num_lines > 5000:
+        batching = N*(int(num_lines/10000)+1)
+    for i in range(0,num_lines, batching):
         line = output.splitlines(False)[i]
         #Split at '  ':
         colors = line.split('  ')[0]
@@ -268,17 +274,21 @@ def Find_theoAEfromgraph(N = 4, dZ_max=3):
         #Delete first two elements
         chem_elements = np.delete(chem_elements, (0,1), axis = 0)
         #Initalize the edge_layout of the fictional molecule
-        edge_layout = [[edges[2*j], edges[2*j-1]] for j in range(int(len(edges)/2))]
+        edge_layout = [[edges[2*j], edges[2*j+1]] for j in range(int(len(edges)/2))]
+        #print('-------------------')
+        #print(chem_elements)
+        #print(edge_layout)
         #Create the fictional molecule as MoleAsGraph object and call Find_AEfromref
-        fict_mole = MoleAsGraph('spamandeggs',edge_layout ,chem_elements.tolist(), ['C', (1,1,1)])
-        if Find_AEfromref(fict_mole, dZ_max=dZ_max, method='graph', log ='quiet') > 0:
+        fict_mole = MoleAsGraph('spamandeggs',edge_layout ,chem_elements.tolist(), None)
+        num_AE = Find_AEfromref(fict_mole, dZ_max=dZ_max, log = 'quiet', method = 'graph', bond_energy_rules = False)
+        if num_AE > 0:
             count += 1
-    return count, num_lines
+    print('Number of atoms: '+str(N)+'\tNumber of possibilities: '+str(num_lines)+'\tAEs within there: '+str(count)+'\tStepsize: '+str(batching))
 
 
 if __name__ == "__main__":
-    #Going through QM9 and counting AEs with molecules as targets and references
-    for count in range(1,14+1):
+    #Going through QM9 and counting AEs (or whatever)
+    '''for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -288,7 +298,9 @@ if __name__ == "__main__":
         if count == 14:
             end_tag = 133885+1
         batch_index = '00'[:(2-len(str(count)))] + str(count)
-        '''with open('QM9_log'+batch_index+'.txt', 'a') as f:
+
+
+        with open('QM9_log'+batch_index+'_dZ2.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
@@ -296,7 +308,7 @@ if __name__ == "__main__":
                 sys.stdout = original_stdout # Reset the standard output to its original value
                 print(str(pos)+' -> Done')
 
-        with open('QM9_target_log'+batch_index+'.txt', 'a') as f:
+        with open('QM9_target_log'+batch_index+'_dZ2.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
@@ -314,7 +326,7 @@ if __name__ == "__main__":
                 print(str(pos)+' -> Done')
 
         #Find orbits
-        with open('QM9_orbit_log'+batch_index+'.txt', 'a') as f:
+        with open('QM9_orbit_log'+batch_index+'_dZ2.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
@@ -333,20 +345,34 @@ if __name__ == "__main__":
                 sys.stdout = original_stdout # Reset the standard output to its original value
                 print(str(pos)+' -> Done')'''
 
-    #Checking for bond energy rules
-    '''for i in range(4,48):
-        pos = '000000'[:(6-len(str(i)))] + str(i)
-        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), bond_energy_rules = True, dZ_max=2, log = 'quiet')'''
 
     #Testing
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    for i in range(5,6):
-        perc, total = Find_theoAEfromgraph(N=i, dZ_max=1)
-        print(100*perc/total)
+    for i in range(2,10):
+        Find_theoAEfromgraph(N=i, dZ_max=1)
+    for i in range(2,10):
+        Find_theoAEfromgraph(N=i, dZ_max=2)
 
-#TODOS:
+#---------------------------Available functions---------------------------------
+
+#in AE.py
+#Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False)
+#Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False)
+#uncolor(graph)
+#Find_theoAEfromgraph(N = 3, dZ_max=1)
+
+#in MAG.py
+#parse_QM9toMAG(input_path, input_file)
+
+
+#-------------------------------------TODOS-------------------------------------
+#Bond energy rules, already implemented in Find_AEfromref, continue with that
+    #Checking for bond energy rules
+    #for i in range(4,48):
+    #    pos = '000000'[:(6-len(str(i)))] + str(i)
+    #    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), bond_energy_rules = True, dZ_max=2, log = 'quiet')
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
 #Optional: Parallelize the for-loop in Find_AEfromref

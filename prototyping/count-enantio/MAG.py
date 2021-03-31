@@ -75,16 +75,15 @@ class MoleAsGraph:
                 orbit = np.unique(orbit)
                 #print(orbit)
                 similars[i] = orbit
-            #Unique the list:
-            sites = [list(x) for x in set(tuple(x) for x in similars)]
             #Delete all similars which include only one atom:
-            num_sites = 0
-            while num_sites < len(sites):
-                if len(sites[num_sites])>1:
-                    num_sites += 1
-                    #Convert to list:
+            num_similars = 0
+            while num_similars < len(similars):
+                if len(similars[num_similars])>1:
+                    num_similars += 1
                 else:
-                    sites = np.delete(sites, num_sites, axis = 0)
+                    similars = np.delete(similars, num_similars, axis = 0)
+            #Unique the list:
+            sites = [list(map(int,x)) for x in set(tuple(x) for x in similars)]
         return sites
 
     def get_equi_atoms_from_geom(self):

@@ -3,22 +3,20 @@ from matplotlib import colors
 import numpy as np
 import os
 import sys
-from draw_smiles import draw
 
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
 np.set_printoptions(threshold=sys.maxsize)
 color = ['#407294', '#ffa500', '#065535', '#800000', '#660066', '#310c0c', '#f7347a', '#696966']
 
-'''
-def get_times(input_file_prefix):
+def get_times(input_file_prefix, input_file_postfix):
     N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
     num_moles = np.zeros((len(N)), dtype='int') #Number of times a molecule with N atoms occurs
     times = np.zeros((len(N))) #Times of calculating for N atoms
     times_variance = np.zeros((len(N)))
     max_time = 0
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -38,12 +36,12 @@ def get_times(input_file_prefix):
     return N, times, times_standarddev
 
 
-def get_CDF(input_file_prefix, bin_size = 50):
+def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
     N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
     num_moles = np.zeros((8), dtype='int') #Number of times a molecule with N atoms occurs
     max = 0
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -62,7 +60,7 @@ def get_CDF(input_file_prefix, bin_size = 50):
     num_AE = np.zeros((len(N),num_bin), dtype=object)
     #Go through all files again, get number of AEs per bin per N
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -82,10 +80,10 @@ def get_CDF(input_file_prefix, bin_size = 50):
 
 #--------------------------QM9 as references-----------------------------------
 last_log_num = 14
-bin_size = 30
+'''bin_size = 30
 
-N, times, SD = get_times('QM9_log')
-binning, num_AE, num_moles = get_CDF( 'QM9_log', bin_size=bin_size)
+N, times, SD = get_times('QM9_log', '_dZ2')
+binning, num_AE, num_moles = get_CDF( 'QM9_log', '_dZ2', bin_size=bin_size)
 num_AE *= 100
 #print(binning, num_AE)
 fig, ax = plt.subplots()
@@ -138,8 +136,8 @@ fig.savefig("figures/QM9_times.png", dpi=500)
 last_log_num = 14
 bin_size = 30
 
-N, times, SD = get_times('QM9_target_log')
-binning, num_AE, num_moles = get_CDF('QM9_target_log', bin_size=bin_size)
+N, times, SD = get_times('QM9_target_log', '_dZ2')
+binning, num_AE, num_moles = get_CDF('QM9_target_log', '_dZ2', bin_size=bin_size)
 num_AE *= 100
 #print(binning, num_AE)
 fig, ax = plt.subplots()
@@ -185,8 +183,8 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
-fig.savefig("figures/QM9_times_target.png", dpi=500)
-'''
+fig.savefig("figures/QM9_times_target.png", dpi=500)'''
+
 
 #--------------------------Orbits in QM9---------------------------------------
 last_log_num = 14
@@ -194,11 +192,12 @@ last_log_num = 14
 #Initalize x and y array, i.e. AEs and related orbit quantity
 AEs = np.empty((133885+1-4), dtype='int')
 orbit_quantity = np.empty((133885+1-4), dtype='int')
+indices = np.array([], dtype='int')
 
 #Get all the data:
 a = 0
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+    f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')
@@ -208,27 +207,60 @@ for log_num in range(1,last_log_num+1):
 
 a = 0
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'.txt', 'r')
+    f = open('QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')
         orbit_quantity[a] = int(x[2]) #1: number of orbits; 2: number of atoms in orbits; 3: maximum sized orbit
 
-        #print out all surprisingly cold contestants:
-        if x[3] == 2 and AEs[a] == 0:
-            print('tag: '+x[0]+'\tNumber of atoms in orbits: '+str(x[2])+'\tNumber of AEs: '+str(AEs[a])+'\tMax orbit size: '+str(x[3]))
-            #Draw those outliers in subfolder
-            draw(x[0],'file')
-
+        #print out all surprisingly cold contestants and save their index:
+        if int(x[3]) == 2 and AEs[a] == 0:
+        #    print('tag: '+x[0]+'\tNumber of atoms in orbits: '+str(x[2])+'\tNumber of AEs: '+str(AEs[a])+'\tMax orbit size: '+str(x[3]))
+            indices = np.append(indices, a)
         a += 1
     f.close()
 
-#Find ranges
 
-
-
-fig, ax = plt.subplots()
-hist = ax.hist2d(orbit_quantity, AEs, bins=10, norm = colors.LogNorm(), alpha=1)
-ax.set(xlabel='Number of heavy atoms in orbits', ylabel='Number of AEs')
-fig.savefig("figures/histogram2d_Symmetry_vs_AE.png",dpi=500)
+fig, ax = plt.subplots(tight_layout=True)
+plt.hist2d(orbit_quantity, AEs, bins=(9,10), norm = colors.LogNorm(), alpha=1)
+ax.set(xlabel='Number of vertices (heavy atoms) in orbits', ylabel='Number of AEs')
+#ax.set_title('Number of AEs vs size of largest orbit')
+plt.colorbar()
+plt.clim(1,100000)
+fig.savefig("figures/hist2d_maxorbit_vs_numAE.png",dpi=500)
 ax.clear()
+
+#Delete some elements from the the data
+AEs = np.delete(AEs,indices)
+orbit_quantity = np.delete(orbit_quantity, indices)
+
+fig, ax = plt.subplots(tight_layout=True)
+plt.hist2d(orbit_quantity, AEs, bins=(9,10), norm = colors.LogNorm(), alpha=1)
+ax.set(xlabel='Number of vertices (heavy atoms) in orbits', ylabel='Number of AEs')
+plt.colorbar()
+plt.clim(1,100000)
+fig.savefig("figures/hist2d_maxorbit_vs_numAE_filtered.png",dpi=500)
+ax.clear()
+
+
+#-----------------------Sweetspot---------------------------------------------
+'''Find the behavior of percentage of AEs in dataset versus number of heavy atoms,
+because: N = 2 is too small for AEs to appear and the trend goes up, however, graphs
+with large number of verties N get increasingly asymmetric and hence their group action
+orbit number decreases: Hypthesis: Find the sweetspot, where percentage reaches maximum'''
+
+#Get the data:
+#Possible number of heavy atoms
+N = [2,3,4,5,6,7,8,9]
+
+QM9_percentages_dZ1 = np.zeros((len(N)))
+QM9_percentages_dZ2 = np.zeros((len(N)))
+
+binning, num_AE, num_moles = get_CDF('QM9_log', '_dZ2')
+for i in range(len(num_moles)):
+    QM9_percentages_dZ2[i] = (1-num_AE[i][0])
+
+theoAE_dZ1 = [0*1/6, 0*1/28,36*1/201, 148*5/2175, 565*18/28138, 363*315/447714, 268*6672/8331789]
+theoAE_dZ2 = []
+
+print(QM9_percentages_dZ2)

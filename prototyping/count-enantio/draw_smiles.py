@@ -1,3 +1,5 @@
+#USE IN BASH: conda activate my-rdkit-env
+
 from pysmiles import read_smiles
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -7,9 +9,6 @@ import rdkit
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
-
-#The tag of the QM9 molecule
-#tag = '022079'
 
 def draw(tag, out='bash'):
     #Get the SMILES from the correct file
@@ -30,8 +29,11 @@ def draw(tag, out='bash'):
         #img=Draw.MolsToGridImage(Chem.MolFromSmiles(smiles),molsPerRow=4,subImgSize=(200,200),legends=smiles)
         #img.save('chem_fig')
         mol = Chem.MolFromSmiles(smiles)
-        #Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
-        Draw.MolToFile(mol, 'figures/outliers/'+tag+'.png')
+        Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
 
 if __name__ == "__main__":
-    draw(sys.argv[2], sys.argv[1])
+    draw(sys.argv[1], sys.argv[2])
+
+    #for i in range(4,133885+1):
+    #    tag = '000000'[:(6-len(str(i)))] + str(i)
+    #    draw(tag, 'file')
