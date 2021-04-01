@@ -183,7 +183,61 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="lower right",framealpha=1, edgecolor='black')
-fig.savefig("figures/QM9_times_target.png", dpi=500)'''
+fig.savefig("figures/QM9_times_target.png", dpi=500)
+
+
+#--------------------------QM9 if uncolored--------------------------------------
+last_log_num = 14
+bin_size = 30
+
+N, times, SD = get_times('QM9_uncolored_log', '')
+binning, num_AE, num_moles = get_CDF('QM9_target_log', '', bin_size=bin_size)
+num_AE *= 100
+#print(binning, num_AE)
+fig, ax = plt.subplots()
+for i in N:
+    ax.set_xlabel('Amount of AEs in bins of size '+str(bin_size))
+    ax.set_ylabel('AEs among all molecules (uncolored) with same N / %')
+    ax.set_xlim([-bin_size/2,1090])
+    ax.set_ylim([0.0012,120])
+    ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
+    plt.yscale('log')
+    ax.legend(loc="upper right",framealpha=1, edgecolor='black')
+    fig.savefig('figures/CDF_AE_N'+str(i)+'_uncolored.png', dpi=500)
+    ax.clear()
+
+#num_moles is needed to rescale the number of AEs depending on their N
+all_moles = np.sum(num_moles)
+plt.xlabel('Amount of AEs in bins of size '+str(bin_size))
+plt.ylabel('AEs among all molecules (uncolored) / %')
+plt.ylim([0.001,1.3])
+plt.xlim([-bin_size/2,1090])
+plt.yscale('log')
+#plt.xscale('log')
+bottom = np.zeros((len(binning[1:])))
+for i in N[1:]: #exclude the 2, because it does not have any AEs
+    #Calculate bottom:
+    plt.bar(binning[1:],num_AE[i-2][1:]*num_moles[i-2]/all_moles, width=bin_size, bottom=bottom, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
+    #Update bottom:
+    #print(bottom)
+    #print(num_AE[i-2][1:]*num_moles[i-2]/all_moles)
+    bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
+    plt.legend(loc="upper right",framealpha=1, edgecolor='black')
+    #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
+    plt.savefig('figures/CDF_AE_uncolored.png', dpi=500)
+
+#Plot the times
+fig, ax = plt.subplots()
+ax.scatter(N, times, marker='x', color='#1f77b4', label='geometry-based')
+plt.errorbar(N, times, yerr=SD, fmt='none', capsize=4, color='#1f77b4')
+ax.set_xticks(range(2,10))
+ax.set_xlim([1.5, 9.7])
+ax.set_ylim([0.001,5])
+ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
+#ax.grid(which='both')
+plt.yscale('log')
+#ax.legend(loc="lower right",framealpha=1, edgecolor='black')
+fig.savefig("figures/QM9_times_uncolored.png", dpi=500)'''
 
 
 #--------------------------Orbits in QM9---------------------------------------
@@ -222,7 +276,7 @@ for log_num in range(1,last_log_num+1):
 
 
 fig, ax = plt.subplots(tight_layout=True)
-plt.hist2d(orbit_quantity, AEs, bins=(9,10), norm = colors.LogNorm(), alpha=1)
+plt.hist2d(orbit_quantity, AEs,bins=([0,1,2,3,4,5,6,7,8,9],[0,100,200,300,400,500,600,700,800,900,1000,1100]), norm = colors.LogNorm())
 ax.set(xlabel='Number of vertices (heavy atoms) in orbits', ylabel='Number of AEs')
 #ax.set_title('Number of AEs vs size of largest orbit')
 plt.colorbar()
@@ -235,7 +289,7 @@ AEs = np.delete(AEs,indices)
 orbit_quantity = np.delete(orbit_quantity, indices)
 
 fig, ax = plt.subplots(tight_layout=True)
-plt.hist2d(orbit_quantity, AEs, bins=(9,10), norm = colors.LogNorm(), alpha=1)
+plt.hist2d(orbit_quantity, AEs, bins=([0,1,2,3,4,5,6,7,8,9],[0,100,200,300,400,500,600,700,800,900,1000,1100]), norm = colors.LogNorm())
 ax.set(xlabel='Number of vertices (heavy atoms) in orbits', ylabel='Number of AEs')
 plt.colorbar()
 plt.clim(1,100000)
@@ -251,16 +305,36 @@ orbit number decreases: Hypthesis: Find the sweetspot, where percentage reaches 
 
 #Get the data:
 #Possible number of heavy atoms
-N = [2,3,4,5,6,7,8,9]
 
-QM9_percentages_dZ1 = np.zeros((len(N)))
-QM9_percentages_dZ2 = np.zeros((len(N)))
+QM9_percentages_dZ1 = np.zeros((8))
+QM9_percentages_dZ2 = np.zeros((8))
+
+
 
 binning, num_AE, num_moles = get_CDF('QM9_log', '_dZ2')
 for i in range(len(num_moles)):
     QM9_percentages_dZ2[i] = (1-num_AE[i][0])
+QM9_percentages_dZ2 *= 100
 
-theoAE_dZ1 = [0*1/6, 0*1/28,36*1/201, 148*5/2175, 565*18/28138, 363*315/447714, 268*6672/8331789]
-theoAE_dZ2 = []
+theoAE_dZ1 = np.array([0*1/6, 0*1/28, 36*1/201, 30*25/2175, 99*108/28138, 57*2205/447714, 53*53376/8331789, 21*1434915/177145791])
+theoAE_dZ2 = np.array([0*1/15, 5*1/110, 220*1/1290, 71*75/23753, 57*1944/538895, 35*72373/14764065, 22*2999680/468692970])
 
-print(QM9_percentages_dZ2)
+theoAE_dZ1 *= 100
+theoAE_dZ2 *= 100
+
+fig, ax = plt.subplots()
+ax.scatter([2,3,4,5,6,7,8,9], QM9_percentages_dZ2, marker='x', color=color[1], label='dZ = 2 (QM9)')
+ax.plot([2,3,4,5,6,7,8,9], QM9_percentages_dZ2,color=color[1])
+ax.scatter([2,3,4,5,6,7,8,9], theoAE_dZ1, marker='x', color=color[2], label='dZ = 1 (theo)')
+ax.plot([2,3,4,5,6,7,8,9], theoAE_dZ1, color=color[2])
+ax.scatter([2,3,4,5,6,7,8], theoAE_dZ2, marker='x', color=color[3], label='dZ = 2 (theo)')
+ax.plot([2,3,4,5,6,7,8], theoAE_dZ2, color=color[3])
+ax.set_xticks(range(2,11))
+ax.set_yticks(range(0,50,10))
+ax.set_xlim([1.7, 10.3])
+ax.set_ylim([0,45])
+ax.set(xlabel='Number of heavy atoms N', ylabel='Amount of AEs / %')
+#ax.grid(which='both')
+#plt.yscale('log')
+ax.legend(loc="upper left",prop={'size': 10},framealpha=1, edgecolor='black')
+fig.savefig("figures/sweetspot.png", dpi=500)

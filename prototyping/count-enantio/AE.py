@@ -316,7 +316,6 @@ if __name__ == "__main__":
             sys.stdout = f # Change the standard output to the created file
             results = pool.map(multicore_QM9, [i for i in range(start_tag,end_tag)])
             sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')
         pool.close()
 
 
