@@ -3,6 +3,7 @@ from inertiacount import *
 from MAG import *
 from config import *
 import os
+import multiprocessing as mp
 
 def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False):
     if method == 'geom' and bond_energy_rules != False:
@@ -261,7 +262,7 @@ def Find_theoAEfromgraph(N = 3, dZ_max=1):
     #Use dynamic stepsizes for nice random batching
     batching = 1
     if N > 4 or num_lines > 5000:
-        batching = N*(int(num_lines/10000)+1)
+        batching = N*N*(int(num_lines/10000)+1)
     for i in range(0,num_lines, batching):
         line = output.splitlines(False)[i]
         #Split at '  ':
@@ -283,12 +284,19 @@ def Find_theoAEfromgraph(N = 3, dZ_max=1):
         num_AE = Find_AEfromref(fict_mole, dZ_max=dZ_max, log = 'quiet', method = 'graph', bond_energy_rules = False)
         if num_AE > 0:
             count += 1
-    print('Number of atoms: '+str(N)+'\tNumber of possibilities: '+str(num_lines)+'\tAEs within there: '+str(count)+'\tStepsize: '+str(batching))
+    print('Number of atoms: '+str(N)+'\tdZ_max: '+str(dZ_max)+'\tNumber of possibilities: '+str(num_lines)+'\tAEs within there: '+str(count)+'\tStepsize: '+str(batching))
+
+
+def multicore_QM9(i):
+    pos = '000000'[:(6-len(str(i)))] + str(i)
+    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=1)
+    #UNCOLOR: Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=1)
+    #TARGET SEARCH: Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
 
 
 if __name__ == "__main__":
     #Going through QM9 and counting AEs (or whatever)
-    '''for count in range(1,14+1):
+    for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -300,33 +308,20 @@ if __name__ == "__main__":
         batch_index = '00'[:(2-len(str(count)))] + str(count)
 
 
-        with open('QM9_log'+batch_index+'_dZ2.txt', 'a') as f:
-            for i in range(start_tag,end_tag):
-                pos = '000000'[:(6-len(str(i)))] + str(i)
-                sys.stdout = f # Change the standard output to the created file
-                Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=2)
-                sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')
-
-        with open('QM9_target_log'+batch_index+'_dZ2.txt', 'a') as f:
-            for i in range(start_tag,end_tag):
-                pos = '000000'[:(6-len(str(i)))] + str(i)
-                sys.stdout = f # Change the standard output to the created file
-                Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
-                sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')
+        #---------------------------Mutliprocessing-----------------------------
+        pool = mp.Pool(mp.cpu_count()-2) #Keep 2 cores out of the picture
+        with open('QM9_log'+batch_index+'_dZ1.txt', 'a') as f:
+        #UNCOLOR: with open('QM9_uncolored_log'+batch_index+'_dZ1.txt', 'a') as f:
+        #TARGET SEARCH: with open('QM9_target_log'+batch_index+'_dZ2.txt', 'a') as f:
+            sys.stdout = f # Change the standard output to the created file
+            results = pool.map(multicore_QM9, [i for i in range(start_tag,end_tag)])
+            sys.stdout = original_stdout # Reset the standard output to its original value
+            print(str(pos)+' -> Done')
+        pool.close()
 
 
-        with open('QM9_uncolored_log'+batch_index+'.txt', 'a') as f:
-            for i in range(start_tag,end_tag):
-                pos = '000000'[:(6-len(str(i)))] + str(i)
-                sys.stdout = f # Change the standard output to the created file
-                Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2)
-                sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')
-
-        #Find orbits
-        with open('QM9_orbit_log'+batch_index+'_dZ2.txt', 'a') as f:
+        #-----------------------------Find orbits-------------------------------
+        '''with open('QM9_orbit_log'+batch_index+'_dZ2.txt', 'a') as f:
             for i in range(start_tag,end_tag):
                 pos = '000000'[:(6-len(str(i)))] + str(i)
                 sys.stdout = f # Change the standard output to the created file
@@ -346,15 +341,13 @@ if __name__ == "__main__":
                 print(str(pos)+' -> Done')'''
 
 
-    #Testing
+    #------------------------------Testing--------------------------------------
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    for i in range(2,10):
-        Find_theoAEfromgraph(N=i, dZ_max=1)
-    for i in range(2,10):
-        Find_theoAEfromgraph(N=i, dZ_max=2)
+    #Find the sweetspots
+    #Find_theoAEfromgraph(N=10, dZ_max=1)
 
 #---------------------------Available functions---------------------------------
 
@@ -375,4 +368,3 @@ if __name__ == "__main__":
     #    pos = '000000'[:(6-len(str(i)))] + str(i)
     #    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), bond_energy_rules = True, dZ_max=2, log = 'quiet')
 #Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
-#Optional: Parallelize the for-loop in Find_AEfromref
