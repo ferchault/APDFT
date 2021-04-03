@@ -288,10 +288,37 @@ def Find_theoAEfromgraph(N = 3, dZ_max=1):
 
 
 def multicore_QM9(i):
+    dZ_max = 1
     pos = '000000'[:(6-len(str(i)))] + str(i)
-    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=1)
-    #UNCOLOR: Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=1)
-    #TARGET SEARCH: Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=2), log='sparse', dZ_max=2)
+    #-----------------------------Count AEs-------------------------------------
+    '''with open('QM9_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+    #UNCOLOR: with open('QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+    #TARGET SEARCH: with open('QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+        sys.stdout = f # Change the standard output to the created file
+        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max)
+        #UNCOLOR: Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max)
+        #TARGET SEARCH: Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=dZ_max), log='sparse', dZ_max=dZ_max)
+        sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')'''
+
+
+    #-----------------------------Find orbits-----------------------------------
+    with open('QM9_orbit_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+        sys.stdout = f # Change the standard output to the created file
+        orbs = parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').get_orbits_from_graph()
+        if len(orbs[0]) == 0:
+            num_orbits = 0
+        else:
+            num_orbits = len(orbs)
+        num_vertices = 0
+        max_sized_orbit = 2
+        for j in range(len(orbs)):
+            num_vertices += len(orbs[j])
+            if len(orbs[j]) > max_sized_orbit:
+                max_sized_orbit = len(orbs[j])
+        print(pos+'\t'+str(num_orbits)+'\t'+str(num_vertices)+'\t'+str(max_sized_orbit))
+        sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')
 
 
 if __name__ == "__main__":
@@ -307,37 +334,10 @@ if __name__ == "__main__":
             end_tag = 133885+1
         batch_index = '00'[:(2-len(str(count)))] + str(count)
 
-
         #---------------------------Mutliprocessing-----------------------------
-        pool = mp.Pool(mp.cpu_count()-2) #Keep 2 cores out of the picture
-        with open('QM9_log'+batch_index+'_dZ1.txt', 'a') as f:
-        #UNCOLOR: with open('QM9_uncolored_log'+batch_index+'_dZ1.txt', 'a') as f:
-        #TARGET SEARCH: with open('QM9_target_log'+batch_index+'_dZ2.txt', 'a') as f:
-            sys.stdout = f # Change the standard output to the created file
-            results = pool.map(multicore_QM9, [i for i in range(start_tag,end_tag)])
-            sys.stdout = original_stdout # Reset the standard output to its original value
+        pool = mp.Pool(int(performance_use*mp.cpu_count()))
+        results = pool.map(multicore_QM9, [i for i in range(start_tag,end_tag)])
         pool.close()
-
-
-        #-----------------------------Find orbits-------------------------------
-        '''with open('QM9_orbit_log'+batch_index+'_dZ2.txt', 'a') as f:
-            for i in range(start_tag,end_tag):
-                pos = '000000'[:(6-len(str(i)))] + str(i)
-                sys.stdout = f # Change the standard output to the created file
-                result = parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').get_orbits_from_graph()
-                if len(result[0]) == 0:
-                    num_orbits = 0
-                else:
-                    num_orbits = len(result)
-                num_vertices = 0
-                max_sized_orbit = 2
-                for i in range(len(result)):
-                    num_vertices += len(result[i])
-                    if len(result[i]) > max_sized_orbit:
-                        max_sized_orbit = len(result[i])
-                print(pos+'\t'+str(num_orbits)+'\t'+str(num_vertices)+'\t'+str(max_sized_orbit))
-                sys.stdout = original_stdout # Reset the standard output to its original value
-                print(str(pos)+' -> Done')'''
 
 
     #------------------------------Testing--------------------------------------
@@ -347,6 +347,15 @@ if __name__ == "__main__":
     #print(naphthalene.get_energy_NN())
     #Find the sweetspots
     #Find_theoAEfromgraph(N=10, dZ_max=1)
+
+
+
+
+
+
+
+
+
 
 #---------------------------Available functions---------------------------------
 
