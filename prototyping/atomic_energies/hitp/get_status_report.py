@@ -71,10 +71,11 @@ def check_errorfile(workdir):
         # read error file
         status = 'no error'
         allowed_warning1 = 'Note: The following floating-point exceptions are signalling: IEEE_DENORMAL'
-        allowed_warning2 = '*_SG_LDA’: No such file or directory'
+        allowed_warning2 = 'Note: The following floating-point exceptions are signalling: IEEE_UNDERFLOW_FLAG IEEE_DENORMAL'
+        allowed_warning3 = '*_SG_LDA’: No such file or directory'
         with open(last_errorfile, 'r') as f:
             for line in f:
-                if not allowed_warning1 in line and not allowed_warning2 in line:
+                if not allowed_warning1 in line and not allowed_warning2 in line and not allowed_warning3 in line:
                     status = 'broken'
                     break
     return(status)
