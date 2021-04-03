@@ -1,6 +1,10 @@
 import numpy as np
 import os
 
+import sys
+sys.path.insert(0, '/home/misa/git_repositories/APDFT/prototyping/atomic_energies/')
+import explore_qml_data as eqd
+
 ###########################################################################################
 #                                     Make input file                                     #
 ###########################################################################################
@@ -184,5 +188,46 @@ def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/softwar
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
 
+###########################################################################################
+#                                Wrappers and executables                                 #
+###########################################################################################
 
+def wrapper_ase(atoms, compound_path, pp_dir, pp_type, template_inp, template_inp_small_lambda):
+    """
+    generates all necessary files for a cpmd calculation using an atoms object from ase as input
+    """
+    # calculation parameters (independent of lambda value)
+    atom_symbols = atoms.get_chemical_symbols()
+    nuc_charges = atoms.get_atomic_numbers()
+    num_ve = eqd.get_num_val_elec(nuc_charges) # get number of ve
+    boxsize = get_boxsize(num_ve) # get boxsize
+    num_gpts_lower, num_gpts_higher = get_gpts(num_ve) # get gridpoints
+    num_gpts = num_gpts_higher
 
+    # shift molecule to center of box
+    coords_final = eqd.shift2center(atoms.get_positions(), np.array([boxsize, boxsize, boxsize])/2)
+
+    # get correct lambda value
+    lambda_values = np.array([0.2, 0.4, 0.6, 0.8, 1.0])
+    for lam_val in lambda_values:
+        new_lambda, scaled_ve = get_lambda(lam_val, num_ve)
+        # scaled_ve is number of electrons added from pseudopotential file, the remaining electrons must be added in form of a negative charge
+        charge = scaled_ve - num_ve # write input
+
+        # create directory if necessary
+        if scaled_ve < 10:
+            scaled_ve_str = '0'+str(scaled_ve)
+        else:
+            scaled_ve_str = str(scaled_ve)
+        lambda_path = os.path.join(compound_path, f've_{scaled_ve_str}/')
+        os.makedirs(lambda_path, exist_ok=True)
+
+        # generate input file
+        input_path = os.path.join(lambda_path, 'run.inp')
+        if new_lambda > 0.5:
+            write_input(atom_symbols, charge, coords_final, num_gpts, boxsize, input_path, template_inp, debug = False)
+        else:
+            write_input(atom_symbols, charge, coords_final, num_gpts, boxsize, input_path, template_inp_small_lambda, debug = False)
+
+        # generate pp-files
+        write_pp_files_compound(atom_symbols, new_lambda, lambda_path, pp_dir, pp_type)
