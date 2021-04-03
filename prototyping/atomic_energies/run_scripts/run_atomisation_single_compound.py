@@ -27,20 +27,24 @@ from find_converged import concatenate_files
 #                Set before running         #
 #############################################
 
-COMPOUND_PATH = sys.argv[1] #'/home/misa/projects/Atomic-Energies/data/dsgdb9nsd_003664'
+COMPOUND_PATH = '/home/misa/projects/Atomic-Energies/data/ueg_reference/effect_heteroatoms/dsgdb9nsd_000949'#sys.argv[1] #'/home/misa/projects/Atomic-Energies/data/dsgdb9nsd_003664'
 PATH2CUBES = os.path.join(COMPOUND_PATH, 'cube-files/')
-PATH2UEG = '/home/misa/projects/Atomic-Energies/data/ueg_reference/ueg/box30/ve_00.cube'
+PATH2UEG = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/ueg/ve_00.cube'
 
 
 print(f'Calculation energy in {COMPOUND_PATH}', flush = True)
 
-cubes = ['ve_8.cube', 've_15.cube', 've_23.cube', 've_30.cube', 've_38.cube']
+cubes = ['ve_07.cube', 've_14.cube', 've_22.cube', 've_29.cube', 've_36.cube']
 for i in range(len(cubes)):
     cubes[i] = PATH2CUBES + cubes[i]
 
 cubes.insert(0, PATH2UEG)
 # load 
 lam_vals, densities, nuclei, gpts, h_matrix = at.load_cube_data(cubes)
+
+# normalize
+densities[0][:] = densities[0].mean()
+densities[0] = densities[0]/densities[0].sum()*36
 
 # atomic energy decomposition
 nuclei, atomic_energies_with_repulsion, atomic_energies, alch_pots = at.atomic_energy_decomposition(lam_vals, densities, nuclei, gpts, h_matrix)
