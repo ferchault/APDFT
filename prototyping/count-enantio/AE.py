@@ -250,7 +250,7 @@ def uncolor(graph):
     #average_element = 'C'
     for i in range(graph.number_atoms):
         new_elements[i] = average_element
-        new_geometry[0][i] = average_element
+        new_geometry[i][0] = average_element
     return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,new_geometry)
 
 
@@ -298,18 +298,18 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
     #-----------------------------Count AEs-------------------------------------
     #RAW:
-    with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+    '''with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')
+        print(str(pos)+' -> Done')'''
 
     #UNCOLOR:
-    '''with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+    with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')'''
+        print(str(pos)+' -> Done')
 
     #TARGET SEARCH:
     '''with open('logs/QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
@@ -337,7 +337,7 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')'''
 
     #-----------------------------Find norms-----------------------------------
-    '''with open('logs/QM9_norm_log'+batch_index+'_dZ'+str(dZ_max)+'geom.txt', 'a') as f:
+    '''with open('logs/QM9_norm_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         norm = norm2(CN_inertia_tensor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').geometry))
         print(pos+'\t'+str(norm))
@@ -348,7 +348,7 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
 
 if __name__ == "__main__":
     #-----------Going through QM9 and counting AEs (or whatever)----------------
-    for count in range(1,14+1):
+    '''for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -366,7 +366,7 @@ if __name__ == "__main__":
 
         pool = mp.Pool(int(performance_use*mp.cpu_count()))
         pool.starmap(multicore_QM9, [(i,batch_index,2) for i in range(start_tag,end_tag)])
-        pool.close()
+        pool.close()'''
 
     #---------------------------theoretically possible graphs-------------------
     '''pool = mp.Pool(int(performance_use*mp.cpu_count()))
@@ -378,7 +378,12 @@ if __name__ == "__main__":
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-
+    for tag_number in range(4,100):
+        pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
+        print('------------------')
+        print(pos)
+        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='quiet', dZ_max=1, method = 'graph', bond_energy_rules = True)
+        print('------------------')
 
 #---------------------------Available functions---------------------------------
 

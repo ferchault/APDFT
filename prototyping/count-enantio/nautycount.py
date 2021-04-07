@@ -171,14 +171,8 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bo
             for k in range(len(possible_bonds)):
                 if ref_bonds[j] == possible_bonds[k]:
                     multip[k] += 1
-        #Prelimenary printout:
-        out = ''
-        for i in range(len(multip)):
-            if multip[i] != 0:
-                out += '  '+str(multip[i])+' '+str(possible_bonds[i])
-        rule = []
-        print(out+' = E_elec')
 
+        rule = []
         for i in range(count):
             #We need the bonds of both molecules of the pair of AE!!!
             bonds1 = bond_count(graph.edge_layout, [inv_elements[elements[graph.elements_at_index[j]]+color2dZ[graph_config[i][j]]] for j in range(N)])
@@ -205,7 +199,9 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bo
                     out += '  '+str(sign*(multip1[i]-multip2[i]))+' E_'+str(possible_bonds[i])
             if len(out.strip()) != 0:
                 rule = np.append(rule, out+' = 0')
-        print(np.unique(rule))
+        final_set = np.unique(rule)
+        for r in final_set:
+            print(r)
 
 
     if debug == True:
