@@ -4,6 +4,7 @@ from MAG import *
 from config import *
 import os
 import multiprocessing as mp
+import itertools
 
 def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False):
     if method == 'geom' and bond_energy_rules != False:
@@ -37,6 +38,8 @@ def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy
         dZ_all = np.array([[]], dtype=object)
     #Parallelize this for-loop:
     #For plotting: save number of transmuted atoms num_trans and time
+    #print(m_all)
+    #print(dZ_all)
     num_trans = np.array([])
     times = np.array([])
     total_number = 0
@@ -242,12 +245,16 @@ def uncolor(graph):
         tot_nuc_charge += elements[graph.elements_at_index[i]]
     average_element = inv_elements[int(tot_nuc_charge/graph.number_atoms)]
     new_elements = np.empty((graph.number_atoms), dtype='str')
+    new_geometry = np.copy(graph.geometry)
+    #Explicitly set the average element:
+    #average_element = 'C'
     for i in range(graph.number_atoms):
         new_elements[i] = average_element
-    return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,graph.geometry)
+        new_geometry[0][i] = average_element
+    return MoleAsGraph('isoatomic'+graph.name, graph.edge_layout,new_elements,new_geometry)
 
 
-def Find_theoAEfromgraph(N = 3, dZ_max=1):
+def Find_theoAEfromgraph(N, dZ_max):
     '''Find the theoretical possible upper limit for the number of possible molecules. Use
     nauty's geng to generate all possible connected graphs with at least 1 degree and at most
     4 (organic molecules only) and pipe that into vcolg'''
@@ -284,26 +291,34 @@ def Find_theoAEfromgraph(N = 3, dZ_max=1):
         num_AE = Find_AEfromref(fict_mole, dZ_max=dZ_max, log = 'quiet', method = 'graph', bond_energy_rules = False)
         if num_AE > 0:
             count += 1
-    print('Number of atoms: '+str(N)+'\tdZ_max: '+str(dZ_max)+'\tNumber of possibilities: '+str(num_lines)+'\tAEs within there: '+str(count)+'\tStepsize: '+str(batching))
+    print('Number of atoms: '+str(N)+'\tdZ_max: '+str(dZ_max)+'\tPossibles / % : '+str(count*batching*100/(num_lines)))
 
 
-def multicore_QM9(i):
-    dZ_max = 1
-    pos = '000000'[:(6-len(str(i)))] + str(i)
+def multicore_QM9(tag_number, batch_index, dZ_max):
+    pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
     #-----------------------------Count AEs-------------------------------------
-    '''with open('QM9_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
-    #UNCOLOR: with open('QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
-    #TARGET SEARCH: with open('QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+    with open('QM9_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
-        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max)
-        #UNCOLOR: Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max)
-        #TARGET SEARCH: Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=dZ_max), log='sparse', dZ_max=dZ_max)
+        Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max, method = 'graph')
+        sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')
+
+    #UNCOLOR:
+    '''with open('QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+        sys.stdout = f # Change the standard output to the created file
+        Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max, method = 'graph')
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')'''
 
+    #TARGET SEARCH:
+    '''with open('QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+        sys.stdout = f # Change the standard output to the created file
+        Find_AEfromref(Find_reffromtar(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), dZ_max=dZ_max), log='sparse', dZ_max=dZ_max, method = 'graph')
+        sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')'''
 
     #-----------------------------Find orbits-----------------------------------
-    with open('QM9_orbit_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
+    '''with open('QM9_orbit_log'+batch_index+'_dZ'+str(dZ_max)+'.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         orbs = parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').get_orbits_from_graph()
         if len(orbs[0]) == 0:
@@ -318,12 +333,12 @@ def multicore_QM9(i):
                 max_sized_orbit = len(orbs[j])
         print(pos+'\t'+str(num_orbits)+'\t'+str(num_vertices)+'\t'+str(max_sized_orbit))
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')
+        print(str(pos)+' -> Done')'''
 
 
 if __name__ == "__main__":
-    #Going through QM9 and counting AEs (or whatever)
-    for count in range(1,14+1):
+    #-----------Going through QM9 and counting AEs (or whatever)----------------
+    '''for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
         end_tag = count*10000
@@ -336,17 +351,25 @@ if __name__ == "__main__":
 
         #---------------------------Mutliprocessing-----------------------------
         pool = mp.Pool(int(performance_use*mp.cpu_count()))
-        results = pool.map(multicore_QM9, [i for i in range(start_tag,end_tag)])
+        pool.starmap(multicore_QM9, [(i,batch_index,1) for i in range(start_tag,end_tag)])
         pool.close()
 
+        pool = mp.Pool(int(performance_use*mp.cpu_count()))
+        pool.starmap(multicore_QM9, [(i,batch_index,2) for i in range(start_tag,end_tag)])
+        pool.close()'''
+
+    #---------------------------theoretically possible graphs-------------------
+    pool = mp.Pool(int(performance_use*mp.cpu_count()))
+    pool.starmap(Find_theoAEfromgraph, [(i,z) for i,z in itertools.product([2,3,4,5,6,7,8,9],[1,2])])
+    pool.close()
+    #(N=10, dZ_max=1
 
     #------------------------------Testing--------------------------------------
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_133885.xyz'), log='sparse', dZ_max=2)
+    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
     #Find the sweetspots
-    #Find_theoAEfromgraph(N=10, dZ_max=1)
 
 
 
