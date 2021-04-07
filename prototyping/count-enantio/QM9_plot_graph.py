@@ -16,7 +16,7 @@ def get_times(input_file_prefix, input_file_postfix):
     times_variance = np.zeros((len(N)))
     max_time = 0
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
+        f = open('logs/'+input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'_graph.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -42,7 +42,7 @@ def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
     num_moles = np.zeros((8), dtype='int') #Number of times a molecule with N atoms occurs
     max = 0
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
+        f = open('logs/'+input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'_graph.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -61,7 +61,7 @@ def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
     num_AE = np.zeros((len(N),num_bin), dtype=object)
     #Go through all files again, get number of AEs per bin per N
     for log_num in range(1,last_log_num+1):
-        f = open(input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'.txt', 'r')
+        f = open('logs/'+input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'_graph.txt', 'r')
         Lines = f.readlines()
         for line in Lines:
             x = line.split('\t')
@@ -382,7 +382,7 @@ indices = np.array([], dtype='int')
 
 #Get all the data:
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ1.txt', 'r')
+    f = open('logs/'+'QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ1_graph.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')
@@ -390,7 +390,7 @@ for log_num in range(1,last_log_num+1):
     f.close()
 
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ1.txt', 'r')
+    f = open('logs/'+'QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ1_graph.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')
@@ -435,7 +435,7 @@ indices = np.array([], dtype='int')
 
 #Get all the data:
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2.txt', 'r')
+    f = open('logs/'+'QM9_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2_graph.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')
@@ -443,7 +443,7 @@ for log_num in range(1,last_log_num+1):
     f.close()
 
 for log_num in range(1,last_log_num+1):
-    f = open('QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2.txt', 'r')
+    f = open('logs/'+'QM9_orbit_log'+ '00'[:(2-len(str(log_num)))] + str(log_num) +'_dZ2_graph.txt', 'r')
     Lines = f.readlines()
     for line in Lines:
         x = line.split('\t')

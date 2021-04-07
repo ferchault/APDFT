@@ -6,7 +6,7 @@
 
 import numpy as np
 
-tolerance = 3 #Rounding error
+tolerance = 3 #Rounding error in geometry-based method
 performance_use = 0.90 #portion of cpu cores to be used
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'

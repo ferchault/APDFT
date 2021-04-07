@@ -57,6 +57,15 @@ def CN_inertia_tensor(mole):
             sum = 0
     return result_tensor
 
+def norm2(matrix):
+    m = len(matrix)
+    n = len(matrix[0])
+    norm = 0
+    for i in range(n):
+        for j in range(m):
+            norm += pow(matrix[i][j],2)
+    return pow(norm,0.5)
+
 def CN_inertia_moment(mole):
     #Calculate the inertia moments of a molecule with CN instead of masses
     #and sort them in ascending order
@@ -132,7 +141,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         else:
             similars = np.delete(similars, num_similars, axis = 0)
     if len(similars) == 0:
-        print("No sets of equivalent atoms found.")
+        #print("No sets of equivalent atoms found.")
         return 0
     '''All of these sites in each set need to be treated simultaneously. Hence, we
     flatten the array. However, we later need to make sure that only each set fulfills
@@ -152,10 +161,10 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
         if np.sum(m) > len(similars[alpha]):
-            print('---------------')
+            '''print('---------------')
             print("Warning: Number of to be transmuted atoms m = %d exceeds the number of electronically equivalent \n atoms in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
             print('Number of Alchemical Enantiomers from set of equivalent atoms with index %d: 0' %alpha)
-            print('---------------')
+            print('---------------')'''
             continue
 
         '''Now: go through all combinations of transmuting m atoms of set similars[alpha]
