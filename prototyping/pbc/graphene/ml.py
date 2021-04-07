@@ -13,9 +13,6 @@ import contextshare as shared
 
 #%%
 
-BASEDIR = "/data/guido/graphene-BN/64/up"
-LIMIT = 250
-
 
 def read_one_log(filename):
     with open(filename) as fh:
@@ -24,6 +21,7 @@ def read_one_log(filename):
         TEWEN = float([_ for _ in lines if "TEWEN" in _][-1].strip().split()[-1])
         TOTEN = float([_ for _ in lines if "TOTEN" in _][-1].strip().split()[-2])
     except IndexError:
+        print(filename)
         raise
     return TOTEN - TEWEN
 
@@ -157,7 +155,7 @@ def build_rep_global(poscar, symmetrize=False):
 
         norms = np.array([np.linalg.norm(_) for _ in cm])
         order = np.argsort(norms)
-        cm = np.array(cm)[np.ix_(order, order)]
+        cm = np.array([cm[_] for _ in order])
         return cm[np.triu_indices(128)]
     else:
         cm = _get_cm(coords, Zs, hmat)
@@ -167,7 +165,7 @@ def build_rep_global(poscar, symmetrize=False):
         return cm[np.triu_indices(128)]
 
 
-def build_rep_static_order(poscar):
+def build_rep_static_order(poscar, symmetrize):
     # input
     with open(poscar) as fh:
         poslines = fh.readlines()
@@ -187,7 +185,10 @@ def build_rep_static_order(poscar):
         Zs += [{"B": 5, "C": 6, "N": 7}[element]] * count
     Zs = np.array(Zs)[order] - 6
 
-    return np.outer(Zs, Zs)[np.triu_indices(128)]
+    if symmetrize:
+        return np.outer(Zs, Zs)[np.triu_indices(128)]
+    else:
+        return Zs
 
 
 def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshare=0.2):
@@ -195,19 +196,20 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
     totalidx = np.arange(ndatapoints, dtype=np.int)
     holdoutstart = int(len(totalidx) * (1 - holdoutshare))
     maxtrainingset = np.floor(np.log(holdoutstart) / np.log(2))
-    allsigmas = 2.0 ** np.arange(-2, 15)
+    allsigmas = 2.0 ** np.arange(-10, 35)
 
     print("Calculate kernel matrices")
     if len(representations.shape) == 2:
         # global rep
+        print("global")
         D = skm.pairwise_distances(representations, n_jobs=os.cpu_count())
         K = np.array([np.exp(-(D ** 2) / (2 * _ * _)) for _ in allsigmas])
     else:
         # local rep
+        print("local")
         os.environ["OMP_NUM_THREADS"] = str(os.cpu_count())
         ns = np.array([_.shape[0] for _ in representations])
         representations = np.concatenate(representations)
-        qml.kernels.gaussian_kernel_symmetric()
         K = qml.kernels.get_local_kernels_gaussian(
             representations, representations, ns, ns, allsigmas
         )
@@ -242,7 +244,10 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
                 lval = 10 ** lexp
                 K_subset = K[sigmaidx][np.ix_(train, train)]
                 K_subset[np.diag_indices_from(K_subset)] += lval
-                alphas = np.linalg.solve(K_subset, Y_train)
+                try:
+                    alphas = np.linalg.solve(K_subset, Y_train)
+                except:
+                    return {}
 
                 # evaluate model
                 K_subset = K[sigmaidx][np.ix_(train, validation)]
@@ -262,7 +267,8 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
                     for ntrain in 2 ** np.arange(6, maxtrainingset + 1).astype(np.int):
                         for fold in range(k):
                             one_case(sigmaidx, lexp, ntrain, k, fold)
-            foldresults = pd.DataFrame(sm.evaluate(progress=False))
+            foldresults = pd.DataFrame(sm.evaluate(progress=False)).dropna()
+        foldresults.to_csv("fold-%d.txt" % outer)
 
         with shared.SharedMemory(
             {"K": K, "Y": Y, "totalidx": totalidx}, nworkers=os.cpu_count()
@@ -295,15 +301,19 @@ def get_KRR_learning_curve_holdout(representations, Y, k, kouter=10, holdoutshar
             for ntrain, group in params.groupby("ntrain"):
                 loc = group.sort_values("mae").iloc[0]
                 ns.append(ntrain)
-                other_case(int(loc.sigmaidx), int(loc.lexp), ntrain, holdoutstart)
+                other_case(int(loc.sigmaidx), int(loc.lexp), int(ntrain), holdoutstart)
             maes.append(sm.evaluate(progress=False))
     return ns, np.average(maes, axis=0), np.std(maes, axis=0)
 
 
 if __name__ == "__main__":
-    logfiles = [f"{BASEDIR}/{_}/OUTCAR" for _ in range(1, LIMIT + 1)]
+    print(f"system list from {sys.argv[2]}")
+    with open(sys.argv[2]) as fh:
+        dirlist = [_.strip() for _ in fh.readlines()]
+    logfiles = [f"{_}/OUTCAR" for _ in dirlist]
     energies = np.array([read_one_log(_) for _ in logfiles])
-    molids = range(1, LIMIT + 1)
+    # print(np.average(np.abs(energies - np.average(energies))))
+    # print(1 / 0)
 
     repname = sys.argv[1]
     print(f"running {repname}")
@@ -311,28 +321,33 @@ if __name__ == "__main__":
     with shared.SharedMemory({}, nworkers=os.cpu_count()) as sm:
 
         @sm.register
-        def load_rep(molid, repname):
+        def load_rep(dir, repname):
+            poscar = f"{dir}/POSCAR"
             if repname == "aCM":
-                return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
+                return build_rep(poscar, symmetrize=False)
             if repname == "aCMs":
-                return build_rep(f"{BASEDIR}/{molid}/POSCAR", symmetrize=True)
+                return build_rep(poscar, symmetrize=True)
             if repname == "CM":
-                return build_rep_global(f"{BASEDIR}/{molid}/POSCAR", symmetrize=False)
+                return build_rep_global(poscar, symmetrize=False)
             if repname == "CMs":
-                return build_rep_global(f"{BASEDIR}/{molid}/POSCAR", symmetrize=True)
+                return build_rep_global(poscar, symmetrize=True)
             if repname == "dZs":
-                return build_rep_static_order(f"{BASEDIR}/{molid}/POSCAR")
+                return build_rep_static_order(poscar, symmetrize=True)
+            if repname == "dZ":
+                return build_rep_static_order(poscar, symmetrize=False)
             raise NotImplementedError()
 
-        for i in molids:
-            load_rep(i, repname)
+        for dir in dirlist:
+            load_rep(dir, repname)
 
         print("Build representations")
         reps = sm.evaluate(progress=True)
         reps = np.array(reps)
     ns, maes, stddevs = get_KRR_learning_curve_holdout(
-        reps, energies, 10, kouter=10, holdoutshare=0.15
+        reps, energies, 5, kouter=10, holdoutshare=0.4
     )
     print("N " + " ".join([str(_) for _ in ns]))
     print("M " + " ".join([str(_) for _ in maes]))
     print("S " + " ".join([str(_) for _ in stddevs]))
+
+# region

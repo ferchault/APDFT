@@ -130,6 +130,20 @@ compare_energy_differences(1)
 #             fh.write(poscarup)
 #         with open(f"/data/guido/graphene-BN/{nBN}/dn-{i}/POSCAR", "w") as fh:
 #             fh.write(poscardn)
+for nBN in (64,):
+    for i in range(1, 2500):
+        poscarup, poscardn, _ = random_representative(1, nBN)
+        with open(
+            f"/home/guido/wrk/APDFT/prototyping/pbc/graphene/production-{nBN}/up/{i}/POSCAR",
+            "w",
+        ) as fh:
+            fh.write(poscarup)
+        with open(
+            f"/home/guido/wrk/APDFT/prototyping/pbc/graphene/production-{nBN}/dn/{i}/POSCAR",
+            "w",
+        ) as fh:
+            fh.write(poscardn)
+
 # region
 
 # region
