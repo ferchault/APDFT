@@ -57,15 +57,6 @@ def CN_inertia_tensor(mole):
             sum = 0
     return result_tensor
 
-def norm2(matrix):
-    m = len(matrix)
-    n = len(matrix[0])
-    norm = 0
-    for i in range(n):
-        for j in range(m):
-            norm += pow(matrix[i][j],2)
-    return pow(norm,0.5)
-
 def CN_inertia_moment(mole):
     #Calculate the inertia moments of a molecule with CN instead of masses
     #and sort them in ascending order
