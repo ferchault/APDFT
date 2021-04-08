@@ -1,6 +1,6 @@
 import numpy as np
 import igraph
-from inertiacount import Coulomb_neighborhood, array_compare
+from inertiacount import Coulomb_neighborhood, array_compare, CN_inertia_tensor
 import os
 from pysmiles import read_smiles
 from config import *
@@ -107,6 +107,20 @@ class MoleAsGraph:
             for j in range(i+1,self.number_atoms):
                 sum += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.array(self.geometry[i][1])-np.array(self.geometry[j][1]))
         return 0.5*sum
+
+    def get_molecular_norm(self):
+        return np.linalg.norm(CN_inertia_tensor(self.geometry))
+
+    def print_atomic_norms(self):
+        N = self.number_atoms
+        for i in range(N):
+            result = 0
+            for j in range(N):
+                if (j == i):
+                    result += 0.5*pow(elements[self.geometry[i][0]], 2.4)
+                else:
+                    result += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1],self.geometry[j][1]))
+            print(self.geometry[i][0] + '\t'+str(result))
 
 def parse_QM9toMAG(input_path, input_file):
     '''MoleAsGraph instance returned'''
