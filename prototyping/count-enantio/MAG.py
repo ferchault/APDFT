@@ -4,7 +4,7 @@ from inertiacount import Coulomb_neighborhood, array_compare, CN_inertia_tensor
 import os
 from pysmiles import read_smiles
 from config import *
-
+import networkx as nx
 
 class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry):
@@ -111,16 +111,27 @@ class MoleAsGraph:
     def get_molecular_norm(self):
         return np.linalg.norm(CN_inertia_tensor(self.geometry))
 
-    def print_atomic_norms(self):
+    def print_atomic_norms(self, input_file):
         N = self.number_atoms
+        file = open(input_file, 'r')
+        data = file.read()
+        file.close()
         for i in range(N):
-            result = 0
+            result = 0 #=norm of the row/column of the Coulomb matrix
             for j in range(N):
                 if (j == i):
                     result += 0.5*pow(elements[self.geometry[i][0]], 2.4)
                 else:
                     result += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1],self.geometry[j][1]))
-            print(self.geometry[i][0] + '\t'+str(result))
+            #Get the number of bonds (including hydrogen for hybridisation purposes)
+            Num = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+            smiles = data.splitlines(False)[Num+3].split('\t')[0]
+            #mol = read_smiles(smiles) #include hydrogen for hybridisation counting
+            #graph = nx.to_networkx_graph(mol)
+            #degree = graph.degree([i])[1]
+            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
+            #Name   Chemical Element    Index   SMILES  Norm
+
 
 def parse_QM9toMAG(input_path, input_file):
     '''MoleAsGraph instance returned'''

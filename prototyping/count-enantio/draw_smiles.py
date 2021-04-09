@@ -10,7 +10,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
 
-def draw(tag, out='bash'):
+def draw(tag, out='tmp'):
     #Get the SMILES from the correct file
     f = open(PathToQM9XYZ + 'dsgdb9nsd_'+ tag +'.xyz', 'r')
     data = f.read()
@@ -30,9 +30,15 @@ def draw(tag, out='bash'):
         #img.save('chem_fig')
         mol = Chem.MolFromSmiles(smiles)
         Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
+    if out == 'tmp':
+        mol = Chem.MolFromSmiles(smiles)
+        Draw.MolToFile(mol, 'figures/tmp_structures/'+tag+'.png')
 
 if __name__ == "__main__":
-    draw(sys.argv[1], sys.argv[2])
+    if len(sys.argv) == 3:
+        draw(sys.argv[1], out=sys.argv[2])
+    if len(sys.argv) == 2:
+        draw(sys.argv[1])
 
     #for i in range(4,133885+1):
     #    tag = '000000'[:(6-len(str(i)))] + str(i)

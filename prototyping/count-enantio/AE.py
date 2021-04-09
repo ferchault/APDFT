@@ -382,7 +382,8 @@ if __name__ == "__main__":
         pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
         with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
             sys.stdout = f # Change the standard output to the created file
-            parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms()
+            input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
+            parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
             sys.stdout = original_stdout # Reset the standard output to its original value
             print(str(pos)+' -> Done')
 
