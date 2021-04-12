@@ -41,11 +41,19 @@ for line in Lines:
 
 
     #Get the smiles and the indices of the hybridzed atoms
-    sp_indices = list(Chem.MolFromSmiles(x[1]).GetSubstructMatches(Chem.MolFromSmarts('[^1]'))[0])
-    sp2_indices = list(Chem.MolFromSmiles(x[1]).GetSubstructMatches(Chem.MolFromSmarts('[^2]'))[0])
-    sp3_indices = list(Chem.MolFromSmiles(x[1]).GetSubstructMatches(Chem.MolFromSmarts('[^3]'))[0])
+    s = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^0]'))
+    sp = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^1]'))
+    sp2 = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^2]'))
+    sp3 = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^3]'))
+    s_indices = [] if len(s) == 0 else list(s[0])
+    sp_indices = [] if len(sp) == 0 else list(sp[0])
+    sp2_indices = [] if len(sp2) == 0 else list(sp2[0])
+    sp3_indices = [] if len(sp3) == 0 else list(sp3[0])
     #Still borked, list of zero length needs special case
-
+    print(s_indices)
+    print(sp_indices)
+    print(sp2_indices)
+    print(sp3_indices)
 
     if x[1] == 'C':
         carbon_norms.append(float(x[4]))
