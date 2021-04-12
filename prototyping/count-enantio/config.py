@@ -5,6 +5,9 @@
 #python3 AE.py &
 
 import numpy as np
+import sys
+
+original_stdout = sys.stdout # Save a reference to the original standard output
 
 tolerance = 3 #Rounding error in geometry-based method
 performance_use = 0.90 #portion of cpu cores to be used

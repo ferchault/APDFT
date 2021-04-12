@@ -6,9 +6,6 @@ import igraph
 import sys
 from config import *
 
-original_stdout = sys.stdout # Save a reference to the original standard output
-
-
 def sum_formula(array_of_atoms):
     values, counts = np.unique(np.array(array_of_atoms), return_counts=True)
     formula = ''

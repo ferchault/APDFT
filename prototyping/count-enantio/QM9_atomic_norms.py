@@ -3,11 +3,7 @@ from matplotlib import colors
 import numpy as np
 from config import *
 import sys
-
-import rdkit
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from rdkit.Chem import Draw
+import openbabel as ob
 
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
@@ -36,24 +32,17 @@ for line in Lines:
     x = line.split('\t') #0: Name   1: Chemical Element    2: Index   3: SMILES  4: Norm
     print(x[0])
 
-
-
-
-
-    #Get the smiles and the indices of the hybridzed atoms
-    s = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^0]'))
-    sp = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^1]'))
-    sp2 = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^2]'))
-    sp3 = Chem.MolFromSmiles(x[3]).GetSubstructMatches(Chem.MolFromSmarts('[^3]'))
-    s_indices = [] if len(s) == 0 else list(s[0])
-    sp_indices = [] if len(sp) == 0 else list(sp[0])
-    sp2_indices = [] if len(sp2) == 0 else list(sp2[0])
-    sp3_indices = [] if len(sp3) == 0 else list(sp3[0])
-    #Still borked, list of zero length needs special case
-    print(s_indices)
-    print(sp_indices)
-    print(sp2_indices)
-    print(sp3_indices)
+    mol = ob.OBMol()
+    conv = ob.OBConversion()
+    conv.SetInFormat("smi")
+    smiles = x[3]
+    if not conv.ReadString(mol, smiles):
+        print("Could not read SMILES")
+    NumAtoms = mol.NumAtoms()
+    for i in range(NumAtoms):
+        atom = ob.OBAtom
+        atom = mol.GetAtom(i+1)
+        print("Atom {}, hyb: {}".format(i, atom.GetHyb()))
 
     if x[1] == 'C':
         carbon_norms.append(float(x[4]))
