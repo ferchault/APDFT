@@ -1,4 +1,4 @@
-#Compare the same property taken from QM9 with calculation from xTB
+#Compare the same property taken from QM9 with calculation from xTB/PySCF
 from MAG import *
 from config import *
 import os
@@ -37,19 +37,18 @@ def QM9_quantity(tag, quantity_number):
     return float(quantity)
 
 def xTB_quantity(tag):
-    command = f'xtb '+PathToQM9XYZ+'dsgdb9nsd_'+tag+'.xyz --silent --opt'
+    command = f'xtb '+PathToQM9XYZ+'dsgdb9nsd_'+tag+'.xyz --silent'
     output = os.popen(command).read()
     #print(output)
     energy = output.split('| TOTAL ENERGY')[1].split(' Eh ')[0].strip()
     #subprocess.run('rm wbo xtbrestart charges xtbtopo.mol xtbopt.log xtbopt.xyz'.split())
     return float(energy)
 
-
-def Get_both(tag_number, batch_index):
+def multifunc(tag_number, batch_index):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
-    with open('logs/xTBvsQM9_log'+batch_index+'.txt', 'a') as f:
+    with open('logs/SCFvsQM9_log'+batch_index+'.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
-        print(pos, QM9_quantity(pos,14), xTB_quantity(pos))
+        print(pos+'\t'+str(QM9_quantity(pos,14))+'\t'+str(energy_PySCF_from_QM9(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')))
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
 
@@ -68,5 +67,5 @@ if __name__ == "__main__":
 
         #---------------------------Mutliprocessing-----------------------------
         pool = mp.Pool(int(performance_use*mp.cpu_count()))
-        pool.starmap(Get_both, [(i,batch_index) for i in range(start_tag,end_tag)])
+        pool.starmap(multifunc, [(i,batch_index) for i in range(start_tag,end_tag)])
         pool.close()

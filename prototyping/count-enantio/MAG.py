@@ -5,6 +5,8 @@ import os
 from pysmiles import read_smiles
 from config import *
 import networkx as nx
+from pyscf import gto, scf
+
 
 class MoleAsGraph:
     def __init__(self, name, edge_layout, elements_at_index, geometry):
@@ -86,8 +88,8 @@ class MoleAsGraph:
             sites = [list(map(int,x)) for x in set(tuple(x) for x in similars)]
         return sites
 
-    def get_equi_atoms_from_geom(self):
-        CN = Coulomb_neighborhood(self.geometry)
+    def get_equi_atoms_from_geom(self, gate_threshold=0, tolerance=rounding_tolerance):
+        CN = Coulomb_neighborhood(self.geometry, gate_threshold=gate_threshold)
         for i in range(len(self.geometry)):
             CN[i] = round(CN[i],tolerance)
         similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
@@ -132,6 +134,31 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
+def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):
+    if os.path.isfile(input_path+input_file):
+        #open text file in read mode
+        f = open(input_path+input_file, "r")
+        data = f.read()
+        f.close()
+    else:
+        print('File', input_file, 'not found.')
+        return 0
+    N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+    atom_string = ''
+    for i in range(2,N+2): #get the atoms and their coordinates
+        line = data.splitlines(False)[i]
+        x = line.split('\t')
+        atom_string += x[0] + ' ' + x[1] + ' ' + x[2] + ' '  + x[3] + '; '
+    #print(atom_string[:-2])
+    mol = gto.M(
+        verbose = 0,
+        atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
+        basis = basis,
+        symmetry = True,
+    )
+    mf = scf.HF(mol)
+    energy = mf.kernel()
+    return energy
 
 def parse_QM9toMAG(input_path, input_file):
     '''MoleAsGraph instance returned'''
@@ -147,7 +174,7 @@ def parse_QM9toMAG(input_path, input_file):
     #Get the name of the molecule
     MAG_name = input_file.split('.')[0]
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
-    #Get the geomeztry of the molecule
+    #Get the geometry of the molecule
     mole = np.array([['C', (1,2,3)]], dtype=object) #Initalize array for molecule (geometric information)
     mole = np.delete(mole, 0, axis=0)
     N_heavyatoms = N
@@ -167,6 +194,24 @@ def parse_QM9toMAG(input_path, input_file):
     edge_layout = [list(v) for v in network.edges()]
     elements_at_index = [v[1] for v in network.nodes(data='element')]
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
+
+
+def get_energy_const_atoms(input_path, input_file):
+    if os.path.isfile(input_path+input_file):
+        #open text file in read mode
+        f = open(input_path+input_file, "r")
+        data = f.read()
+        f.close()
+    else:
+        print('File', input_file, 'not found.')
+        return 0
+    N = int(data.splitlines(False)[0])
+    sum = 0
+    for i in range(2,N+2): #get the atoms one by one
+        line = data.splitlines(False)[i]
+        #if line.split('\t')[0] != 'H':
+        sum += atomref_U[line.split('\t')[0]]
+    return sum
 
 
 #Test-molecules-----------------------------------------------------------------

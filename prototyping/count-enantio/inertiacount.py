@@ -23,7 +23,7 @@ def center_mole(mole):
     for i in range(N):
         mole[i][1] = np.subtract(mole[i][1],sum)
 
-def Coulomb_matrix(mole):
+def Coulomb_matrix(mole, gate_threshold=0):
     #returns the Coulomb matrix of a given molecule
     N = len(mole)
     result = np.zeros((N,N))
@@ -33,19 +33,22 @@ def Coulomb_matrix(mole):
                 charge = elements[mole[i][0]]
                 result[i][i] = 0.5*pow(charge, 2.4)
             else:
-                result[i][j] = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
+                summand = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
+                #The offdiagonal elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
+                if summand > gate_threshold:
+                    result[i][j] = summand
     return result
 
-def Coulomb_neighborhood(mole):
+def Coulomb_neighborhood(mole, gate_threshold=0):
     '''returns the sum over rows/columns of the Coulomb matrix.
     Thus, each atom is assigned its Coulombic neighborhood'''
-    matrix = Coulomb_matrix(mole)
+    matrix = Coulomb_matrix(mole, gate_threshold=gate_threshold)
     return matrix.sum(axis = 0)
 
-def CN_inertia_tensor(mole):
+def CN_inertia_tensor(mole, gate_threshold=0):
     #Calculate an inertia tensor but with Coulomb_neighborhood instead of masses
     N = len(mole)
-    CN = Coulomb_neighborhood(mole)
+    CN = Coulomb_neighborhood(mole, gate_threshold=gate_threshold)
     result_tensor = np.zeros((3,3))
     sum = 0
     for i in range(3):
@@ -57,10 +60,10 @@ def CN_inertia_tensor(mole):
             sum = 0
     return result_tensor
 
-def CN_inertia_moment(mole):
+def CN_inertia_moment(mole, tolerance=rounding_tolerance, gate_threshold=0):
     #Calculate the inertia moments of a molecule with CN instead of masses
     #and sort them in ascending order
-    w,v = np.linalg.eig(CN_inertia_tensor(mole))
+    w,v = np.linalg.eig(CN_inertia_tensor(mole, gate_threshold=gate_threshold))
     #Only the eigen values are needed, v is discarded
     moments = np.sort(w)
     #To make life easier, the values in moments are rounded to tolerance for easier comparison
@@ -119,7 +122,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     #print(CN)
     '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
     for i in range(N):
-        CN[i] = round(CN[i],tolerance)
+        CN[i] = round(CN[i],rounding_tolerance)
     '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
     their indices in similars'''
     similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
@@ -207,9 +210,9 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
                 temp_mole[j][0] = inv_elements[mole_config[i][j]]
 
             CIM[i] = CN_inertia_moment(temp_mole)
-            round(CIM[i][0],tolerance)
-            round(CIM[i][1],tolerance)
-            round(CIM[i][2],tolerance)
+            round(CIM[i][0],rounding_tolerance)
+            round(CIM[i][1],rounding_tolerance)
+            round(CIM[i][2],rounding_tolerance)
             #print(CIM[i])
 
             Total_CIM[i][0] = np.copy(temp_mole)

@@ -9,7 +9,7 @@ import sys
 
 original_stdout = sys.stdout # Save a reference to the original standard output
 
-tolerance = 3 #Rounding error in geometry-based method
+rounding_tolerance = 3 #Rounding error in geometry-based method
 performance_use = 0.90 #portion of cpu cores to be used
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
@@ -21,6 +21,19 @@ elements = {'Ghost':0,'H':1, 'He':2,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
 
 inv_elements = {v: k for k, v in elements.items()}
+
+'''Atomization reference from QM9:
+=========================================================================================================
+  Ele-    ZPVE         U (0 K)      U (298.15 K)    H (298.15 K)    G (298.15 K)     CV
+  ment   Hartree       Hartree        Hartree         Hartree         Hartree        Cal/(Mol Kelvin)
+=========================================================================================================
+   H     0.000000     -0.500273      -0.498857       -0.497912       -0.510927       2.981
+   C     0.000000    -37.846772     -37.845355      -37.844411      -37.861317       2.981
+   N     0.000000    -54.583861     -54.582445      -54.581501      -54.598897       2.981
+   O     0.000000    -75.064579     -75.063163      -75.062219      -75.079532       2.981
+   F     0.000000    -99.718730     -99.717314      -99.716370      -99.733544       2.981
+========================================================================================================='''
+atomref_U = {'H': -0.498857, 'C': -37.845355, 'N': -54.582445, 'O': -75.063163, 'F': -99.717314,}
 
 '''Below are all the partitions of splitting m_tot = np.sum(dZ_all[i])
 atoms in a pure (i.e. uncolored/isoatomic) molecule in n=len(dZ_all[i]) partitions

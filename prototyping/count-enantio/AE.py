@@ -165,7 +165,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False):
         #print(Geom)
         CN = Coulomb_neighborhood(Geom)
         for i in range(len(Geom)):
-            CN[i] = round(CN[i],tolerance)
+            CN[i] = round(CN[i],rounding_tolerance)
         sites = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
         #Delete all similars which include only one atom:
         num_similars = 0
@@ -378,15 +378,15 @@ if __name__ == "__main__":
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    for tag_number in range(4,133885+1):
+    '''for tag_number in range(4,100+1):
         pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
-        with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
-            sys.stdout = f # Change the standard output to the created file
-            input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
-            parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
-            sys.stdout = original_stdout # Reset the standard output to its original value
-            print(str(pos)+' -> Done')
-
+        #with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
+        #    sys.stdout = f # Change the standard output to the created file
+        input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
+        parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
+        print('------------------------')'''
+        #    sys.stdout = original_stdout # Reset the standard output to its original value
+        #    print(str(pos)+' -> Done')
 
 #---------------------------Available functions---------------------------------
 
