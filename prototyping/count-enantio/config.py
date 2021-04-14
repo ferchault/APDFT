@@ -10,7 +10,7 @@ import sys
 original_stdout = sys.stdout # Save a reference to the original standard output
 
 rounding_tolerance = 3 #Rounding error in geometry-based method
-performance_use = 0.90 #portion of cpu cores to be used
+performance_use = 0.50 #portion of cpu cores to be used
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 

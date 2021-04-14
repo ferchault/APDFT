@@ -245,7 +245,7 @@ def uncolor(graph):
         tot_nuc_charge += elements[graph.elements_at_index[i]]
     average_element = inv_elements[int(tot_nuc_charge/graph.number_atoms)]
     new_elements = np.empty((graph.number_atoms), dtype='str')
-    new_geometry = np.copy(graph.geometry)
+    new_geometry = graph.geometry
     #Explicitly set the average element:
     #average_element = 'C'
     for i in range(graph.number_atoms):
@@ -375,16 +375,18 @@ if __name__ == "__main__":
 
     #------------------------------Testing--------------------------------------
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', dZ_max=2)
-    #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
-    #print(naphthalene.get_energy_NN())
-    '''for tag_number in range(4,100+1):
+    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
+    print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
+    print(naphthalene.get_energy_NN())
+    for tag_number in range(4,100+1):
         pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
         #with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
         #    sys.stdout = f # Change the standard output to the created file
         input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
         parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
-        print('------------------------')'''
+        print('------------------------')
+        #Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2, method = 'geom')
+
         #    sys.stdout = original_stdout # Reset the standard output to its original value
         #    print(str(pos)+' -> Done')
     pos = '000007'

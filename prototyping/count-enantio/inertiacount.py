@@ -15,13 +15,13 @@ def delta(i,j):
 
 def center_mole(mole):
     #Centers a molecule
-    sum = (0,0,0)
+    sum = [0,0,0]
     N = len(mole)
     for i in range(N):
-        sum = np.add(mole[i][1],sum)
+        sum = np.add(mole[i][1:],sum)
     sum = np.multiply(sum, 1/N)
     for i in range(N):
-        mole[i][1] = np.subtract(mole[i][1],sum)
+        mole[i][1:] = np.subtract(mole[i][1:],sum)
 
 def Coulomb_matrix(mole, gate_threshold=0):
     #returns the Coulomb matrix of a given molecule
@@ -33,7 +33,7 @@ def Coulomb_matrix(mole, gate_threshold=0):
                 charge = elements[mole[i][0]]
                 result[i][i] = 0.5*pow(charge, 2.4)
             else:
-                summand = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1],mole[j][1]))
+                summand = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:]))
                 #The offdiagonal elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
                 if summand > gate_threshold:
                     result[i][j] = summand
@@ -54,7 +54,7 @@ def CN_inertia_tensor(mole, gate_threshold=0):
     for i in range(3):
         for j in range(i+1):
             for k in range(N):
-                sum += CN[k]*(np.dot(mole[k][1], mole[k][1])*delta(i,j) - mole[k][1][i]*mole[k][1][j])
+                sum += CN[k]*(np.dot(mole[k][1:], mole[k][1:])*delta(i,j) - mole[k][1+i]*mole[k][1+j])
             result_tensor[i][j] = sum
             result_tensor[j][i] = sum
             sum = 0
@@ -116,7 +116,7 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         raise ValueError("Number of changes and number of charge values do not match!")
     #Prepare the molecule
     center_mole(mole)
-    mole = np.array(mole, dtype=object)
+    #mole = np.array(mole, dtype=object)
     #Find the Coulombic neighborhood of each atom in mole
     CN = Coulomb_neighborhood(mole)
     #print(CN)
@@ -145,14 +145,13 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
-    #Initalize empty array temp_mole for all configurations. No idea how to do that otherwise?
-    temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
-    temp_mole = np.delete(temp_mole, 0, 0)
+    #Initalize empty array temp_mole for all configurations.
+    temp_mole = []
     for alpha in range(len(similars)):
         num_sites = len(similars[alpha])
         #Get necessary atoms listed in similars[alpha]
         for i in range(num_sites):
-            temp_mole = np.append(temp_mole, [mole[similars[alpha][i]]], axis = 0)
+            temp_mole.append(mole[similars[alpha][i]])
         #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
         if np.sum(m) > len(similars[alpha]):
             '''print('---------------')
@@ -292,6 +291,6 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
             print('---------------')
         #Clear temp_mole
-        temp_mole = np.array([['XXXXX', (1,2,3)]], dtype=object)
+        temp_mole = np.array([['XXXXX', 1,2,3]], dtype=object)
         temp_mole = np.delete(temp_mole, 0, 0)
     return count
