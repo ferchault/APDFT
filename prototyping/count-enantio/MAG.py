@@ -166,17 +166,31 @@ class MoleAsGraph:
         else:
             print('File', input_file, 'not found.')
             return 0
+        #Initalize
+        name = self.name
+        new_geometry = self.geometry
+        new_elements_at_index = self.elements_at_index
+        new_edge_layout = self.edge_layout
+        N_heavy = self.number_atoms #number of previously give atoms, all heavy
         N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
-        for i in range(self.number_atoms+2,N+2): #get only the hydrogens and their coordinates
+        for i in range(2,N+2): #get only the hydrogens and their coordinates
             line = data.splitlines(False)[i]
             #Check for hydrogen specifically
             x = line.split('\t')
             if x[0] != 'H':
-                print('Line '+str(i+1)+' is not Hydrogen!')
-                return 0
+                continue
             else:
-                self.geometry.append(['H', float(x[1]),float(x[2]),float(x[3])])
-        print(self.geometry)
+                new_geometry.append(['H', float(x[1]),float(x[2]),float(x[3])])
+                new_elements_at_index.append('H')
+            #Now: find the index of the atom with the shortest distance
+            shortest_distance = 100000
+            for j in range(N_heavy):
+                distance = np.linalg.norm(np.subtract(self.geometry[j][1:],new_geometry[-1][1:]))
+                if distance < shortest_distance:
+                    shortest_distance = distance
+                    index_of_shortest = j
+            new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
+        return MoleAsGraph(name, self.edge_layout, self.elements_at_index, self.geometry)
 
 
 def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):

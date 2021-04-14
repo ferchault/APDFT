@@ -375,23 +375,24 @@ if __name__ == "__main__":
 
     #------------------------------Testing--------------------------------------
     #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_022079.xyz')
-    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
-    print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
-    print(naphthalene.get_energy_NN())
+    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
+    #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
+    #print(naphthalene.get_energy_NN())
     for tag_number in range(4,100+1):
         pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
         #with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
         #    sys.stdout = f # Change the standard output to the created file
-        input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
-        parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
-        print('------------------------')
+        #input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
+        #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
+        #print('------------------------')
         #Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2, method = 'geom')
 
         #    sys.stdout = original_stdout # Reset the standard output to its original value
         #    print(str(pos)+' -> Done')
-    pos = '000007'
-    print(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).geometry)
-    parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')
+        print('---------------------------------------')
+        print(pos)
+        print(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').energy_PySCF())
+
 
 #---------------------------Available functions---------------------------------
 
