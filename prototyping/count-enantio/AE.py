@@ -387,6 +387,9 @@ if __name__ == "__main__":
         print('------------------------')'''
         #    sys.stdout = original_stdout # Reset the standard output to its original value
         #    print(str(pos)+' -> Done')
+    pos = '000007'
+    print(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).geometry)
+    parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')
 
 #---------------------------Available functions---------------------------------
 

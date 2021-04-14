@@ -134,6 +134,51 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
+    def energy_PySCF(self, basis='ccpvdz'):
+        #Make sure that the hydrogens are psrsed, too!!!!!!
+        atom_string = ''
+        for i in range(self.number_atoms): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [0,1,2]:
+                atom_string += ' ' + str(self.geometry[i][1][j])
+            atom_string += '; '
+        mol = gto.M(
+            verbose = 0,
+            atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
+            basis = basis,
+            symmetry = False,
+        )
+        mf = scf.HF(mol)
+        energy = mf.kernel()
+        return energy
+
+    def fill_hydrogen_valencies(self, input_path, input_file):
+        '''If the xyz file from which this molecule originates is known,
+        the valencies can be filled with the hydrogens as given in the file.
+        Add the geometric information line by line, and for each line, make
+        one vertex and one edge to the closest heavy atom'''
+        #check if file is present
+        if os.path.isfile(input_path+input_file):
+            #open text file in read mode
+            f = open(input_path+input_file, "r")
+            data = f.read()
+            f.close()
+        else:
+            print('File', input_file, 'not found.')
+            return 0
+        N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+        for i in range(self.number_atoms+2,N+2): #get only the hydrogens and their coordinates
+            line = data.splitlines(False)[i]
+            #Check for hydrogen specifically
+            x = line.split('\t')
+            if x[0] != 'H':
+                print('Line '+str(i+1)+' is not Hydrogen!')
+                return 0
+            else:
+                self.geometry = np.append(self.geometry, ['H', (float(x[1]),float(x[2]),float(x[3]))])
+        print(self.geometry)
+
+
 def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):
     if os.path.isfile(input_path+input_file):
         #open text file in read mode
@@ -154,13 +199,13 @@ def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):
         verbose = 0,
         atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
         basis = basis,
-        symmetry = True,
+        symmetry = False,
     )
     mf = scf.HF(mol)
     energy = mf.kernel()
     return energy
 
-def parse_QM9toMAG(input_path, input_file):
+def parse_QM9toMAG(input_path, input_file, with_hydrogen = False):
     '''MoleAsGraph instance returned'''
     #check if file is present
     if os.path.isfile(input_path+input_file):
@@ -180,7 +225,7 @@ def parse_QM9toMAG(input_path, input_file):
     N_heavyatoms = N
     for i in range(2,N+2): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
-        if line.split('\t')[0] == 'H':
+        if not with_hydrogen and line.split('\t')[0] == 'H':
             N_heavyatoms -= 1
             continue
         else:
