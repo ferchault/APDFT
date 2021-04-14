@@ -6,9 +6,17 @@ import os
 import multiprocessing as mp
 import itertools
 
-def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False):
-    if method == 'geom' and bond_energy_rules != False:
-        print("Warning: argument 'bond_energy_rules' is only supported for method 'geom'")
+def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'graph'):
+    get_all_energies = False
+    bond_energy_rules = False
+    if method == 'graph' and log == 'verbose':
+        bond_energy_rules = True
+        print('----------------------------')
+        print('Bond energy rules:')
+    if method == 'geom' and log == 'verbose':
+        get_all_energies = True
+        print('----------------------------')
+        print('Energy differences in pairs of AEs:')
     dZ_all = np.copy(dZ_possibilities)
     m_all = np.copy(m_possibilities)
     start_time = time.time()
@@ -40,8 +48,8 @@ def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy
     #For plotting: save number of transmuted atoms num_trans and time
     #print(m_all)
     #print(dZ_all)
-    num_trans = np.array([])
-    times = np.array([])
+    num_trans = []
+    times = []
     total_number = 0
     log_name = graph.name + '_' + str(dZ_max)+ method + ".txt"
     if log == True:
@@ -64,30 +72,26 @@ def Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy
         if method == 'graph':
             x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True, bond_energy_rules = bond_energy_rules)
         if method == 'geom':
-            x = geomAE(graph.geometry, m_all[i], dZ_all[i], debug= False, chem_formula = True)
-        if log == True:
-            with open(log_name, 'a') as f:
-                sys.stdout = f # Change the standard output to the created file
-                print(chem_form)
-                print('Time:', time.time()-m_time)
-                print(x)
-                sys.stdout = original_stdout # Reset the standard output to its original value
+            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True, get_all_energies=get_all_energies)
+        if log == 'normal':
+            print(chem_form)
+            print('Time:', time.time()-m_time)
+            print(x)
         if log == False:
             print(chem_form)
             print('Time:', time.time()-m_time)
             print(x)
-        num_trans = np.append(num_trans, np.sum(m_all[i]))
-        times = np.append(times, time.time()-m_time)
+        num_trans.append(np.sum(m_all[i]))
+        times.append(time.time()-m_time)
         total_number += x
-    if log == True:
-        with open(log_name, 'a') as f:
-            sys.stdout = f # Change the standard output to the created file
-            print('Total time:', time.time()-start_time)
-            print('Total number of AEs:', total_number)
-            print('Number of transmuted atoms:', list(num_trans))
-            print('Time:', list(times))
-            sys.stdout = original_stdout # Reset the standard output to its original value
-    if log == False:
+    if log == 'verbose':
+        print('----------------------------')
+        print('Total time:', time.time()-start_time)
+        print('Total number of AEs:', total_number)
+        print('Number of transmuted atoms:', list(num_trans))
+        print('Time:', list(times))
+        print('----------------------------')
+    if log == 'normal':
         print('Total time:', time.time()-start_time)
         print('Total number of AEs:', total_number)
         print('Number of transmuted atoms:', list(num_trans))
@@ -305,11 +309,11 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')'''
 
     #UNCOLOR:
-    with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+    '''with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')
+        print(str(pos)+' -> Done')'''
 
     #TARGET SEARCH:
     '''with open('logs/QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
@@ -345,9 +349,8 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')'''
 
 
-
 if __name__ == "__main__":
-    #-----------Going through QM9 and counting AEs (or whatever)----------------
+    #----------------------Going through QM9------------------------------------
     '''for count in range(1,14+1):
         #Start at 1, end at 14+1
         start_tag = (count-1)*10000
@@ -378,38 +381,15 @@ if __name__ == "__main__":
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
     #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= True).elements_at_index)
     #print(naphthalene.get_energy_NN())
-    for tag_number in range(4,100+1):
-        pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
-        #with open('logs/QM9_atomic_norms_log.txt', 'a') as f:
-        #    sys.stdout = f # Change the standard output to the created file
-        #input_file = PathToQM9XYZ+ 'dsgdb9nsd_' + pos + '.xyz'
-        #parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').print_atomic_norms(input_file)
+    #for tag_number in range(4,100+1):
+    #    pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
+        #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), log='sparse',dZ_max=2, method='graph')
+    Find_AEfromref(benzene, log='sparse',dZ_max=2, method='geom')
         #print('------------------------')
         #Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2, method = 'geom')
+        #print(pos)
+        #print(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').energy_PySCF())'''
 
-        #    sys.stdout = original_stdout # Reset the standard output to its original value
-        #    print(str(pos)+' -> Done')
-        print('---------------------------------------')
-        print(pos)
-        print(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz').energy_PySCF())
-
-
-#---------------------------Available functions---------------------------------
-
-#in AE.py
-#Find_AEfromref(graph, dZ_max = 3, log = False, method = 'graph', bond_energy_rules = False)
-#Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = False)
-#uncolor(graph)
-#Find_theoAEfromgraph(N, dZ_max)
-
-#in MAG.py
-#parse_QM9toMAG(input_path, input_file)
-
-
-#-------------------------------------TODOS-------------------------------------
-#Bond energy rules, already implemented in Find_AEfromref, continue with that
-    #Checking for bond energy rules
-    #for i in range(4,48):
-    #    pos = '000000'[:(6-len(str(i)))] + str(i)
-    #    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_' + pos + '.xyz'), bond_energy_rules = True, dZ_max=2, log = 'quiet')
-#Optional: Take vcolg, rewrite it such that filtering happens in C, not awk or python
+    #print(benzene.get_equi_atoms_from_geom())
+    #print(benzene.get_orbits_from_graph())
+    #Find_AEfromref(benzene, log='verbose', dZ_max=2, method = 'geom')

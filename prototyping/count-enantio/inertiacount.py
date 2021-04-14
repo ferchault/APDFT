@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import igraph
 from config import *
+import itertools
 
 
 def delta(i,j):
@@ -17,11 +18,13 @@ def center_mole(mole):
     #Centers a molecule
     sum = [0,0,0]
     N = len(mole)
+    result = mole
     for i in range(N):
-        sum = np.add(mole[i][1:],sum)
+        sum = np.add(result[i][1:],sum)
     sum = np.multiply(sum, 1/N)
     for i in range(N):
-        mole[i][1:] = np.subtract(mole[i][1:],sum)
+        result[i][1:] = np.subtract(result[i][1:],sum)
+    return result
 
 def Coulomb_matrix(mole, gate_threshold=0):
     #returns the Coulomb matrix of a given molecule
@@ -95,7 +98,7 @@ def sum_formula(array_of_atoms):
                 formula += str(counts[i])
     return formula
 
-def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
+def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_all_energies = False):
     m = np.array(m)
     dZ = np.array(dZ)
     N_m = len(m)
@@ -104,8 +107,8 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
     varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].'''
 
     start_time = time.time()
-
-    N = len(mole)
+    mole = graph.geometry
+    N = graph.number_atoms
     if N < np.sum(m):
         raise ValueError("Too less atoms in molecule for sum of to be transmuted atoms.")
     if (np.sum(np.multiply(m,dZ)) != 0):
@@ -114,39 +117,29 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         raise ValueError("0 not allowed in array dZ")
     if N_m != N_dZ:
         raise ValueError("Number of changes and number of charge values do not match!")
-    #Prepare the molecule
-    center_mole(mole)
-    #mole = np.array(mole, dtype=object)
-    #Find the Coulombic neighborhood of each atom in mole
-    CN = Coulomb_neighborhood(mole)
-    #print(CN)
-    '''To make life easier, the values in CN are rounded to tolerance for easier comparison'''
-    for i in range(N):
-        CN[i] = round(CN[i],rounding_tolerance)
-    '''Are there atoms with identical/close Coulombic neighborhood? Find them and store
-    their indices in similars'''
-    similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
-    #print(similars)
-    #Delete all elements in similars which include only one atom:
-    num_similars = 0
-    while num_similars < len(similars):
-        if len(similars[num_similars])>1:
-            num_similars += 1
-        else:
-            similars = np.delete(similars, num_similars, axis = 0)
+    similars = graph.get_equi_atoms_from_geom()
     if len(similars) == 0:
-        #print("No sets of equivalent atoms found.")
         return 0
+
+
+
+
+
+
+    #REWRITE geomAE with sensible class approach and new atom format!!!!!!
+    #----------------------------------------------------------------------
     '''All of these sites in each set need to be treated simultaneously. Hence, we
     flatten the array. However, we later need to make sure that only each set fulfills
     netto charge conservation. This is why set is initalized'''
-    set = np.copy(similars)
-    similars = [np.concatenate((similars).tolist())]
+    set = similars
+    similars = list(itertools.chain(*similars))
+
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
     #Initalize empty array temp_mole for all configurations.
     temp_mole = []
+
     for alpha in range(len(similars)):
         num_sites = len(similars[alpha])
         #Get necessary atoms listed in similars[alpha]
@@ -261,6 +254,11 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
         to count.'''
         count += len(Total_CIM)
 
+        if get_all_energies == True and len(Total_CIM) > 0:
+            #Explicitly calculate the energies of all the configurations in Total_CIM[0]
+            for i in range(len(Total_CIM)):
+                print(Total_CIM[i][0])
+
         if debug == True:
             print('---------------')
             print("Time:", (time.time() - start_time),"s")
@@ -290,7 +288,4 @@ def geomAE(mole, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True):
             plt.show()
             print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
             print('---------------')
-        #Clear temp_mole
-        temp_mole = np.array([['XXXXX', 1,2,3]], dtype=object)
-        temp_mole = np.delete(temp_mole, 0, 0)
     return count

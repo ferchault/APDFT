@@ -1,6 +1,6 @@
 import numpy as np
 import igraph
-from inertiacount import Coulomb_neighborhood, array_compare, CN_inertia_tensor
+from inertiacount import Coulomb_neighborhood, array_compare, CN_inertia_tensor, center_mole
 import os
 from pysmiles import read_smiles
 from config import *
@@ -28,7 +28,7 @@ class MoleAsGraph:
             self.max_index = 0
         if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
-        self.orbits = np.array(self.get_orbits_from_graph(), dtype=object)
+        self.orbits = self.get_orbits_from_graph()
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
         #self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
 
@@ -89,7 +89,7 @@ class MoleAsGraph:
         return sites
 
     def get_equi_atoms_from_geom(self, gate_threshold=0, tolerance=rounding_tolerance):
-        CN = Coulomb_neighborhood(self.geometry, gate_threshold=gate_threshold)
+        CN = Coulomb_neighborhood(center_mole(self.geometry), gate_threshold=gate_threshold)
         for i in range(len(self.geometry)):
             CN[i] = round(CN[i],tolerance)
         similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
