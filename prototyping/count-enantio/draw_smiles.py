@@ -3,7 +3,7 @@
 from pysmiles import read_smiles
 import networkx as nx
 import matplotlib.pyplot as plt
-from config import *
+from AlEn import *
 import sys
 import rdkit
 from rdkit import Chem
