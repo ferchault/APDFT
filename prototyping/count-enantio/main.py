@@ -1,9 +1,13 @@
 from AlEn import *
 import multiprocessing as mp
+import os
 
 
 def multicore_QM9(tag_number, batch_index, dZ_max):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
+    #Check for directory /logs and create one if necessary:
+    if not os.path.exists('./logs'):
+        os.mkdir('./logs')
     #-----------------------------Count AEs-------------------------------------
     #RAW:
     '''with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
@@ -91,6 +95,7 @@ pool.close()'''
 #------------------------------Testing--------------------------------------
 #print(naphthalene.get_energy_NN())
 #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
+
 print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
 '''for tag_number in range(4,100+1):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)

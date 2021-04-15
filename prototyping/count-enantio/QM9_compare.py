@@ -1,6 +1,5 @@
 #Compare the same property taken from QM9 with calculation from xTB/PySCF
-from MAG import *
-from config import *
+from AlEn import *
 import os
 import subprocess
 import multiprocessing as mp

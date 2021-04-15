@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
-from config import *
+from AlEn import *
 import sys
 from openbabel import openbabel as ob
 
