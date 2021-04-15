@@ -29,6 +29,7 @@ class MoleAsGraph:
         if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
         self.orbits = self.get_orbits_from_graph()
+        self.equi_atoms =  self.get_equi_atoms_from_geom()
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
         #self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
 
@@ -89,8 +90,9 @@ class MoleAsGraph:
         return sites
 
     def get_equi_atoms_from_geom(self, gate_threshold=0, tolerance=rounding_tolerance):
-        CN = Coulomb_neighborhood(center_mole(self.geometry), gate_threshold=gate_threshold)
-        for i in range(len(self.geometry)):
+        mole = self.geometry.copy()
+        CN = Coulomb_neighborhood(center_mole(mole), gate_threshold=gate_threshold)
+        for i in range(len(mole)):
             CN[i] = round(CN[i],tolerance)
         similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
         #Delete all similars which include only one atom:
@@ -111,11 +113,11 @@ class MoleAsGraph:
         return 0.5*sum
 
     def get_molecular_norm(self):
-        return np.linalg.norm(CN_inertia_tensor(self.geometry))
+        return np.linalg.norm(CN_inertia_tensor(self.geometry.copy()))
 
-    def print_atomic_norms(self, input_file):
+    def print_atomic_norms(self, input_PathToFile):
         N = self.number_atoms
-        file = open(input_file, 'r')
+        file = open(input_PathToFile, 'r')
         data = file.read()
         file.close()
         for i in range(N):
@@ -152,25 +154,25 @@ class MoleAsGraph:
         energy = mf.kernel()
         return energy
 
-    def fill_hydrogen_valencies(self, input_path, input_file):
+    def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
         the valencies can be filled with the hydrogens as given in the file.
         Add the geometric information line by line, and for each line, make
         one vertex and one edge to the closest heavy atom'''
         #check if file is present
-        if os.path.isfile(input_path+input_file):
+        if os.path.isfile(input_PathToFile):
             #open text file in read mode
-            f = open(input_path+input_file, "r")
+            f = open(input_PathToFile, "r")
             data = f.read()
             f.close()
         else:
-            print('File', input_file, 'not found.')
+            print('File', input_PathToFile, 'not found.')
             return 0
         #Initalize
         name = self.name
-        new_geometry = self.geometry
-        new_elements_at_index = self.elements_at_index
-        new_edge_layout = self.edge_layout
+        new_geometry = self.geometry.copy()
+        new_elements_at_index = self.elements_at_index.copy()
+        new_edge_layout = self.edge_layout.copy()
         N_heavy = self.number_atoms #number of previously give atoms, all heavy
         N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
         for i in range(2,N+2): #get only the hydrogens and their coordinates
@@ -190,17 +192,17 @@ class MoleAsGraph:
                     shortest_distance = distance
                     index_of_shortest = j
             new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
-        return MoleAsGraph(name, self.edge_layout, self.elements_at_index, self.geometry)
+        return MoleAsGraph(name, new_edge_layout, new_elements_at_index, new_geometry)
 
 
-def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):
-    if os.path.isfile(input_path+input_file):
+def energy_PySCF_from_QM9(input_PathToFile, basis='ccpvdz'):
+    if os.path.isfile(input_PathToFile):
         #open text file in read mode
-        f = open(input_path+input_file, "r")
+        f = open(input_PathToFile, "r")
         data = f.read()
         f.close()
     else:
-        print('File', input_file, 'not found.')
+        print('File', input_PathToFile, 'not found.')
         return 0
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
     atom_string = ''
@@ -219,19 +221,19 @@ def energy_PySCF_from_QM9(input_path, input_file, basis='ccpvdz'):
     energy = mf.kernel()
     return energy
 
-def parse_QM9toMAG(input_path, input_file, with_hydrogen = False):
+def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
     '''MoleAsGraph instance returned'''
     #check if file is present
-    if os.path.isfile(input_path+input_file):
+    if os.path.isfile(input_PathToFile):
         #open text file in read mode
-        f = open(input_path+input_file, "r")
+        f = open(input_PathToFile, "r")
         data = f.read()
         f.close()
     else:
-        print('File', input_file, 'not found.')
+        print('File', input_PathToFile, 'not found.')
         return 0
     #Get the name of the molecule
-    MAG_name = input_file.split('.')[0]
+    MAG_name = input_PathToFile.split('/')[-1].split('.')[0]
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
     #Get the geometry of the molecule
     mole = []
@@ -255,14 +257,14 @@ def parse_QM9toMAG(input_path, input_file, with_hydrogen = False):
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
 
-def get_energy_const_atoms(input_path, input_file):
-    if os.path.isfile(input_path+input_file):
+def get_energy_const_atoms(input_PathToFile):
+    if os.path.isfile(input_PathToFile):
         #open text file in read mode
-        f = open(input_path+input_file, "r")
+        f = open(input_PathToFile, "r")
         data = f.read()
         f.close()
     else:
-        print('File', input_file, 'not found.')
+        print('File', input_PathToFile, 'not found.')
         return 0
     N = int(data.splitlines(False)[0])
     sum = 0
