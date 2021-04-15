@@ -5,6 +5,7 @@ import os
 import igraph
 from config import *
 import itertools
+from pyscf import gto, scf
 
 
 def delta(i,j):
@@ -98,9 +99,11 @@ def sum_formula(array_of_atoms):
                 formula += str(counts[i])
     return formula
 
-def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_all_energies = False):
+def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_all_energies = False,  take_hydrogen_data_from=''):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
-    varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].'''
+    varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].
+    In case of method = 'geom', log = 'verbose', the path for the xyz data of the hydrogens is
+    needed to fill the valencies.'''
     N_m = len(m)
     N_dZ = len(dZ)
     start_time = time.time()
@@ -121,165 +124,170 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
 
     '''All of these sites in each set need to be treated simultaneously. Hence, we
     flatten the array. However, we later need to make sure that only each set fulfills
-    netto charge conservation. This is why set is initalized'''
+    netto charge conservation. This is why similars is initalized'''
     similars = list(itertools.chain(*equi_atoms))
-
     '''This is the list of all atoms which can be transmuted simultaneously.
     Now, count all molecules which are possible excluding mirrored or rotated versions'''
     count = 0
     #Initalize empty array temp_mole for all configurations.
     temp_mole = []
-    for alpha in range(len(equi_atoms)):
-        num_sites = len(equi_atoms[alpha])
-        #Get necessary atoms listed in equi_atoms[alpha]
-        for i in range(num_sites):
-            temp_mole.append(mole[equi_atoms[alpha][i]])
-        #Make sure, that m1+m2 does no exceed length of similars[alpha] = num_sites
-        if np.sum(m) > num_sites:
-            '''print('---------------')
-            print("Warning: Number of to be transmuted atoms m = %d exceeds the number of electronically equivalent \n atoms in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
-            print('Number of Alchemical Enantiomers from set of equivalent atoms with index %d: 0' %alpha)
-            print('---------------')'''
-            continue
+    #Get necessary atoms listed in equi_atoms[alpha]
+    for i in range(len(similars)):
+        temp_mole.append(mole[similars[i]])
+    #Make sure, that m1+m2 does no exceed length of similars
+    if np.sum(m) > len(similars):
+        '''print('---------------')
+        print("Warning: Number of to be transmuted atoms m = %d exceeds the number of electronically equivalent \n atoms in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
+        print('Number of Alchemical Enantiomers from set of equivalent atoms with index %d: 0' %alpha)
+        print('---------------')'''
+        return 0
 
-        '''Now: go through all combinations of transmuting m atoms of set equi_atoms[alpha]
-        with size num_sites by the values stored in dZ. Then: compare their CN_inertia_moments
-        and only count the unique ones'''
-        atomwise_config = np.zeros((num_sites, N_dZ+1), dtype='int') #N_dZ+1 possible states: 0, dZ1, dZ2, ...
-        standard_config = np.zeros((num_sites))
-        #All allowed charges for ONE atom at a time
-        for i in range(num_sites):
-            #no change:
-            atomwise_config[i][0] = elements[temp_mole[i][0]]
-            #Initalize standard_config:
-            standard_config[i] = atomwise_config[i][0]
-            #just changes:
-            for j in range(N_dZ):
-                atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
-        #All possible combinations of those atoms with meshgrid
-        #The * passes the arrays element wise
-        mole_config_unfiltered = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,num_sites)
-        mole_config = np.zeros((1,num_sites),dtype='int')
-        mole_config = np.delete(mole_config, 0, axis = 0)
+    '''Now: go through all combinations of transmuting m atoms of set similars
+    by the values stored in dZ. Then: compare their CN_inertia_moments
+    and only count the unique ones'''
+    atomwise_config = np.zeros((len(similars), N_dZ+1), dtype='int') #N_dZ+1 possible states: 0, dZ1, dZ2, ...
+    standard_config = np.zeros((len(similars)))
+    #All allowed charges for ONE atom at a time
+    for i in range(len(similars)):
+        #no change:
+        atomwise_config[i][0] = elements[temp_mole[i][0]]
+        #Initalize standard_config:
+        standard_config[i] = elements[temp_mole[i][0]]
+        #just changes:
+        for j in range(N_dZ):
+            atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
+    #All possible combinations of those atoms with meshgrid; the * passes the arrays element-wise
+    mole_config_unfiltered = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,len(similars))
+    #Initalize a molecule configuration:
+    mole_config = np.zeros((1,len(similars)),dtype='int')
+    mole_config = np.delete(mole_config, 0, axis = 0)
 
-        print(equi_atoms)
-        print(similars)
-        print(standard_config)
-        print(mole_config_unfiltered)
-        for k in range(len(mole_config_unfiltered)):
-            '''m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2, etc...'''
-            if np.array([(m[v] == (np.subtract(mole_config_unfiltered[k],standard_config) == dZ[v]).sum()) for v in range(N_dZ)]).all():
-                '''Check that the netto charge change in every set is 0'''
-                pos = 0
-                for i in range(len(equi_atoms)):
-                    sum = 0
-                    #This loop has to start where the last one ended
-                    for j in range(pos,pos+len(equi_atoms[i])):
-                        sum += mole_config_unfiltered[k][j] - standard_config[j]
-                    pos += len(equi_atoms[i])
-                    if sum != 0:
-                        break
-                    if (sum == 0) and (i == len(equi_atoms)-1):
-                        #print(mole_config_unfiltered[k])
-                        mole_config = np.append(mole_config, [mole_config_unfiltered[k]], axis = 0)
-        if len(mole_config) == 0:
-            return 0
-        if np.min(mole_config) < 0:
-            #Check that atoms have not been transmuted to negative charges
-            raise ValueError("Values in dZ lead to negative nuclear charges in electronically equivalent atoms.")
-        #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
-        CIM = np.zeros((len(mole_config), 3))
+    for k in range(len(mole_config_unfiltered)):
+        # m1 sites need to be changed by dZ1, m2 sites need to be changed by dZ2, etc...
+        if np.array([(m[v] == (np.subtract(mole_config_unfiltered[k],standard_config) == dZ[v]).sum()) for v in range(N_dZ)]).all():
+            '''Check that the netto charge change in every set of equivalent atoms is 0'''
+            pos = 0
+            for i in range(len(equi_atoms)):
+                sum = 0
+                #This loop has to start where the last one ended
+                for j in range(pos,pos+len(equi_atoms[i])):
+                    sum += mole_config_unfiltered[k][j] - standard_config[j]
+                pos += len(equi_atoms[i])
+                if sum != 0:
+                    break
+                if (sum == 0) and (i == len(equi_atoms)-1):
+                    #print(mole_config_unfiltered[k])
+                    mole_config = np.append(mole_config, [mole_config_unfiltered[k]], axis = 0)
+    if len(mole_config) == 0:
+        return 0
+    if np.min(mole_config) < 0:
+        #Check that atoms have not been transmuted to negative charges
+        raise ValueError("Values in dZ lead to negative nuclear charges in electronically equivalent atoms.")
+    #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
+    CIM = np.zeros((len(mole_config), 3))
 
-        Total_CIM = np.zeros((len(mole_config),2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
-        for i in range(len(mole_config)):
+    Total_CIM = np.zeros((len(mole_config),2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
+    for i in range(len(mole_config)):
+        for j in range(len(similars)):
+            temp_mole[j][0] = inv_elements[mole_config[i][j]]
+
+        CIM[i] = CN_inertia_moment(temp_mole)
+        round(CIM[i][0],rounding_tolerance)
+        round(CIM[i][1],rounding_tolerance)
+        round(CIM[i][2],rounding_tolerance)
+        #print(CIM[i])
+
+        Total_CIM[i][0] = np.copy(temp_mole)
+        Total_CIM[i][1] = np.copy(CIM[i])
+
+    '''Now, all possible combinations are obtained; with the following loops,
+    we can get rid of all the spacial enantiomers: Delete all SPACIALLY
+    equivalent configurations, i.e. all second, third, etc. occurences of a
+    spacial configuration'''
+
+    #Initalize array of already seen CIMs. No better way to do this?
+    seen = np.array([[1.,2.,3.]])
+    seen = np.delete(seen, 0, axis= 0)
+    config_num = 0
+    while config_num <len(Total_CIM):
+        if not array_compare(Total_CIM[config_num][1], seen):
+            seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
+            config_num += 1
+        else:
+            Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+    #print(len(Total_CIM))
+
+    '''Alechemical enantiomers are those molecules which do not transmute
+    into themselves under the mirroring in charge, i.e. if one adds the
+    inverted configuration of transmutations to twice the molecule,
+    its CIM has changed.'''
+
+    config_num = 0
+    while config_num <len(Total_CIM):
+        current_config = np.zeros(len(similars),dtype=object)
+        for i in range(len(similars)):
+            current_config[i] = elements[Total_CIM[config_num][0][i][0]]
+        mirror_config = 2*standard_config - current_config
+        #print(current_config)
+        #print(mirror_config)
+        #print(Total_CIM[config_num][1]) #The CIM of current_config
+        for i in range(len(similars)):
+            temp_mole[i][0] = inv_elements[mirror_config[i]]
+        #print(CN_inertia_moment(temp_mole))
+        #print('----------')
+        if (Total_CIM[config_num][1] == CN_inertia_moment(temp_mole)).all():
+            Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
+        else:
+            config_num += 1
+
+    '''All is done. Now, print the remaining configurations and their contribution
+    to count.'''
+    count += len(Total_CIM)
+
+    if get_all_energies and len(Total_CIM) > 0 and take_hydrogen_data_from != '':
+        '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
+        but do so by returning a list of MoleAsGraph objects'''
+        print('Test')
+        for i in range(len(Total_CIM)):
+            #Create temporary MoleAsGraph object:
+            dummy_elements_at_index = np.array(graph.elements_at_index, copy=True)
+            dummy_geometry = np.array(graph.geometry, copy=True)
+            num = 0
+            for j in similars:
+                dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
+                dummy_geometry[j][0] = Total_CIM[i][0][num][0]
+                num += 1
+            dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index, dummy_geometry)
+            dummy_energy = dummy_mole.fill_hydrogen_valencies(take_hydrogen_data_from)
+            print(dummy_energy)
+
+    if debug == True:
+        print('---------------')
+        print("Time:", (time.time() - start_time),"s")
+        print('---------------')
+        for i in range(len(Total_CIM)):
+            #This prints the current configuration
+            print(Total_CIM[i][0])
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            #Fill the points into xs,ys,zs
+            xs = np.zeros((num_sites))
+            ys = np.zeros((num_sites))
+            zs = np.zeros((num_sites))
+            n = np.zeros((num_sites),dtype=object)
             for j in range(num_sites):
-                temp_mole[j][0] = inv_elements[mole_config[i][j]]
-
-            CIM[i] = CN_inertia_moment(temp_mole)
-            round(CIM[i][0],rounding_tolerance)
-            round(CIM[i][1],rounding_tolerance)
-            round(CIM[i][2],rounding_tolerance)
-            #print(CIM[i])
-
-            Total_CIM[i][0] = np.copy(temp_mole)
-            Total_CIM[i][1] = np.copy(CIM[i])
-
-        '''Now, all possible combinations are obtained; with the following loops,
-        we can get rid of all the spacial enantiomers: Delete all SPACIALLY
-        equivalent configurations, i.e. all second, third, etc. occurences of a
-        spacial configuration'''
-
-        #Initalize array of already seen CIMs. No better way to do this?
-        seen = np.array([[1.,2.,3.]])
-        seen = np.delete(seen, 0, axis= 0)
-        config_num = 0
-        while config_num <len(Total_CIM):
-            if not array_compare(Total_CIM[config_num][1], seen):
-                seen = np.append(seen, [Total_CIM[config_num][1]], axis = 0)
-                config_num += 1
-            else:
-                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-        #print(len(Total_CIM))
-
-        '''Alechemical enantiomers are those molecules which do not transmute
-        into themselves under the mirroring in charge, i.e. if one adds the
-        inverted configuration of transmutations to twice the molecule,
-        its CIM has changed.'''
-
-        config_num = 0
-        while config_num <len(Total_CIM):
-            current_config = np.zeros(num_sites,dtype=object)
-            for i in range(num_sites):
-                current_config[i] = elements[Total_CIM[config_num][0][i][0]]
-            mirror_config = 2*standard_config - current_config
-            #print(current_config)
-            #print(mirror_config)
-            #print(Total_CIM[config_num][1]) #The CIM of current_config
-            for i in range(num_sites):
-                temp_mole[i][0] = inv_elements[mirror_config[i]]
-            #print(CN_inertia_moment(temp_mole))
-            #print('----------')
-            if (Total_CIM[config_num][1] == CN_inertia_moment(temp_mole)).all():
-                Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
-            else:
-                config_num += 1
-
-        '''All is done. Now, print the remaining configurations and their contribution
-        to count.'''
-        count += len(Total_CIM)
-
-        if get_all_energies == True and len(Total_CIM) > 0:
-            #Explicitly calculate the energies of all the configurations in Total_CIM[0]
-            for i in range(len(Total_CIM)):
-                print('Test')
-
-        if debug == True:
-            print('---------------')
-            print("Time:", (time.time() - start_time),"s")
-            print('---------------')
-            for i in range(len(Total_CIM)):
-                #This prints the current configuration
-                print(Total_CIM[i][0])
-                fig = plt.figure()
-                ax = fig.add_subplot(111, projection='3d')
-                #Fill the points into xs,ys,zs
-                xs = np.zeros((num_sites))
-                ys = np.zeros((num_sites))
-                zs = np.zeros((num_sites))
-                n = np.zeros((num_sites),dtype=object)
-                for j in range(num_sites):
-                    xs[j] = Total_CIM[i][0][j][1][0]
-                    ys[j] = Total_CIM[i][0][j][1][1]
-                    zs[j] = Total_CIM[i][0][j][1][2]
-                    n[j] = Total_CIM[i][0][j][0]
-                ax.scatter(xs, ys, zs, marker='o', facecolor='black')
-                #print(Total_CIM[i][0][1][0])
-                for j, txt in enumerate(n):
-                    ax.text(xs[j], ys[j], zs[j], n[j])
-                #ax.set_xlabel('X')
-                #ax.set_ylabel('Y')
-                #ax.set_zlabel('Z')
-            plt.show()
-            print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
-            print('---------------')
+                xs[j] = Total_CIM[i][0][j][1][0]
+                ys[j] = Total_CIM[i][0][j][1][1]
+                zs[j] = Total_CIM[i][0][j][1][2]
+                n[j] = Total_CIM[i][0][j][0]
+            ax.scatter(xs, ys, zs, marker='o', facecolor='black')
+            #print(Total_CIM[i][0][1][0])
+            for j, txt in enumerate(n):
+                ax.text(xs[j], ys[j], zs[j], n[j])
+            #ax.set_xlabel('X')
+            #ax.set_ylabel('Y')
+            #ax.set_zlabel('Z')
+        plt.show()
+        print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
+        print('---------------')
     return count
