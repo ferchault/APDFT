@@ -29,7 +29,7 @@ def parse_charge(dL):
         raise
     return dL
 
-def with_rinv_at_nucleus(self,atm_id):
+def with_rinv_at_nucleus(self, atm_id):
         rinv = self.atom_coord(atm_id)
         self._env[gto.mole.AS_RINV_ORIG_ATOM] = atm_id  # required by ecp gradients
         return self.with_rinv_origin(rinv)
@@ -54,10 +54,9 @@ def FcM(fcs=[],**kwargs):
     return mol
 
 def FcM_like(in_mol,fcs=[]):
-    print("s")
+    print("bubu")
     mol=in_mol.copy()
     mol.with_rinv_at_nucleus=with_rinv_at_nucleus.__get__(mol)
-    mol.build()
     mol.symmetry=None    #symmetry usually breaks after perturbation
     init_charges=mol.atom_charges()
     if fcs:

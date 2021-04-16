@@ -63,7 +63,8 @@ def g3(mol0,dP,P,g0,e,e1,C,dC): #-dW/dZ *dS/dx
     s1=g0.get_ovlp(mol0)
     g3=np.zeros((mol0.natm,3))
     nocc=mol0.nelec[0]
-    dW=np.einsum('i,ji,ki->jk' ,2*e[:nocc],dC[:,:nocc],C[:,:nocc])+np.einsum('i,ji,ki->jk', 2*e[:nocc],C[:,:nocc],dC[:,:nocc])+  2*C[:,:nocc]@e1@C.T[:nocc,:]
+    dW=np.einsum('i,ji,ki->jk' ,2*e[:nocc],dC[:,:nocc],C[:,:nocc])+np.einsum('i,ji,ki->jk' ,2*e[:nocc],C[:,:nocc],dC[:,:nocc])+ \
+        2*C[:,:nocc]@e1@C.T[:nocc,:]
     for i in range(mol0.natm):
         p0, p1 = mol0.aoslice_by_atom() [i,2:]
         g3[i] -= np.einsum('xij,ij->x', s1[:,p0:p1], dW[p0:p1]) * 2
