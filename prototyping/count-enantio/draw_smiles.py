@@ -1,16 +1,17 @@
 #USE IN BASH: conda activate my-rdkit-env
 
 from pysmiles import read_smiles
-import networkx as nx
 import matplotlib.pyplot as plt
-from AlEn import *
+#from AlEn import *
 import sys
 import rdkit
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
 
-def draw(tag, out='tmp'):
+PathToQM9XYZ = '/home/simon/QM9/XYZ/'
+
+def draw(tag, out='bash'):
     #Get the SMILES from the correct file
     f = open(PathToQM9XYZ + 'dsgdb9nsd_'+ tag +'.xyz', 'r')
     data = f.read()
@@ -25,12 +26,12 @@ def draw(tag, out='tmp'):
         nx.draw(mol, with_labels=True, labels = elements, pos=nx.spring_layout(mol))
         plt.gca().set_aspect('equal')
         plt.show()
-    if out == 'file':
+    else if out == 'file':
         #img=Draw.MolsToGridImage(Chem.MolFromSmiles(smiles),molsPerRow=4,subImgSize=(200,200),legends=smiles)
         #img.save('chem_fig')
         mol = Chem.MolFromSmiles(smiles)
         Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
-    if out == 'tmp':
+    else if out == 'tmp':
         mol = Chem.MolFromSmiles(smiles)
         Draw.MolToFile(mol, 'figures/tmp_structures/'+tag+'.png')
 

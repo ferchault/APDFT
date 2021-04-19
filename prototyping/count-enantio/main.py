@@ -92,15 +92,29 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
 pool.starmap(Find_theoAEfromgraph, [(i,z) for i,z in itertools.product([2,3,4,5,6,7,8,9],[1,2])])
 pool.close()'''
 
+
 #------------------------------Testing--------------------------------------
+
+#print(parse_QM9toMAG('frankenstein.xyz').edge_layout)
+print(geomAE(parse_QM9toMAG('frankenstein.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='frankenstein.xyz'))
+print()
 #print(naphthalene.get_energy_NN())
 #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
 
-print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
-'''for tag_number in range(4,100+1):
+#print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
+'''for tag_number in range(10000,133885+1):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
-    Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='verbose', dZ_max=2, method = 'geom', take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')
-    print('\n')'''
+    f = open(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz', "r")
+    data = f.read()
+    f.close()
+    N = int(data.splitlines(False)[0])
+    smiles = data.splitlines(False)[N+3].split('\t')[0].strip()
+    #print(smiles)
+    if smiles == 'C1=CC=CC=CC=C1':
+        print(pos)'''
+
+    #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='verbose', dZ_max=2, method = 'geom', take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')
+    #print('\n')
     #Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2, method = 'geom')
     #print(pos)
     #print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz', with_hydrogen=False).fill_hydrogen_valencies(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz').energy_PySCF())
