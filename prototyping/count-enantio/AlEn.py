@@ -12,13 +12,13 @@ import networkx as nx
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
-rounding_tolerance = 3 #Rounding error in geometry-based method
+rounding_tolerance = 0 #Rounding error in geometry-based method
 performance_use = 0.50 #portion of cpu cores to be used
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
 elements = {'Ghost':0,'H':1, 'He':2,
-'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
+'Li':3, 'Be':4, 'B':5, 'C':6, 'C-N':6.5, 'N':7, 'O':8, 'F':9, 'Ne':10,
 'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
@@ -113,16 +113,20 @@ def CN_inertia_tensor(mole, gate_threshold=0):
             sum = 0
     return result_tensor
 
-def CN_inertia_moment(mole, tolerance=rounding_tolerance, gate_threshold=0):
-    #Calculate the inertia moments of a molecule with CN instead of masses
-    #and sort them in ascending order
-    w,v = np.linalg.eig(CN_inertia_tensor(mole, gate_threshold=gate_threshold))
-    #Only the eigen values are needed, v is discarded
-    moments = np.sort(w)
-    #To make life easier, the values in moments are rounded to tolerance for easier comparison
-    for i in range(3):
-        moments[i] = round(moments[i],tolerance)
-    return moments
+def atomrep_inertia_moment(mole, tolerance=rounding_tolerance, gate_threshold=0, representation='atomic_Coulomb'):
+    if representation == 'atomic_Coulomb':
+        #Calculate the inertia moments of a molecule with CN instead of masses
+        #and sort them in ascending order
+        w,v = np.linalg.eig(CN_inertia_tensor(mole, gate_threshold=gate_threshold))
+        #Only the eigen values are needed, v is discarded
+        moments = np.sort(w)
+        #To make life easier, the values in moments are rounded to tolerance for easier comparison
+        for i in range(3):
+            moments[i] = round(moments[i],tolerance)
+        return moments
+    else:
+        return 0
+
 
 def array_compare(arr1, arr2):
     '''arr1 = [...]
@@ -499,19 +503,15 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
     count = 0
     #Initalize empty array temp_mole for all configurations.
     temp_mole = []
-    #Get necessary atoms listed in equi_atoms[alpha]
+    #Get necessary atoms listed in equi_atoms
     for i in range(len(similars)):
         temp_mole.append(mole[similars[i]])
     #Make sure, that m1+m2 does no exceed length of similars
     if np.sum(m) > len(similars):
-        '''print('---------------')
-        print("Warning: Number of to be transmuted atoms m = %d exceeds the number of electronically equivalent \n atoms in set %d which is %d. Hence, the returned value is 0 at this site." %(np.sum(m),alpha,num_sites))
-        print('Number of Alchemical Enantiomers from set of equivalent atoms with index %d: 0' %alpha)
-        print('---------------')'''
         return 0
 
     '''Now: go through all combinations of transmuting m atoms of set similars
-    by the values stored in dZ. Then: compare their CN_inertia_moments
+    by the values stored in dZ. Then: compare their atomrep_inertia_moments
     and only count the unique ones'''
     atomwise_config = np.zeros((len(similars), N_dZ+1), dtype='int') #N_dZ+1 possible states: 0, dZ1, dZ2, ...
     standard_config = np.zeros((len(similars)))
@@ -554,12 +554,12 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
     #Fourth: All remaining configs, their Coulomb inertia moments and their Delta_Coulomb inertia moments are saved and uniqued
     CIM = np.zeros((len(mole_config), 3))
 
-    Total_CIM = np.zeros((len(mole_config),2), dtype=object) #Entry 0: Config; entry 1: CN_inertia_moments
+    Total_CIM = np.zeros((len(mole_config),2), dtype=object) #Entry 0: Config; entry 1: atomrep_inertia_moments
     for i in range(len(mole_config)):
         for j in range(len(similars)):
             temp_mole[j][0] = inv_elements[mole_config[i][j]]
 
-        CIM[i] = CN_inertia_moment(temp_mole)
+        CIM[i] = atomrep_inertia_moment(temp_mole)
         round(CIM[i][0],rounding_tolerance)
         round(CIM[i][1],rounding_tolerance)
         round(CIM[i][2],rounding_tolerance)
@@ -601,9 +601,9 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
         #print(Total_CIM[config_num][1]) #The CIM of current_config
         for i in range(len(similars)):
             temp_mole[i][0] = inv_elements[mirror_config[i]]
-        #print(CN_inertia_moment(temp_mole))
+        #print(atomrep_inertia_moment(temp_mole))
         #print('----------')
-        if (Total_CIM[config_num][1] == CN_inertia_moment(temp_mole)).all():
+        if (Total_CIM[config_num][1] == atomrep_inertia_moment(temp_mole)).all():
             Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
         else:
             config_num += 1
@@ -625,10 +625,12 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
                 dummy_geometry[j][0] = Total_CIM[i][0][num][0]
                 num += 1
             dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist())
-            dummy_energy = dummy_mole.fill_hydrogen_valencies(take_hydrogen_data_from).energy_PySCF()
-            print(dummy_energy)
+            dummy_energy_total = dummy_mole.fill_hydrogen_valencies(take_hydrogen_data_from).energy_PySCF()
+            dummy_energy_NN = dummy_mole.get_energy_NN()
+            print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN))
 
     if debug == True:
+        num_sites = len(similars)
         print('---------------')
         print("Time:", (time.time() - start_time),"s")
         print('---------------')
@@ -643,9 +645,9 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
             zs = np.zeros((num_sites))
             n = np.zeros((num_sites),dtype=object)
             for j in range(num_sites):
-                xs[j] = Total_CIM[i][0][j][1][0]
-                ys[j] = Total_CIM[i][0][j][1][1]
-                zs[j] = Total_CIM[i][0][j][1][2]
+                xs[j] = Total_CIM[i][0][j][1]
+                ys[j] = Total_CIM[i][0][j][2]
+                zs[j] = Total_CIM[i][0][j][3]
                 n[j] = Total_CIM[i][0][j][0]
             ax.scatter(xs, ys, zs, marker='o', facecolor='black')
             #print(Total_CIM[i][0][1][0])
@@ -655,8 +657,6 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
             #ax.set_ylabel('Y')
             #ax.set_zlabel('Z')
         plt.show()
-        print('Number of molecules to be considered one part of a pair of Alchemical Enantiomers \nfrom set of electronically equivalent atoms with index %d: %d' %(alpha,len(Total_CIM)))
-        print('---------------')
     return count
 
 def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bond_energy_rules = False):
@@ -1081,7 +1081,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = 'normal'):
             mirror_config[i][0] = inv_elements[2*elements[reference_config[i][0]] - elements[target_config[i][0]]]
             netto_charge += elements[reference_config[i][0]] - elements[target_config[i][0]]
         #Test if the target is its own mirror or charge is not conserved:
-        if (CN_inertia_moment(target_config) == CN_inertia_moment(mirror_config)).all() or (netto_charge != 0):
+        if (atomrep_inertia_moment(target_config) == atomrep_inertia_moment(mirror_config)).all() or (netto_charge != 0):
             #If yes, wipe chem_config such that the original molecule is returned
             chem_config = np.array([graph.geometry[i][0] for i in range(graph.number_atoms)], copy=True)
     #Return a MoleAsGraph object
