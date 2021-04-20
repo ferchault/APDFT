@@ -95,10 +95,10 @@ pool.close()'''
 
 #------------------------------Testing--------------------------------------
 
-#print(parse_QM9toMAG('frankenstein.xyz').edge_layout)
-print(geomAE(parse_QM9toMAG('frankenstein.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='frankenstein.xyz'))
-print()
-#print(naphthalene.get_energy_NN())
+#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz').edge_layout)
+print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
+#print(geomAE(parse_QM9toMAG('cubane_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cubane_13halfs.xyz'))
+#print(geomAE(cube, dZ=[1,-1], m=[1,1]))
 #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
 
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
@@ -109,10 +109,13 @@ print()
     f.close()
     N = int(data.splitlines(False)[0])
     smiles = data.splitlines(False)[N+3].split('\t')[0].strip()
+    inchi = data.splitlines(False)[N+4].split('\t')[0].strip()
     #print(smiles)
-    if smiles == 'C1=CC=CC=CC=C1':
+    #This case: Cubane
+    if smiles == 'C12C3C4C1C5C2C3C45':
+        print(pos)
+    if inchi == 'InChI=1S/C8H8/c1-2-5-3(1)7-4(1)6(2)8(5)7/h1-8H':
         print(pos)'''
-
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='verbose', dZ_max=2, method = 'geom', take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')
     #print('\n')
     #Find_AEfromref(uncolor(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=2, method = 'geom')

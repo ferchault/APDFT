@@ -74,8 +74,6 @@ def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
                     print(x)
         f.close()
     #Normalize the function for percentages
-    #print('num_moles '+input_file_prefix+input_file_postfix+str(num_moles))
-    #print('num_AE '+input_file_prefix+input_file_postfix+str(num_AE))
     for i in range(len(N)):
         for j in range(num_bin):
             num_AE[i][j] /= num_moles[i]

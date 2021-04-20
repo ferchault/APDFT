@@ -14,6 +14,7 @@ import networkx as nx
 original_stdout = sys.stdout # Save a reference to the original standard output
 rounding_tolerance = 0 #Rounding error in geometry-based method
 performance_use = 0.50 #portion of cpu cores to be used
+gate_threshold = 0 #Cutoff threshold in Coulomb matrix
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
@@ -76,7 +77,7 @@ def center_mole(mole):
         result[i][1:] = np.subtract(result[i][1:],sum)
     return result
 
-def Coulomb_matrix(mole, gate_threshold=0):
+def Coulomb_matrix(mole):
     #returns the Coulomb matrix of a given molecule
     N = len(mole)
     result = np.zeros((N,N))
@@ -92,16 +93,16 @@ def Coulomb_matrix(mole, gate_threshold=0):
                     result[i][j] = summand
     return result
 
-def Coulomb_neighborhood(mole, gate_threshold=0):
+def Coulomb_neighborhood(mole):
     '''returns the sum over rows/columns of the Coulomb matrix.
     Thus, each atom is assigned its Coulombic neighborhood'''
-    matrix = Coulomb_matrix(mole, gate_threshold=gate_threshold)
+    matrix = Coulomb_matrix(mole)
     return matrix.sum(axis = 0)
 
-def CN_inertia_tensor(mole, gate_threshold=0):
+def CN_inertia_tensor(mole):
     #Calculate an inertia tensor but with Coulomb_neighborhood instead of masses
     N = len(mole)
-    CN = Coulomb_neighborhood(mole, gate_threshold=gate_threshold)
+    CN = Coulomb_neighborhood(mole)
     result_tensor = np.zeros((3,3))
     sum = 0
     for i in range(3):
@@ -113,11 +114,11 @@ def CN_inertia_tensor(mole, gate_threshold=0):
             sum = 0
     return result_tensor
 
-def atomrep_inertia_moment(mole, tolerance=rounding_tolerance, gate_threshold=0, representation='atomic_Coulomb'):
+def atomrep_inertia_moment(mole, tolerance=rounding_tolerance, representation='atomic_Coulomb'):
     if representation == 'atomic_Coulomb':
         #Calculate the inertia moments of a molecule with CN instead of masses
         #and sort them in ascending order
-        w,v = np.linalg.eig(CN_inertia_tensor(mole, gate_threshold=gate_threshold))
+        w,v = np.linalg.eig(CN_inertia_tensor(mole))
         #Only the eigen values are needed, v is discarded
         moments = np.sort(w)
         #To make life easier, the values in moments are rounded to tolerance for easier comparison
@@ -264,9 +265,9 @@ class MoleAsGraph:
             sites = [list(map(int,x)) for x in set(tuple(x) for x in similars)]
         return sites
 
-    def get_equi_atoms_from_geom(self, gate_threshold=0, tolerance=rounding_tolerance):
+    def get_equi_atoms_from_geom(self, tolerance=rounding_tolerance):
         mole = self.geometry.copy()
-        CN = Coulomb_neighborhood(center_mole(mole), gate_threshold=gate_threshold)
+        CN = Coulomb_neighborhood(center_mole(mole))
         for i in range(len(mole)):
             CN[i] = round(CN[i],tolerance)
         similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
@@ -279,13 +280,18 @@ class MoleAsGraph:
                 similars = np.delete(similars, num_similars, axis = 0)
         return similars
 
-    def get_energy_NN(self):
+    def get_energy_NN(self, take_hydrogen_data_from=''):
+        #Create dummy molecule with the hydrogens:
+        if take_hydrogen_data_from != '':
+            mole = self.fill_hydrogen_valencies(take_hydrogen_data_from)
+        else:
+            mole = self
         #Calculate the nuclear energy of the molecule
         sum = 0
-        for i in range(self.number_atoms):
-            for j in range(i+1,self.number_atoms):
-                sum += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
-        return 0.5*sum
+        for i in range(mole.number_atoms):
+            for j in range(i+1,mole.number_atoms):
+                sum += elements[mole.geometry[i][0]]*elements[mole.geometry[j][0]]/np.linalg.norm(np.subtract(mole.geometry[i][1:],mole.geometry[j][1:]))
+        return sum
 
     def get_molecular_norm(self):
         return np.linalg.norm(CN_inertia_tensor(self.geometry.copy()))
@@ -317,7 +323,7 @@ class MoleAsGraph:
         for i in range(self.number_atoms): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
             for j in [1,2,3]:
-                atom_string += ' ' + str(self.geometry[i][j])
+                atom_string += ' ' + str(-self.geometry[i][j])
             atom_string += '; '
         mol = gto.M(
             verbose = 0,
@@ -382,6 +388,12 @@ benzene = MoleAsGraph(  'Benzene',
                         ['C','C','C','C','C','C'],
                         [['C', 0,0,1], ['C', 0,0.8660254037844386467637231707,0.5], ['C', 0,0.8660254037844386467637231707,-0.5],
                         ['C', 0,0,-1], ['C', 0,-0.8660254037844386467637231707,-0.5], ['C', 0,-0.8660254037844386467637231707,0.5]])
+
+cube = MoleAsGraph(     'Cube',
+                        [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]],
+                        ['C','C','C','C','C','C','C','C'],
+                        [['C',0,0,0],['C',0,1,0],['C',0,1,1],['C',0,0,1],['C',1,0,0],['C',1,1,0],['C',1,1,1],['C',1,0,1]])
+
 naphthalene = MoleAsGraph(  'Naphthalene',
                             [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5]],
                             ['C','C','C','C','C','C','C','C','C','C'],
@@ -624,10 +636,11 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
                 dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
                 dummy_geometry[j][0] = Total_CIM[i][0][num][0]
                 num += 1
+            #Mirror spatially
             dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist())
             dummy_energy_total = dummy_mole.fill_hydrogen_valencies(take_hydrogen_data_from).energy_PySCF()
-            dummy_energy_NN = dummy_mole.get_energy_NN()
-            print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN))
+            dummy_energy_NN = dummy_mole.get_energy_NN(take_hydrogen_data_from=take_hydrogen_data_from)
+            print("Electronic energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN))
 
     if debug == True:
         num_sites = len(similars)

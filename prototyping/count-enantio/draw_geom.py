@@ -15,7 +15,7 @@ if __name__ == "__main__":
     for i in range(2,N+2): #get the atoms one by one
         line = data.splitlines(False)[i]
         labels.append(line[0])
-        x = line.split('  ')
+        x = line.split('\t')
         count = 0
         while count < len(x):
             if x[count] == ' ' or x[count] == '':
