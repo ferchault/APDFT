@@ -2,7 +2,6 @@ from AlEn import *
 import multiprocessing as mp
 import os
 
-
 def multicore_QM9(tag_number, batch_index, dZ_max):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
     #Check for directory /logs and create one if necessary:
@@ -66,6 +65,8 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')
 
 
+#-------------------------------MAIN PROGRAM------------------------------------
+
 #----------------------Going through QM9------------------------------------
 '''for count in range(1,14+1):
     #Start at 1, end at 14+1
@@ -94,9 +95,13 @@ pool.close()'''
 
 
 #------------------------------Testing--------------------------------------
-
-print(benzene.get_Hessian())
-#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz').get_Hessian())
+#mole2 = parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True)
+#print(mole2.get_total_energy(), mole2.get_nuclear_energy(), mole2.get_total_energy()-mole2.get_nuclear_energy())
+#mole1 = parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True)
+#print(mole1.get_total_energy(), mole1.get_nuclear_energy(), mole1.get_total_energy()-mole1.get_nuclear_energy())
+#mole3 = parse_QM9toMAG('cyclooctatetraene_14halfs.xyz', with_hydrogen=True)
+#print(mole3.get_total_energy(), mole3.get_nuclear_energy(), mole3.get_total_energy()-mole3.get_nuclear_energy())
+print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_total_energy())
 #print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
 #print(geomAE(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz'), m=[2,2], dZ=[1,-1], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
 #print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').get_energy_NN(take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))

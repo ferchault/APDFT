@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import os
 import igraph
 import itertools
-from pyscf import gto, scf
+from pyscf import gto, scf, qmmm
 from pysmiles import read_smiles
 import networkx as nx
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
 tolerance = 0.05 #Rounding error in geometry-based method
-performance_use = 0.50 #portion of cpu cores to be used
+performance_use = 0.90 #portion of cpu cores to be used
 gate_threshold = 0 #Cutoff threshold in Coulomb matrix
 basis = 'ccpvdz'#'def2tzvp' #Basis set for QM calculations
 PathToNauty27r1 = '/home/simon/nauty27r1/'
@@ -307,7 +307,7 @@ class MoleAsGraph:
                 del similars[num_similars]
         return similars
 
-    def get_energy_NN(self):
+    def get_nuclear_energy(self):
         #Calculate the nuclear energy of the molecule
         sum = 0
         for i in range(self.number_atoms):
@@ -342,40 +342,44 @@ class MoleAsGraph:
     def get_total_energy(self, basis=basis):
         #Make sure that the hydrogens are parsed, too!!!!!!
         atom_string = ''
+        coords = []
+        charges = []
+        overall_charge = 0
         for i in range(self.number_atoms): #get the atoms and their coordinates
-            atom_string += self.geometry[i][0]
-            for j in [1,2,3]:
-                atom_string += ' ' + str(self.geometry[i][j])
-            atom_string += '; '
-        mol = gto.M(
-            verbose = 0,
-            atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
-            basis = basis,
-            symmetry = False,
-            unit = 'Angstrom'
-        )
-        mf = scf.HF(mol).run()
+            if int(elements[self.geometry[i][0]]) != elements[self.geometry[i][0]]: #Non-integer nuclear charge
+                charges.append(elements[self.geometry[i][0]])
+                coords.append(tuple(self.geometry[i][1:]))
+                overall_charge += elements[self.geometry[i][0]]
+            else:
+                atom_string += str(elements[self.geometry[i][0]])
+                for j in [1,2,3]:
+                    atom_string += ' ' + str(self.geometry[i][j])
+                atom_string += '; '
+        #print(coords, charges, overall_charge)
+        mol = gto.Mole()
+        mol.verbose = 0
+        mol.atom = atom_string[:-2]  #Last '; ' was removed; in Angstrom
+        mol.basis = basis
+        mol.symmetry = False
+        if overall_charge != int(overall_charge):
+            print("Non-integer number of electrons set for "+self.name)
+        if overall_charge != 0:
+            mol.nelectron = int(overall_charge+0.0001) #Avoid numerical issues when working with thirds
+        mol.unit = 'Angstrom'
+        mol.build()
+        if len(charges) != 0:
+            mf = scf.HF(mol)
+            mf = qmmm.mm_charge(mf, coords, charges)
+            mf.run()
+        else:
+            mf = scf.HF(mol).run()
         energy = mf.e_tot
         return energy
-
-    def get_Hessian(self):
-        #Make sure that the hydrogens are parsed, too!!!!!!
-        atom_string = ''
-        for i in range(self.number_atoms): #get the atoms and their coordinates
-            atom_string += self.geometry[i][0]
-            for j in [1,2,3]:
-                atom_string += ' ' + str(self.geometry[i][j])
-            atom_string += '; '
-        mol = gto.M(
-            verbose = 0,
-            atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
-            basis = basis,
-            symmetry = False,
-            unit = 'Angstrom'
-        )
-        mf = mol.RHF().run()
-        Hessian = mf.Hessian().kernel()
-        return Hessian
+        #For testing purposes only:
+        #Grad = mf.Gradients().kernel()
+        #return Grad
+        #Hessian = mf.Hessian().kernel()
+        #return Hessian
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
@@ -450,33 +454,7 @@ naphthalene = MoleAsGraph(  'Naphthalene',
                             ['C', 0,2*0.8660254037844386467637231707,-0.5], ['C', 0,0.8660254037844386467637231707,-1], ['C', 0,0,-0.5],
                             ['C', 0,-0.8660254037844386467637231707,1], ['C', 0,-2*0.8660254037844386467637231707,0.5], ['C', 0,-2*0.8660254037844386467637231707, -0.5], ['C', 0,-0.8660254037844386467637231707,-1]])
 
-#PARSER FUNCTIONS FOR QM9-------------------------------------------------------
-def energy_PySCF_from_QM9(input_PathToFile, basis=basis):
-    if os.path.isfile(input_PathToFile):
-        #open text file in read mode
-        f = open(input_PathToFile, "r")
-        data = f.read()
-        f.close()
-    else:
-        print('File', input_PathToFile, 'not found.')
-        return 0
-    N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
-    atom_string = ''
-    for i in range(2,N+2): #get the atoms and their coordinates
-        line = data.splitlines(False)[i]
-        x = line.split('\t')
-        atom_string += x[0] + ' ' + x[1] + ' ' + x[2] + ' '  + x[3] + '; '
-    #print(atom_string[:-2])
-    mol = gto.M(
-        verbose = 0,
-        atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
-        basis = basis,
-        symmetry = False,
-    )
-    mf = scf.HF(mol)
-    energy = mf.kernel()
-    return energy
-
+#PARSER FUNCTION FOR QM9--------------------------------------------------------
 def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
     '''MoleAsGraph instance returned'''
     #check if file is present
@@ -496,19 +474,22 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
     N_heavyatoms = N
     for i in range(2,N+2): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
-        if not with_hydrogen and line.split('\t')[0] == 'H':
+        if line.split('\t')[0] == 'H':
             N_heavyatoms -= 1
-            continue
-        else:
-            symbol = line.split('\t')[0]
-            x = float(line.split('\t')[1].strip())
-            y = float(line.split('\t')[2].strip())
-            z = float(line.split('\t')[3].strip())
-            mole.append([symbol,x,y,z])
-    #print(mole)
-    #Get the edges of the molecule as a graph
-    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
+            if not with_hydrogen:
+                continue
+        symbol = line.split('\t')[0]
+        x = float(line.split('\t')[1].strip())
+        y = float(line.split('\t')[2].strip())
+        z = float(line.split('\t')[3].strip())
+        mole.append([symbol,x,y,z])
+    #Find edge_layout:
+    if with_hydrogen == False:
+        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
+    elif with_hydrogen == True:
+        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=True)
     edge_layout = [list(v) for v in network.edges()]
+    #Get the edges of the molecule as a graph
     elements_at_index = [v[1] for v in network.nodes(data='element')]
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
@@ -664,7 +645,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
             dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
             #print(dummy_mole.geometry)
             dummy_energy_total = dummy_mole.get_total_energy()
-            dummy_energy_NN = dummy_mole.get_energy_NN()
+            dummy_energy_NN = dummy_mole.get_nuclear_energy()
             print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN)+"\tElectronic energy: "+str(dummy_energy_total-dummy_energy_NN))
 
     if debug == True:
