@@ -95,14 +95,20 @@ pool.close()'''
 
 #------------------------------Testing--------------------------------------
 
-#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz').edge_layout)
-print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
+print(benzene.get_Hessian())
+#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz').get_Hessian())
+#print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
+#print(geomAE(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz'), m=[2,2], dZ=[1,-1], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
+#print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').get_energy_NN(take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
+#print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').fill_hydrogen_valencies(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').energy_PySCF())
 #print(geomAE(parse_QM9toMAG('cubane_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cubane_13halfs.xyz'))
-#print(geomAE(cube, dZ=[1,-1], m=[1,1]))
+#print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_energy_NN())
+#print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry)
+#print(geomAE(parse_QM9toMAG('benzene.xyz'), m=[2,2], dZ=[1,-1], get_all_energies=True, take_hydrogen_data_from='benzene.xyz', debug=True))
 #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ, 'dsgdb9nsd_000554.xyz'), log='sparse', method='geom', dZ_max=2)
 
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
-'''for tag_number in range(10000,133885+1):
+'''for tag_number in range(100,133885+1):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
     f = open(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz', "r")
     data = f.read()
@@ -111,10 +117,10 @@ print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-
     smiles = data.splitlines(False)[N+3].split('\t')[0].strip()
     inchi = data.splitlines(False)[N+4].split('\t')[0].strip()
     #print(smiles)
-    #This case: Cubane
-    if smiles == 'C12C3C4C1C5C2C3C45':
+    #This case: Benzene
+    if smiles == 'C1C=CC=CC1':
         print(pos)
-    if inchi == 'InChI=1S/C8H8/c1-2-5-3(1)7-4(1)6(2)8(5)7/h1-8H':
+    if inchi == 'InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H':
         print(pos)'''
     #Find_AEfromref(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='verbose', dZ_max=2, method = 'geom', take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')
     #print('\n')

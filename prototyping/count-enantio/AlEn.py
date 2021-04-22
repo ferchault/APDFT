@@ -12,9 +12,10 @@ import networkx as nx
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
-rounding_tolerance = 0 #Rounding error in geometry-based method
+tolerance = 0.05 #Rounding error in geometry-based method
 performance_use = 0.50 #portion of cpu cores to be used
 gate_threshold = 0 #Cutoff threshold in Coulomb matrix
+basis = 'ccpvdz'#'def2tzvp' #Basis set for QM calculations
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
@@ -65,14 +66,30 @@ def delta(i,j):
     else:
         return 0
 
+def are_close_scalars(a,b):
+    value = False
+    if abs(a-b) < tolerance:
+        value = True
+    return value
+
+def are_close_lists(a,b):
+    value = True
+    for i in range(len(a)):
+        if abs(a[i]-b[i]) > tolerance:
+            value = False
+    return value
+
 def center_mole(mole):
     #Centers a molecule
     sum = [0,0,0]
     N = len(mole)
     result = mole
     for i in range(N):
-        sum = np.add(result[i][1:],sum)
+        sum[0] += result[i][1]
+        sum[1] += result[i][2]
+        sum[2] += result[i][3]
     sum = np.multiply(sum, 1/N)
+    #print(sum)
     for i in range(N):
         result[i][1:] = np.subtract(result[i][1:],sum)
     return result
@@ -114,16 +131,13 @@ def CN_inertia_tensor(mole):
             sum = 0
     return result_tensor
 
-def atomrep_inertia_moment(mole, tolerance=rounding_tolerance, representation='atomic_Coulomb'):
+def atomrep_inertia_moment(mole, representation='atomic_Coulomb'):
     if representation == 'atomic_Coulomb':
         #Calculate the inertia moments of a molecule with CN instead of masses
         #and sort them in ascending order
         w,v = np.linalg.eig(CN_inertia_tensor(mole))
         #Only the eigen values are needed, v is discarded
         moments = np.sort(w)
-        #To make life easier, the values in moments are rounded to tolerance for easier comparison
-        for i in range(3):
-            moments[i] = round(moments[i],tolerance)
         return moments
     else:
         return 0
@@ -132,10 +146,10 @@ def atomrep_inertia_moment(mole, tolerance=rounding_tolerance, representation='a
 def array_compare(arr1, arr2):
     '''arr1 = [...]
     arr2 = [[...],[...],[...],...]
-    Is there an exact copy of arr1 in arr2'''
+    Is there an approximate copy of arr1 in arr2'''
     within = False
     for i in range(len(arr2)):
-        if (arr1 == arr2[i]).all():
+        if are_close_lists(arr1, arr2[i]):
             within = True
     return within
 
@@ -193,7 +207,7 @@ class MoleAsGraph:
         self.name = name
         self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.elements_at_index = elements_at_index #Which element is at which vertex number
-        self.geometry = geometry #The usual xyz representation
+        self.geometry = center_mole(geometry) #The usual xyz representation
         if len(np.unique(edge_layout)) == len(elements_at_index):
             self.number_atoms = len(elements_at_index)
         else:
@@ -219,7 +233,7 @@ class MoleAsGraph:
         else:
             return self.elements_at_index(site_number)
 
-    def count_automorphisms(self):
+    def get_number_automorphisms(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
         #Get all automorphisms with colored vertices according to self.elements_at_index
@@ -265,33 +279,41 @@ class MoleAsGraph:
             sites = [list(map(int,x)) for x in set(tuple(x) for x in similars)]
         return sites
 
-    def get_equi_atoms_from_geom(self, tolerance=rounding_tolerance):
+    def get_equi_atoms_from_geom(self):
         mole = self.geometry.copy()
+        #Sort CN and group everything together that is not farther than tolerance
         CN = Coulomb_neighborhood(center_mole(mole))
-        for i in range(len(mole)):
-            CN[i] = round(CN[i],tolerance)
-        similars = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
+        indices = np.argsort(CN).tolist()
+        indices2 = np.copy(indices).tolist()
+        lst = []
+        similars = []
+        for i in range(len(indices)-1):
+            if i not in indices2:
+                continue
+            lst.append(indices[i])
+            indices2.remove(i)
+            for j in range(i+1,len(indices)):
+                if are_close_scalars(CN[indices[i]],CN[indices[j]]):
+                    lst.append(indices[j])
+                    indices2.remove(j)
+            similars.append(lst)
+            lst = []
         #Delete all similars which include only one atom:
         num_similars = 0
         while num_similars < len(similars):
             if len(similars[num_similars])>1:
                 num_similars += 1
             else:
-                similars = np.delete(similars, num_similars, axis = 0)
+                del similars[num_similars]
         return similars
 
-    def get_energy_NN(self, take_hydrogen_data_from=''):
-        #Create dummy molecule with the hydrogens:
-        if take_hydrogen_data_from != '':
-            mole = self.fill_hydrogen_valencies(take_hydrogen_data_from)
-        else:
-            mole = self
+    def get_energy_NN(self):
         #Calculate the nuclear energy of the molecule
         sum = 0
-        for i in range(mole.number_atoms):
-            for j in range(i+1,mole.number_atoms):
-                sum += elements[mole.geometry[i][0]]*elements[mole.geometry[j][0]]/np.linalg.norm(np.subtract(mole.geometry[i][1:],mole.geometry[j][1:]))
-        return sum
+        for i in range(self.number_atoms):
+            for j in range(i+1,self.number_atoms):
+                sum += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
+        return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
 
     def get_molecular_norm(self):
         return np.linalg.norm(CN_inertia_tensor(self.geometry.copy()))
@@ -317,29 +339,49 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
-    def energy_PySCF(self, basis='ccpvdz'):
-        #Make sure that the hydrogens are psrsed, too!!!!!!
+    def get_total_energy(self, basis=basis):
+        #Make sure that the hydrogens are parsed, too!!!!!!
         atom_string = ''
         for i in range(self.number_atoms): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
             for j in [1,2,3]:
-                atom_string += ' ' + str(-self.geometry[i][j])
+                atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
         mol = gto.M(
             verbose = 0,
             atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
             basis = basis,
             symmetry = False,
+            unit = 'Angstrom'
         )
-        mf = scf.HF(mol)
-        energy = mf.kernel()
+        mf = scf.HF(mol).run()
+        energy = mf.e_tot
         return energy
+
+    def get_Hessian(self):
+        #Make sure that the hydrogens are parsed, too!!!!!!
+        atom_string = ''
+        for i in range(self.number_atoms): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        mol = gto.M(
+            verbose = 0,
+            atom = atom_string[:-2],  #Last '; ' was removed; in Angstrom
+            basis = basis,
+            symmetry = False,
+            unit = 'Angstrom'
+        )
+        mf = mol.RHF().run()
+        Hessian = mf.Hessian().kernel()
+        return Hessian
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
         the valencies can be filled with the hydrogens as given in the file.
-        Add the geometric information line by line, and for each line, make
-        one vertex and one edge to the closest heavy atom'''
+        Add the geometric information line by line with an offset subtracted!!!!
+        and for each line, make one vertex and one edge to the closest heavy atom'''
         #check if file is present
         if os.path.isfile(input_PathToFile):
             #open text file in read mode
@@ -356,6 +398,12 @@ class MoleAsGraph:
         new_edge_layout = self.edge_layout.copy()
         N_heavy = self.number_atoms #number of previously give atoms, all heavy
         N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+        #Compare self.geometry to the first entry of the file (= line 2) -> obtain offset
+        line2 = data.splitlines(False)[2].split('\t')
+        coord_orig = [float(line2[1]),float(line2[2]),float(line2[3])]
+        offset = [0,0,0]
+        for i in [0,1,2]:
+            offset[i] = coord_orig[i] - self.geometry[0][i+1]
         for i in range(2,N+2): #get only the hydrogens and their coordinates
             line = data.splitlines(False)[i]
             #Check for hydrogen specifically
@@ -363,7 +411,7 @@ class MoleAsGraph:
             if x[0] != 'H':
                 continue
             else:
-                new_geometry.append(['H', float(x[1]),float(x[2]),float(x[3])])
+                new_geometry.append(['H', float(x[1])-offset[0],float(x[2])-offset[1],float(x[3])-offset[2]])
                 new_elements_at_index.append('H')
             #Now: find the index of the atom with the shortest distance
             shortest_distance = 100000
@@ -374,6 +422,7 @@ class MoleAsGraph:
                     index_of_shortest = j
             new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
         return MoleAsGraph(name, new_edge_layout, new_elements_at_index, new_geometry)
+
 
 #MoleAsGraph EXAMPLES-----------------------------------------------------------
 anthracene = MoleAsGraph('Anthracene',
@@ -402,7 +451,7 @@ naphthalene = MoleAsGraph(  'Naphthalene',
                             ['C', 0,-0.8660254037844386467637231707,1], ['C', 0,-2*0.8660254037844386467637231707,0.5], ['C', 0,-2*0.8660254037844386467637231707, -0.5], ['C', 0,-0.8660254037844386467637231707,-1]])
 
 #PARSER FUNCTIONS FOR QM9-------------------------------------------------------
-def energy_PySCF_from_QM9(input_PathToFile, basis='ccpvdz'):
+def energy_PySCF_from_QM9(input_PathToFile, basis=basis):
     if os.path.isfile(input_PathToFile):
         #open text file in read mode
         f = open(input_PathToFile, "r")
@@ -462,24 +511,6 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
     edge_layout = [list(v) for v in network.edges()]
     elements_at_index = [v[1] for v in network.nodes(data='element')]
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
-
-
-def get_energy_const_atoms(input_PathToFile):
-    if os.path.isfile(input_PathToFile):
-        #open text file in read mode
-        f = open(input_PathToFile, "r")
-        data = f.read()
-        f.close()
-    else:
-        print('File', input_PathToFile, 'not found.')
-        return 0
-    N = int(data.splitlines(False)[0])
-    sum = 0
-    for i in range(2,N+2): #get the atoms one by one
-        line = data.splitlines(False)[i]
-        #if line.split('\t')[0] != 'H':
-        sum += atomref_U[line.split('\t')[0]]
-    return sum
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
@@ -570,13 +601,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
     for i in range(len(mole_config)):
         for j in range(len(similars)):
             temp_mole[j][0] = inv_elements[mole_config[i][j]]
-
         CIM[i] = atomrep_inertia_moment(temp_mole)
-        round(CIM[i][0],rounding_tolerance)
-        round(CIM[i][1],rounding_tolerance)
-        round(CIM[i][2],rounding_tolerance)
-        #print(CIM[i])
-
         Total_CIM[i][0] = np.copy(temp_mole)
         Total_CIM[i][1] = np.copy(CIM[i])
 
@@ -598,8 +623,8 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
     #print(len(Total_CIM))
 
     '''Alchemical enantiomers are those molecules which do not transmute
-    into themselves under the mirroring in charge, i.e. if one adds the
-    inverted configuration of transmutations to twice the molecule,
+    into themselves (or its spatial enantiomer) under the mirroring in charge,
+    i.e. if one adds the inverted configuration of transmutations to twice the molecule,
     its CIM has changed.'''
 
     config_num = 0
@@ -615,7 +640,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
             temp_mole[i][0] = inv_elements[mirror_config[i]]
         #print(atomrep_inertia_moment(temp_mole))
         #print('----------')
-        if (Total_CIM[config_num][1] == atomrep_inertia_moment(temp_mole)).all():
+        if are_close_lists(Total_CIM[config_num][1], atomrep_inertia_moment(temp_mole)):
             Total_CIM = np.delete(Total_CIM, config_num, axis = 0)
         else:
             config_num += 1
@@ -636,11 +661,11 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
                 dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
                 dummy_geometry[j][0] = Total_CIM[i][0][num][0]
                 num += 1
-            #Mirror spatially
-            dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist())
-            dummy_energy_total = dummy_mole.fill_hydrogen_valencies(take_hydrogen_data_from).energy_PySCF()
-            dummy_energy_NN = dummy_mole.get_energy_NN(take_hydrogen_data_from=take_hydrogen_data_from)
-            print("Electronic energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN))
+            dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
+            #print(dummy_mole.geometry)
+            dummy_energy_total = dummy_mole.get_total_energy()
+            dummy_energy_NN = dummy_mole.get_energy_NN()
+            print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN)+"\tElectronic energy: "+str(dummy_energy_total-dummy_energy_NN))
 
     if debug == True:
         num_sites = len(similars)
@@ -1035,16 +1060,28 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = 'normal'):
             Geom[i][0] = 'C'
         #print(Geom)
         CN = Coulomb_neighborhood(Geom)
-        for i in range(len(Geom)):
-            CN[i] = round(CN[i],rounding_tolerance)
-        sites = np.array([np.where(CN == i)[0] for i in np.unique(CN)],dtype=object)
+        indices = np.argsort(CN).tolist()
+        indices2 = np.copy(indices).tolist()
+        lst = []
+        sites = []
+        for i in range(len(indices)-1):
+            if i not in indices2:
+                continue
+            lst.append(indices[i])
+            indices2.remove(i)
+            for j in range(i+1,len(indices)):
+                if are_close_scalars(CN[indices[i]],CN[indices[j]]):
+                    lst.append(indices[j])
+                    indices2.remove(j)
+            sites.append(lst)
+            lst = []
         #Delete all similars which include only one atom:
         num_similars = 0
         while num_similars < len(sites):
             if len(sites[num_similars])>1:
                 num_similars += 1
             else:
-                sites = np.delete(sites, num_similars, axis = 0)
+                del sites[num_similars]
     '''We want to maximize the number of elements per orbit/equivalent set. Use bestest()'''
     for alpha in sites:
         if len(alpha) == 0:
@@ -1094,7 +1131,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = 'normal'):
             mirror_config[i][0] = inv_elements[2*elements[reference_config[i][0]] - elements[target_config[i][0]]]
             netto_charge += elements[reference_config[i][0]] - elements[target_config[i][0]]
         #Test if the target is its own mirror or charge is not conserved:
-        if (atomrep_inertia_moment(target_config) == atomrep_inertia_moment(mirror_config)).all() or (netto_charge != 0):
+        if are_close_lists(atomrep_inertia_moment(target_config), atomrep_inertia_moment(mirror_config)) or (netto_charge != 0):
             #If yes, wipe chem_config such that the original molecule is returned
             chem_config = np.array([graph.geometry[i][0] for i in range(graph.number_atoms)], copy=True)
     #Return a MoleAsGraph object
