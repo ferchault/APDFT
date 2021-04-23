@@ -12,10 +12,11 @@ import networkx as nx
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
-tolerance = 0.05 #Rounding error in geometry-based method
+tolerance = 0.5 #0.5 gives reliable results; rounding error in geometry-based method
 performance_use = 0.90 #portion of cpu cores to be used
-gate_threshold = 0 #Cutoff threshold in Coulomb matrix
+gate_threshold = 0.5 #0.5 for noise reduction #Cutoff threshold in atomrep matrices
 basis = 'ccpvdz'#'def2tzvp' #Basis set for QM calculations
+representation = 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb'
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
@@ -96,30 +97,57 @@ def center_mole(mole):
 
 def Coulomb_matrix(mole):
     #returns the Coulomb matrix of a given molecule
+    #The elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
     N = len(mole)
     result = np.zeros((N,N))
     for i in range(N):
         for j in range(N):
             if (j == i):
                 charge = elements[mole[i][0]]
-                result[i][i] = 0.5*pow(charge, 2.4)
+                summand = 0.5*pow(charge, 2.4)
+                #print(summand)
+                if summand > gate_threshold:
+                    result[i][i] = summand
             else:
                 summand = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:]))
-                #The offdiagonal elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
+                #print(summand) #Find out about the size of the summands
                 if summand > gate_threshold:
                     result[i][j] = summand
     return result
 
-def Coulomb_neighborhood(mole):
-    '''returns the sum over rows/columns of the Coulomb matrix.
-    Thus, each atom is assigned its Coulombic neighborhood'''
-    matrix = Coulomb_matrix(mole)
+def exaggerated_Coulomb_matrix(mole):
+    #returns an exaggerated Coulomb matrix of a given molecule, sqrt of inverse distance, charges are to 4-th power now.
+    #The elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
+    N = len(mole)
+    result = np.zeros((N,N))
+    for i in range(N):
+        for j in range(N):
+            if (j == i):
+                charge = elements[mole[i][0]]
+                summand = 0.5*pow(charge, 4.8)
+                #print(summand)
+                if summand > gate_threshold:
+                    result[i][i] = summand
+            else:
+                summand = pow(elements[mole[i][0]]*elements[mole[j][0]],2)/pow(np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:])),0.5)
+                #print(summand) #Find out about the size of the summands
+                if summand > gate_threshold:
+                    result[i][j] = summand
+    return result
+
+def atomrep(mole, representation=representation):
+    if representation == 'atomic_Coulomb':
+        '''returns the sum over rows/columns of the Coulomb matrix.
+        Thus, each atom is assigned its Coulombic neighborhood'''
+        matrix = Coulomb_matrix(mole)
+    elif representation == 'exaggerated_atomic_Coulomb':
+        matrix = exaggerated_Coulomb_matrix(mole)
     return matrix.sum(axis = 0)
 
-def CN_inertia_tensor(mole):
-    #Calculate an inertia tensor but with Coulomb_neighborhood instead of masses
+def atomrep_inertia_tensor(mole, representation=representation):
+    #Calculate an inertia tensor but with atomrep instead of masses
     N = len(mole)
-    CN = Coulomb_neighborhood(mole)
+    CN = atomrep(mole, representation=representation)
     result_tensor = np.zeros((3,3))
     sum = 0
     for i in range(3):
@@ -131,17 +159,13 @@ def CN_inertia_tensor(mole):
             sum = 0
     return result_tensor
 
-def atomrep_inertia_moment(mole, representation='atomic_Coulomb'):
-    if representation == 'atomic_Coulomb':
-        #Calculate the inertia moments of a molecule with CN instead of masses
-        #and sort them in ascending order
-        w,v = np.linalg.eig(CN_inertia_tensor(mole))
-        #Only the eigen values are needed, v is discarded
-        moments = np.sort(w)
-        return moments
-    else:
-        return 0
-
+def atomrep_inertia_moment(mole, representation=representation):
+    #Calculate the inertia moments of a molecule with atomrep instead of masses
+    #and sort them in ascending order
+    w,v = np.linalg.eig(atomrep_inertia_tensor(mole,representation=representation))
+    #Only the eigen values are needed, v is discarded
+    moments = np.sort(w)
+    return moments
 
 def array_compare(arr1, arr2):
     '''arr1 = [...]
@@ -282,7 +306,7 @@ class MoleAsGraph:
     def get_equi_atoms_from_geom(self):
         mole = self.geometry.copy()
         #Sort CN and group everything together that is not farther than tolerance
-        CN = Coulomb_neighborhood(center_mole(mole))
+        CN = atomrep(center_mole(mole))
         indices = np.argsort(CN).tolist()
         indices2 = np.copy(indices).tolist()
         lst = []
@@ -316,7 +340,7 @@ class MoleAsGraph:
         return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
 
     def get_molecular_norm(self):
-        return np.linalg.norm(CN_inertia_tensor(self.geometry.copy()))
+        return np.linalg.norm(atomrep_inertia_tensor(self.geometry.copy()))
 
     def print_atomic_norms(self, input_PathToFile):
         N = self.number_atoms
@@ -339,6 +363,8 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
+
+    MARKER!!!
     def get_total_energy(self, basis=basis):
         #Make sure that the hydrogens are parsed, too!!!!!!
         atom_string = ''
@@ -349,12 +375,12 @@ class MoleAsGraph:
             if int(elements[self.geometry[i][0]]) != elements[self.geometry[i][0]]: #Non-integer nuclear charge
                 charges.append(elements[self.geometry[i][0]])
                 coords.append(tuple(self.geometry[i][1:]))
-                overall_charge += elements[self.geometry[i][0]]
             else:
                 atom_string += str(elements[self.geometry[i][0]])
                 for j in [1,2,3]:
                     atom_string += ' ' + str(self.geometry[i][j])
                 atom_string += '; '
+            overall_charge += elements[self.geometry[i][0]]
         #print(coords, charges, overall_charge)
         mol = gto.Mole()
         mol.verbose = 0
@@ -369,7 +395,7 @@ class MoleAsGraph:
         mol.build()
         if len(charges) != 0:
             mf = scf.HF(mol)
-            mf = qmmm.mm_charge(mf, coords, charges)
+            mf = qmmm.itrf.mm_charge(mf, coords, charges)
             mf.run()
         else:
             mf = scf.HF(mol).run()
@@ -495,7 +521,60 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
-def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_all_energies = False,  take_hydrogen_data_from=''):
+def total_energy_with_dZ(geometry, dZ, basis=basis):
+    #Make absolutely sure to NOT!!!!! forget the hydrogens!!!!
+    if len(geometry) != len(dZ):
+        raise ValueError("Both arguments need to be of same length!")
+    #Parse to atom_string:
+    atom_string = ''
+    coords = []
+    charges = []
+    non_int_geometry = []
+    overall_charge = 0
+    for i in range(len(geometry)): #get the atoms and their coordinates
+        if (int(elements[geometry[i][0]]) != elements[geometry[i][0]]) or dZ[i] != 0: #Non-integer nuclear charge
+            charges.append(elements[geometry[i][0]]+dZ[i])
+            coords.append(tuple(geometry[i][1:]))
+        else:
+            atom_string += str(elements[geometry[i][0]])
+            for j in [1,2,3]:
+                atom_string += ' ' + str(geometry[i][j])
+            atom_string += '; '
+        overall_charge += elements[geometry[i][0]]
+
+
+    MARKER!!!
+    #Calculate the nuclear energy of the non-integer part of the molecule (unfinished!, also in get_total_energy())
+    sum = 0
+    for i in range(len(non_int_geometry)):
+        for j in range(i+1,len(non_int_geometry)):
+            sum += elements[non_int_geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
+    sum *= 0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
+
+
+
+    #print(coords, charges, overall_charge)
+    mol = gto.Mole()
+    mol.verbose = 0
+    mol.atom = atom_string[:-2]  #Last '; ' was removed; in Angstrom
+    mol.basis = basis
+    mol.symmetry = False
+    if overall_charge != int(overall_charge):
+        print("Non-integer number of electrons set!")
+    if overall_charge != 0:
+        mol.nelectron = int(overall_charge+0.001) #Avoid numerical issues when working with thirds
+    mol.unit = 'Angstrom'
+    mol.build()
+    if len(charges) != 0:
+        mf = scf.HF(mol)
+        mf = qmmm.itrf.mm_charge(mf, coords, charges)
+        mf.run()
+    else:
+        mf = scf.HF(mol).run()
+    energy = mf.e_tot
+    return energy
+
+def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, get_electronic_energy_difference = False, electronic_energy_order=-1, take_hydrogen_data_from=''):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].
     In case of method = 'geom', log = 'verbose', the path for the xyz data of the hydrogens is
@@ -630,23 +709,68 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
     to count.'''
     count += len(Total_CIM)
 
-    if get_all_energies and len(Total_CIM) > 0 and take_hydrogen_data_from != '':
-        '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
-        but do so by returning a list of MoleAsGraph objects'''
-        for i in range(len(Total_CIM)):
-            #Create temporary MoleAsGraph object:
-            dummy_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
-            dummy_geometry = np.array(graph.geometry, copy=True, dtype=object)
-            num = 0
-            for j in similars:
-                dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
-                dummy_geometry[j][0] = Total_CIM[i][0][num][0]
-                num += 1
-            dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
-            #print(dummy_mole.geometry)
-            dummy_energy_total = dummy_mole.get_total_energy()
-            dummy_energy_NN = dummy_mole.get_nuclear_energy()
-            print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN)+"\tElectronic energy: "+str(dummy_energy_total-dummy_energy_NN))
+    if get_electronic_energy_difference == True:
+        if take_hydrogen_data_from != '':
+            '''Explicitly calculate the energies of all the configurations in Total_CIM[0]
+            and their mirrors, then print their energy difference'''
+            for i in range(len(Total_CIM)):
+                #Create temporary MoleAsGraph object:
+                dummy_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
+                dummy_geometry = np.array(graph.geometry, copy=True, dtype=object)
+                num = 0
+                for j in similars:
+                    dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
+                    dummy_geometry[j][0] = Total_CIM[i][0][num][0]
+                    num += 1
+                dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
+                #print(dummy_mole.geometry)
+                dummy_energy_elec = dummy_mole.get_total_energy()- dummy_mole.get_nuclear_energy()
+                #Calculate mirror molecule's electornic energy:
+                current_config = np.zeros(len(similars),dtype=object)
+                for j in range(len(similars)):
+                    current_config[j] = elements[Total_CIM[i][0][j][0]]
+                mirror_config = 2*standard_config - current_config
+                #Create temporary MoleAsGraph object:
+                mirror_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
+                mirror_geometry = np.array(graph.geometry, copy=True, dtype=object)
+                num = 0
+                for j in similars:
+                    mirror_elements_at_index[j] = inv_elements[mirror_config[num]]
+                    mirror_geometry[j][0] = Total_CIM[i][0][num][0]
+                    mirror_geometry[j][0] = mirror_elements_at_index[j]
+                    num += 1
+                mirror_mole = MoleAsGraph('mirror', graph.edge_layout, mirror_elements_at_index.tolist(), mirror_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
+                mirror_energy_elec = mirror_mole.get_total_energy()- mirror_mole.get_nuclear_energy()
+                print("Electronic energy difference of AEs: "+str(dummy_energy_elec - mirror_energy_elec))
+            else:
+                print("'take_hydrogen_data_from' needs an argument")
+
+    if get_all_energies and len(Total_CIM) > 0:
+        if take_hydrogen_data_from != '':
+            '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
+            but do so by returning a list of MoleAsGraph objects'''
+            for i in range(len(Total_CIM)):
+                #Create temporary MoleAsGraph object:
+                dummy_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
+                dummy_geometry = np.array(graph.geometry, copy=True, dtype=object)
+                num = 0
+                for j in similars:
+                    dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
+                    dummy_geometry[j][0] = Total_CIM[i][0][num][0]
+                    num += 1
+                dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
+                #print(dummy_mole.geometry)
+                dummy_energy_total = dummy_mole.get_total_energy()
+                dummy_energy_NN = dummy_mole.get_nuclear_energy()
+                print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN)+"\tElectronic energy: "+str(dummy_energy_total-dummy_energy_NN))
+        else:
+            print("'take_hydrogen_data_from' needs an argument")
+
+    if electronic_energy_order >= 0:
+        if take_hydrogen_data_from != '':
+            print("Under contruction")
+        else:
+            print("'take_hydrogen_data_from' needs an argument")
 
     if debug == True:
         num_sites = len(similars)
@@ -678,7 +802,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, chem_formula = True, get_al
         plt.show()
     return count
 
-def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bond_energy_rules = False):
+def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, bond_energy_rules = False):
     #graph is an instance of the MoleAsGraph class
     #dZ and m are each arrays that include the transmutations and their number
     start_time = time.time()
@@ -846,6 +970,8 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, chem_formula = True, bo
         final_set = np.unique(rule)
         for r in final_set:
             print(r)
+
+
     if debug == True:
         print('---------------')
         print("Time:", (time.time() - start_time),"s")
@@ -972,9 +1098,9 @@ def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'graph', take_hyd
             print(chem_form)
         m_time = time.time()
         if method == 'graph':
-            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True, bond_energy_rules = with_bond_energy_rules)
+            x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, bond_energy_rules = with_bond_energy_rules)
         if method == 'geom':
-            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, chem_formula = True, get_all_energies = with_energies, take_hydrogen_data_from= take_hydrogen_data_from)
+            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, get_all_energies = with_energies, take_hydrogen_data_from= take_hydrogen_data_from)
         if log == 'normal' or log == 'verbose':
             print('Time:', time.time()-m_time)
             print('Number of AEs:', x,'\n')
@@ -1040,7 +1166,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = 'normal'):
         for i in range(len(Geom)):
             Geom[i][0] = 'C'
         #print(Geom)
-        CN = Coulomb_neighborhood(Geom)
+        CN = atomrep(Geom)
         indices = np.argsort(CN).tolist()
         indices2 = np.copy(indices).tolist()
         lst = []
