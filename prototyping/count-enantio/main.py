@@ -102,17 +102,29 @@ pool.close()'''
 #mole3 = parse_QM9toMAG('cyclooctatetraene_14halfs.xyz', with_hydrogen=True)
 #print(mole3.get_total_energy(), mole3.get_nuclear_energy(), mole3.get_total_energy()-mole3.get_nuclear_energy())
 #print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_total_energy())
+
+
 #print(geomAE(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
 #print(geomAE(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz'), m=[2,2], dZ=[1,-1], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
 #print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').get_energy_NN(take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
 #print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').fill_hydrogen_valencies(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').energy_PySCF())
 #print(geomAE(parse_QM9toMAG('cubane_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cubane_13halfs.xyz'))
 #print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_energy_NN())
-print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_total_energy())
 #print(geomAE(parse_QM9toMAG('benzene.xyz'), m=[2,2], dZ=[1,-1], get_all_energies=False, get_electronic_energy_difference=True, take_hydrogen_data_from='benzene.xyz', debug=False))
 #Find_AEfromref(parse_QM9toMAG('benzene.xyz'), log='normal', method='geom', dZ_max=2, take_hydrogen_data_from='benzene.xyz')
+#print(total_energy_with_dZ(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,-0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
-print(total_energy_with_dZ(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry, [0.00001,-0.00001,-0.00001,0.00001,0,0,0,0,0,0,0,0], basis=basis))
+#print(total_energy_with_dZ(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
+print(parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_total_energy())
+print(parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_total_energy())
+for i in range(0,5):
+    print("Taylor series of energy, order "+str(i)+" :")
+    print(taylorseries_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry, [1,-1,-1,1,0,0], i))
+#print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).get_total_energy())
+#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
+#print(parse_QM9toMAG('cyclooctatetraene_14halfs.xyz', with_hydrogen=True).get_total_energy())
+
 
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
 '''for tag_number in range(100,133885+1):

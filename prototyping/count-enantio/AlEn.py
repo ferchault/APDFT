@@ -1,5 +1,6 @@
 #ALL IMPORT STATEMENTS----------------------------------------------------------
 import numpy as np
+import math
 import sys
 import time
 import matplotlib.pyplot as plt
@@ -57,6 +58,16 @@ dZ_possibilities = np.array([
 [3,-2,-1],[3,1,-1],[3,-3,1],
 [3,1,-1],[1,2,-1],[-2,2,-1],[-1,3,-2],[1,3,-2],[-3,3,-1]
 ],dtype=object)
+
+#Monkey patching PySCF's qmmm:
+def add_qmmm(calc, mol, dZ):
+    mf = qmmm.mm_charge(calc, mol.atom_coords()*0.52917721067, dZ)
+    def energy_nuc(self):
+        q = mol.atom_charges().astype(np.float)
+        q += dZ
+        return mol.energy_nuc(q)
+    mf.energy_nuc = energy_nuc.__get__(mf, mf.__class__)
+    return mf
 
 
 #ALL BASIC FUNCTIONS WITHOUT ANY DEPENDENCIES-----------------------------------
@@ -363,49 +374,25 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
-
-    MARKER!!!
     def get_total_energy(self, basis=basis):
-        #Make sure that the hydrogens are parsed, too!!!!!!
+        #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        coords = []
-        charges = []
-        overall_charge = 0
-        for i in range(self.number_atoms): #get the atoms and their coordinates
-            if int(elements[self.geometry[i][0]]) != elements[self.geometry[i][0]]: #Non-integer nuclear charge
-                charges.append(elements[self.geometry[i][0]])
-                coords.append(tuple(self.geometry[i][1:]))
-            else:
-                atom_string += str(elements[self.geometry[i][0]])
-                for j in [1,2,3]:
-                    atom_string += ' ' + str(self.geometry[i][j])
-                atom_string += '; '
-            overall_charge += elements[self.geometry[i][0]]
-        #print(coords, charges, overall_charge)
+        extra_Z = np.zeros((self.number_atoms)).tolist()
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += str(int(elements[self.geometry[i][0]]))
+            extra_Z[i] += elements[self.geometry[i][0]] - int(elements[self.geometry[i][0]])
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
         mol = gto.Mole()
-        mol.verbose = 0
-        mol.atom = atom_string[:-2]  #Last '; ' was removed; in Angstrom
+        mol.atom = atom_string[:-2]
         mol.basis = basis
-        mol.symmetry = False
-        if overall_charge != int(overall_charge):
-            print("Non-integer number of electrons set for "+self.name)
-        if overall_charge != 0:
-            mol.nelectron = int(overall_charge+0.0001) #Avoid numerical issues when working with thirds
-        mol.unit = 'Angstrom'
+        mol.verbose = 0
         mol.build()
-        if len(charges) != 0:
-            mf = scf.HF(mol)
-            mf = qmmm.itrf.mm_charge(mf, coords, charges)
-            mf.run()
-        else:
-            mf = scf.HF(mol).run()
-        energy = mf.e_tot
-        return energy
-        #For testing purposes only:
-        #Grad = mf.Gradients().kernel()
-        #return Grad
-        #Hessian = mf.Hessian().kernel()
-        #return Hessian
+        calc = add_qmmm(scf.RHF(mol), mol, extra_Z)
+        hfe = calc.kernel(verbose=0)
+        total_energy = calc.e_tot
+        return total_energy
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
@@ -498,6 +485,7 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
     #Get the geometry of the molecule
     mole = []
     N_heavyatoms = N
+    elements_at_index = []
     for i in range(2,N+2): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
         if line.split('\t')[0] == 'H':
@@ -509,70 +497,86 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
         y = float(line.split('\t')[2].strip())
         z = float(line.split('\t')[3].strip())
         mole.append([symbol,x,y,z])
+        elements_at_index.append(symbol)
     #Find edge_layout:
-    if with_hydrogen == False:
-        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
-    elif with_hydrogen == True:
-        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=True)
+    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
     edge_layout = [list(v) for v in network.edges()]
-    #Get the edges of the molecule as a graph
-    elements_at_index = [v[1] for v in network.nodes(data='element')]
+    if with_hydrogen == True:
+        for i in range(N):
+            #get only the hydrogens and their coordinates
+            if mole[i][0] == 'H':
+                #find the index of the atom with the shortest distance
+                shortest_distance = 100000
+                for j in range(N):
+                    distance = np.linalg.norm(np.subtract(mole[j][1:],mole[i][1:]))
+                    if distance < shortest_distance:
+                        shortest_distance = distance
+                        index_of_shortest = j
+                edge_layout.append([int(index_of_shortest),int(i)])
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
-def total_energy_with_dZ(geometry, dZ, basis=basis):
-    #Make absolutely sure to NOT!!!!! forget the hydrogens!!!!
-    if len(geometry) != len(dZ):
-        raise ValueError("Both arguments need to be of same length!")
-    #Parse to atom_string:
+def total_energy_with_dZ(input_geometry, dZ, basis=basis):
+    geometry = input_geometry
+    for i in range(len(geometry)):
+        if type(geometry[i][0]) == 'str':
+            geometry[i][0] = elements[geometry[i][0]]
     atom_string = ''
-    coords = []
-    charges = []
-    non_int_geometry = []
-    overall_charge = 0
+    extra_Z = dZ
     for i in range(len(geometry)): #get the atoms and their coordinates
-        if (int(elements[geometry[i][0]]) != elements[geometry[i][0]]) or dZ[i] != 0: #Non-integer nuclear charge
-            charges.append(elements[geometry[i][0]]+dZ[i])
-            coords.append(tuple(geometry[i][1:]))
-        else:
-            atom_string += str(elements[geometry[i][0]])
-            for j in [1,2,3]:
-                atom_string += ' ' + str(geometry[i][j])
-            atom_string += '; '
-        overall_charge += elements[geometry[i][0]]
-
-
-    MARKER!!!
-    #Calculate the nuclear energy of the non-integer part of the molecule (unfinished!, also in get_total_energy())
-    sum = 0
-    for i in range(len(non_int_geometry)):
-        for j in range(i+1,len(non_int_geometry)):
-            sum += elements[non_int_geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
-    sum *= 0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
-
-
-
-    #print(coords, charges, overall_charge)
+        atom_string += str(int(geometry[i][0]))
+        extra_Z[i] += geometry[i][0] - int(geometry[i][0])
+        for j in [1,2,3]:
+            atom_string += ' ' + str(geometry[i][j])
+        atom_string += '; '
     mol = gto.Mole()
-    mol.verbose = 0
-    mol.atom = atom_string[:-2]  #Last '; ' was removed; in Angstrom
+    mol.atom = atom_string[:-2]
     mol.basis = basis
-    mol.symmetry = False
-    if overall_charge != int(overall_charge):
-        print("Non-integer number of electrons set!")
-    if overall_charge != 0:
-        mol.nelectron = int(overall_charge+0.001) #Avoid numerical issues when working with thirds
-    mol.unit = 'Angstrom'
+    mol.verbose = 0
     mol.build()
-    if len(charges) != 0:
-        mf = scf.HF(mol)
-        mf = qmmm.itrf.mm_charge(mf, coords, charges)
-        mf.run()
+    calc = add_qmmm(scf.RHF(mol), mol, extra_Z)
+    hfe = calc.kernel(verbose=0)
+    total_energy = calc.e_tot
+    return total_energy
+
+def Delta_total_energy(input_geometry, indices, step):
+    geometry = input_geometry
+    N = len(geometry)
+    for i in range(N):
+        if type(geometry[i][0]) == type('spam and eggs'):
+            geometry[i][0] = elements[geometry[i][0]]
+    if len(indices) == 0:
+        #No variable that needs to be differentiated towards, return the plain energy
+        return total_energy_with_dZ(geometry, np.zeros((N)).tolist())
+    elif len(indices) > 0:
+        new_geometry_forward = geometry
+        new_geometry_backward = geometry
+        new_geometry_forward[indices[-1]][0] += 0.5*step
+        new_geometry_backward[indices[-1]][0] -= 0.5*step
+        new_indices = indices[:-1]
+        diff = (Delta_total_energy(new_geometry_forward, new_indices, step) - Delta_total_energy(new_geometry_backward, new_indices, step))/step
+        return diff
+
+
+def taylorseries_energy(geometry, dZ, order):
+    step = 0.02
+    num = len(dZ) #number of possible transmutations for this geometry
+    if order < 1:
+        return Delta_total_energy(geometry, [], step)
     else:
-        mf = scf.HF(mol).run()
-    energy = mf.e_tot
-    return energy
+        sum = 0
+        for comb in itertools.combinations_with_replacement([i for i in range(num)], order):
+            print(list(comb))
+            if np.array([dZ[j] != 0 for j in list(comb)]).all():
+                tmp = Delta_total_energy(geometry, list(comb), step)
+                for k in list(comb):
+                    tmp *= dZ[k]
+                sum += tmp
+            else:
+                continue
+        return sum/math.factorial(order)
+
 
 def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, get_electronic_energy_difference = False, electronic_energy_order=-1, take_hydrogen_data_from=''):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
