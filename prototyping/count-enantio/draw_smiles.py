@@ -8,12 +8,14 @@ import rdkit
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import Draw
+import networkx as nx
 
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
 def draw(tag, out='bash'):
     #Get the SMILES from the correct file
-    f = open(PathToQM9XYZ + 'dsgdb9nsd_'+ tag +'.xyz', 'r')
+    #f = open(PathToQM9XYZ + 'dsgdb9nsd_'+ tag +'.xyz', 'r')
+    f = open(tag, 'r')
     data = f.read()
     f.close()
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
@@ -26,12 +28,12 @@ def draw(tag, out='bash'):
         nx.draw(mol, with_labels=True, labels = elements, pos=nx.spring_layout(mol))
         plt.gca().set_aspect('equal')
         plt.show()
-    else if out == 'file':
+    elif out == 'file':
         #img=Draw.MolsToGridImage(Chem.MolFromSmiles(smiles),molsPerRow=4,subImgSize=(200,200),legends=smiles)
         #img.save('chem_fig')
         mol = Chem.MolFromSmiles(smiles)
         Draw.MolToFile(mol, 'figures/structures/'+tag+'.png')
-    else if out == 'tmp':
+    elif out == 'tmp':
         mol = Chem.MolFromSmiles(smiles)
         Draw.MolToFile(mol, 'figures/tmp_structures/'+tag+'.png')
 
