@@ -116,11 +116,11 @@ pool.close()'''
 
 #print(total_energy_with_dZ(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 #print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
-print(parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_total_energy())
-print(parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_total_energy())
+print(parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_total_energy() - parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_nuclear_energy())
+print(parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_total_energy() - parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_nuclear_energy())
 for i in range(0,5):
     print("Taylor series of energy, order "+str(i)+" :")
-    print(taylorseries_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry, [1,-1,-1,1,0,0], i))
+    print(taylorseries_electronic_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry, [1,-1,-1,1,0,0], i))
 #print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).get_total_energy())
 #print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
 #print(parse_QM9toMAG('cyclooctatetraene_14halfs.xyz', with_hydrogen=True).get_total_energy())

@@ -520,7 +520,7 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
 def total_energy_with_dZ(input_geometry, dZ, basis=basis):
     geometry = input_geometry
     for i in range(len(geometry)):
-        if type(geometry[i][0]) == 'str':
+        if type(geometry[i][0]) == type('spam and eggs'):
             geometry[i][0] = elements[geometry[i][0]]
     atom_string = ''
     extra_Z = dZ
@@ -540,7 +540,20 @@ def total_energy_with_dZ(input_geometry, dZ, basis=basis):
     total_energy = calc.e_tot
     return total_energy
 
-def Delta_total_energy(input_geometry, indices, step):
+def nuclear_energy_with_dZ(input_geometry, dZ):
+    #Calculate the nuclear energy of the molecule
+    geometry = input_geometry
+    for i in range(len(geometry)):
+        if type(geometry[i][0]) == type('spam and eggs'):
+            geometry[i][0] = elements[geometry[i][0]]
+    sum = 0
+    N = len(geometry)
+    for i in range(N):
+        for j in range(i+1,N):
+            sum += (geometry[i][0]+dZ[i])*(geometry[j][0]+dZ[j])/np.linalg.norm(np.subtract(geometry[i][1:],geometry[j][1:]))
+    return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
+
+def Delta_electronic_energy(input_geometry, indices, step):
     geometry = input_geometry
     N = len(geometry)
     for i in range(N):
@@ -548,28 +561,28 @@ def Delta_total_energy(input_geometry, indices, step):
             geometry[i][0] = elements[geometry[i][0]]
     if len(indices) == 0:
         #No variable that needs to be differentiated towards, return the plain energy
-        return total_energy_with_dZ(geometry, np.zeros((N)).tolist())
+        return total_energy_with_dZ(geometry, np.zeros((N)).tolist())-nuclear_energy_with_dZ(geometry, np.zeros((N)).tolist())
     elif len(indices) > 0:
         new_geometry_forward = geometry
         new_geometry_backward = geometry
         new_geometry_forward[indices[-1]][0] += 0.5*step
         new_geometry_backward[indices[-1]][0] -= 0.5*step
         new_indices = indices[:-1]
-        diff = (Delta_total_energy(new_geometry_forward, new_indices, step) - Delta_total_energy(new_geometry_backward, new_indices, step))/step
+        diff = (Delta_electronic_energy(new_geometry_forward, new_indices, step) - Delta_electronic_energy(new_geometry_backward, new_indices, step))/step
         return diff
 
 
-def taylorseries_energy(geometry, dZ, order):
-    step = 0.02
+def taylorseries_electronic_energy(geometry, dZ, order):
+    step = 0.1
     num = len(dZ) #number of possible transmutations for this geometry
     if order < 1:
-        return Delta_total_energy(geometry, [], step)
+        return Delta_electronic_energy(geometry, [], step)
     else:
         sum = 0
         for comb in itertools.combinations_with_replacement([i for i in range(num)], order):
             print(list(comb))
             if np.array([dZ[j] != 0 for j in list(comb)]).all():
-                tmp = Delta_total_energy(geometry, list(comb), step)
+                tmp = Delta_electronic_energy(geometry, list(comb), step)
                 for k in list(comb):
                     tmp *= dZ[k]
                 sum += tmp
