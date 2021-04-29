@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #%%
 import mpmath
-
-mpmath.mp.dps = 100
+import click
+import json
 
 from RHF import *
 from matrices import *
@@ -26,11 +26,14 @@ def cfd(h, n):
 
 # region
 import functools
+
+
 @functools.lru_cache(maxsize=1)
 def get_ee(bs):
     return EE_list(bs)
 
-def energy(lval):
+
+def energy(lval, distance):
     print(lval)
     mol = [
         Atom(
@@ -41,7 +44,7 @@ def energy(lval):
         ),
         Atom(
             "H",
-            (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf("1.4")),
+            (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf(distance)),
             mpmath.mpf("1.0") - lval,
             ["1s"],
         ),
@@ -66,12 +69,45 @@ def energy(lval):
     return energy_el(P, F, Hc)
 
 
-coeffs = mpmath.taylor(energy, 0, 40, direction=0, h=mpmath.mpf("1e-65"), addprec=100)
-ref = energy(mpmath.mpf("0.0"))
-target = energy(mpmath.mpf("1.0"))
-total = mpmath.mpf("0")
-for order, c in enumerate(coeffs):
-    total += c
-    print(order, c, total)
-print("ref", ref)
-print("target", target)
+@click.command()
+@click.option("--distance", default="1.4")
+@click.option("--dps", default=100)
+@click.option("--orders", default=40)
+@click.option("--deltaexp", default=65)
+def main(distance, dps, orders, deltaexp):
+    meta = {
+        "distance": distance,
+        "dps": dps,
+        "ref": "H2",
+        "target": "He",
+        "orders": orders,
+        "deltaexp": deltaexp,
+    }
+
+    mpmath.mp.dps = dps
+    coeffs = mpmath.taylor(
+        lambda _: energy(_, distance),
+        0,
+        orders,
+        direction=1,
+        h=mpmath.mpf(f"1e-{deltaexp}"),
+        addprec=100,
+    )
+    total = mpmath.mpf("0")
+    for order, c in enumerate(coeffs):
+        total += c
+        thisdict = {"order": order, "coefficient": str(c), "total": str(total)}
+        thisdict.update(meta)
+        print(json.dumps(thisdict))
+
+    ref = energy(mpmath.mpf("0.0"))
+    target = energy(mpmath.mpf("1.0"))
+    print("ref", ref)
+    print("target", target)
+    thisdict = {"ref": str(ref), "target": str(target)}
+    thisdict.update(meta)
+    print(json.dumps(thisdict))
+
+
+if __name__ == "__main__":
+    main()
