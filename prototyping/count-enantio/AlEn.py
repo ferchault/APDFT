@@ -10,19 +10,18 @@ import itertools
 from pyscf import gto, scf, qmmm
 from pysmiles import read_smiles
 import networkx as nx
+import mpmath
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
 tolerance = 0.5 #0.5 gives reliable results; rounding error in geometry-based method
-performance_use = 0.90 #portion of cpu cores to be used
-gate_threshold = 0.5 #0.5 for noise reduction #Cutoff threshold in atomrep matrices
-basis = 'ccpvdz'#'def2tzvp' #Basis set for QM calculations
+basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
 representation = 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb'
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
 elements = {'Ghost':0,'H':1, 'He':2,
-'Li':3, 'Be':4, 'B':5, 'C':6, 'C-N':6.5, 'N':7, 'O':8, 'F':9, 'Ne':10,
+'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
 'Na':11, 'Mg':12, 'Al':13, 'Si':14, 'P':15, 'S':16, 'Cl':17, 'Ar':18,
 'K':19, 'Ca':20, 'Ga':31, 'Ge':32, 'As':33, 'Se':34, 'Br':35, 'Kr':36,
 'Sc':21, 'Ti':22, 'V':23, 'Cr':24, 'Mn':25, 'Fe':26, 'Co':27, 'Ni':28, 'Cu':29, 'Zn':30,}
@@ -63,12 +62,14 @@ dZ_possibilities = np.array([
 def add_qmmm(calc, mol, dZ):
     mf = qmmm.mm_charge(calc, mol.atom_coords()*0.52917721067, dZ)
     def energy_nuc(self):
-        q = mol.atom_charges().astype(np.float)
+        q = mol.atom_charges().copy().astype(np.float)
         q += dZ
         return mol.energy_nuc(q)
     mf.energy_nuc = energy_nuc.__get__(mf, mf.__class__)
     return mf
 
+#Dictionary which works as a dump for all previously computed energies
+already_compt = {}
 
 #ALL BASIC FUNCTIONS WITHOUT ANY DEPENDENCIES-----------------------------------
 def delta(i,j):
@@ -117,13 +118,11 @@ def Coulomb_matrix(mole):
                 charge = elements[mole[i][0]]
                 summand = 0.5*pow(charge, 2.4)
                 #print(summand)
-                if summand > gate_threshold:
-                    result[i][i] = summand
+                result[i][i] = summand
             else:
                 summand = elements[mole[i][0]]*elements[mole[j][0]]/np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:]))
                 #print(summand) #Find out about the size of the summands
-                if summand > gate_threshold:
-                    result[i][j] = summand
+                result[i][j] = summand
     return result
 
 def exaggerated_Coulomb_matrix(mole):
@@ -137,13 +136,11 @@ def exaggerated_Coulomb_matrix(mole):
                 charge = elements[mole[i][0]]
                 summand = 0.5*pow(charge, 4.8)
                 #print(summand)
-                if summand > gate_threshold:
-                    result[i][i] = summand
+                result[i][i] = summand
             else:
                 summand = pow(elements[mole[i][0]]*elements[mole[j][0]],2)/pow(np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:])),0.5)
                 #print(summand) #Find out about the size of the summands
-                if summand > gate_threshold:
-                    result[i][j] = summand
+                result[i][j] = summand
     return result
 
 def atomrep(mole, representation=representation):
@@ -230,6 +227,20 @@ def bestest(list, dx):
         if (list[i] <= best_x+dx) and (list[i] >= best_x-dx):
             result.append(i)
     return best_x, result
+
+
+def geom_hash(input_geometry, dZ):
+    #Assigns a hash value to a geometry
+    hash = ''
+    N = len(input_geometry)
+    for i in range(N):
+        hash += '___'
+        hash += input_geometry[i][0]+str(dZ[i])
+        hash += '___'
+        for j in [1,2,3]:
+            hash += str(round(input_geometry[i][j],3))
+    return hash
+
 
 #CLASS DEFINITION OF MoleAsGraph------------------------------------------------
 
@@ -342,12 +353,12 @@ class MoleAsGraph:
                 del similars[num_similars]
         return similars
 
-    def get_nuclear_energy(self):
+    def get_nuclear_energy(self, dZ):
         #Calculate the nuclear energy of the molecule
         sum = 0
         for i in range(self.number_atoms):
             for j in range(i+1,self.number_atoms):
-                sum += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
+                sum += (elements[self.geometry[i][0]]+dZ[i])*(elements[self.geometry[j][0]]+dZ[j])/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
         return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
 
     def get_molecular_norm(self):
@@ -374,25 +385,30 @@ class MoleAsGraph:
             print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
-    def get_total_energy(self, basis=basis):
+    def get_total_energy(self, dZ, basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        extra_Z = np.zeros((self.number_atoms)).tolist()
         for i in range(len(self.geometry)): #get the atoms and their coordinates
-            atom_string += str(int(elements[self.geometry[i][0]]))
-            extra_Z[i] += elements[self.geometry[i][0]] - int(elements[self.geometry[i][0]])
+            atom_string += self.geometry[i][0]
             for j in [1,2,3]:
                 atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
         mol = gto.Mole()
+        mol.unit = 'Angstrom'
         mol.atom = atom_string[:-2]
         mol.basis = basis
         mol.verbose = 0
         mol.build()
-        calc = add_qmmm(scf.RHF(mol), mol, extra_Z)
+        #print('-------------------------')
+        #print(extra_Z[:4])
+        #print(atom_string)
+        calc = add_qmmm(scf.RHF(mol), mol, dZ)
         hfe = calc.kernel(verbose=0)
         total_energy = calc.e_tot
         return total_energy
+
+    def get_electronic_energy(self, dZ, basis=basis):
+        return self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
@@ -439,7 +455,6 @@ class MoleAsGraph:
                     index_of_shortest = j
             new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
         return MoleAsGraph(name, new_edge_layout, new_elements_at_index, new_geometry)
-
 
 #MoleAsGraph EXAMPLES-----------------------------------------------------------
 anthracene = MoleAsGraph('Anthracene',
@@ -517,74 +532,44 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
-def total_energy_with_dZ(input_geometry, dZ, basis=basis):
-    geometry = input_geometry
-    for i in range(len(geometry)):
-        if type(geometry[i][0]) == type('spam and eggs'):
-            geometry[i][0] = elements[geometry[i][0]]
-    atom_string = ''
-    extra_Z = dZ
-    for i in range(len(geometry)): #get the atoms and their coordinates
-        atom_string += str(int(geometry[i][0]))
-        extra_Z[i] += geometry[i][0] - int(geometry[i][0])
-        for j in [1,2,3]:
-            atom_string += ' ' + str(geometry[i][j])
-        atom_string += '; '
-    mol = gto.Mole()
-    mol.atom = atom_string[:-2]
-    mol.basis = basis
-    mol.verbose = 0
-    mol.build()
-    calc = add_qmmm(scf.RHF(mol), mol, extra_Z)
-    hfe = calc.kernel(verbose=0)
-    total_energy = calc.e_tot
-    return total_energy
-
-def nuclear_energy_with_dZ(input_geometry, dZ):
-    #Calculate the nuclear energy of the molecule
-    geometry = input_geometry
-    for i in range(len(geometry)):
-        if type(geometry[i][0]) == type('spam and eggs'):
-            geometry[i][0] = elements[geometry[i][0]]
-    sum = 0
-    N = len(geometry)
-    for i in range(N):
-        for j in range(i+1,N):
-            sum += (geometry[i][0]+dZ[i])*(geometry[j][0]+dZ[j])/np.linalg.norm(np.subtract(geometry[i][1:],geometry[j][1:]))
-    return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
-
-def Delta_electronic_energy(input_geometry, indices, step):
-    geometry = input_geometry
-    N = len(geometry)
-    for i in range(N):
-        if type(geometry[i][0]) == type('spam and eggs'):
-            geometry[i][0] = elements[geometry[i][0]]
-    if len(indices) == 0:
-        #No variable that needs to be differentiated towards, return the plain energy
-        return total_energy_with_dZ(geometry, np.zeros((N)).tolist())-nuclear_energy_with_dZ(geometry, np.zeros((N)).tolist())
-    elif len(indices) > 0:
-        new_geometry_forward = geometry
-        new_geometry_backward = geometry
-        new_geometry_forward[indices[-1]][0] += 0.5*step
-        new_geometry_backward[indices[-1]][0] -= 0.5*step
-        new_indices = indices[:-1]
-        diff = (Delta_electronic_energy(new_geometry_forward, new_indices, step) - Delta_electronic_energy(new_geometry_backward, new_indices, step))/step
-        return diff
+def dlambda_electronic_energy(mole, dZ, dlambda, order):
+    #dZ is the deviation of the molecule from integer nuclear charges
+    #dlambda is needed as the basis vector for the parameter lambda
+    step = 0.02
+    if order < 1:
+        #print(mole.geometry)
+        if geom_hash(mole.geometry, dZ) in already_compt:
+            return already_compt[geom_hash(mole.geometry, dZ)]
+        else:
+            result = mole.get_electronic_energy(dZ)
+            already_compt.update({geom_hash(mole.geometry, dZ):result})
+            return result
+    else:
+        return (-dlambda_electronic_energy(mole, [x+2*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) +8*dlambda_electronic_energy(mole, [x+step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) -8*dlambda_electronic_energy(mole, [x-step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) + dlambda_electronic_energy(mole, [x-2*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1))/(12*step)
 
 
-def taylorseries_electronic_energy(geometry, dZ, order):
-    step = 0.1
+def lambda_taylorseries_electronic_energy(mole, dZ, dlambda, order):
+    return dlambda_electronic_energy(mole, dZ, dlambda, order)/math.factorial(order)
+
+
+def charge_taylorseries_electronic_energy(geometry, dZ, order):
     num = len(dZ) #number of possible transmutations for this geometry
     if order < 1:
-        return Delta_electronic_energy(geometry, [], step)
+        return Multi_electronic_energy(geometry, [])
     else:
         sum = 0
         for comb in itertools.combinations_with_replacement([i for i in range(num)], order):
-            print(list(comb))
+            #print(list(comb))
             if np.array([dZ[j] != 0 for j in list(comb)]).all():
-                tmp = Delta_electronic_energy(geometry, list(comb), step)
+                #First: Get the derivative:
+                tmp = Multi_electronic_energy(geometry, list(comb))
                 for k in list(comb):
                     tmp *= dZ[k]
+                #Here, not just division by factorial(order) but instead the respective multiplicites:
+                #multi = np.unique(list(comb), return_counts= True)[1].tolist()
+                #print(multi)
+                #for i in multi:
+                #    tmp /= math.factorial(i)
                 sum += tmp
             else:
                 continue

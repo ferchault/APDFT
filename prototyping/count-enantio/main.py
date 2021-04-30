@@ -1,6 +1,11 @@
 from AlEn import *
 import multiprocessing as mp
 import os
+performance_use = 0.90
+
+#TAGS:
+#benzene:
+#cyclooctatraene: dsgdb9nsd_017954
 
 def multicore_QM9(tag_number, batch_index, dZ_max):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
@@ -116,14 +121,57 @@ pool.close()'''
 
 #print(total_energy_with_dZ(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 #print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
-print(parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_total_energy() - parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_nuclear_energy())
-print(parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_total_energy() - parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_nuclear_energy())
-for i in range(0,5):
+
+'''for i in range(-100,101,10):
+    #print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).add_dZ([0.02*i,-0.02*i,-0.02*i,0.02*i,0,0]).geometry[:4])
+    print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).add_dZ([0.01*i,-0.01*i,-0.01*i,0.01*i,0,0]).get_electronic_energy())
+#print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).add_dZ([-0.02,0.02,0.02,-0.02,0,0]).get_electronic_energy())
+
+print("Actual")
+print(parse_QM9toMAG('benzene_AE1.xyz', with_hydrogen=True).get_electronic_energy())
+print(parse_QM9toMAG('benzene_AE2.xyz', with_hydrogen=True).get_electronic_energy())'''
+
+'''sum=0
+print("-------------------------NNCNNCCC-------------------------")
+print("Actual")
+print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).get_electronic_energy([0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0]))
+for i in range(0,7):
     print("Taylor series of energy, order "+str(i)+" :")
-    print(taylorseries_electronic_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).geometry, [1,-1,-1,1,0,0], i))
-#print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).get_total_energy())
-#print(parse_QM9toMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).get_total_energy())
-#print(parse_QM9toMAG('cyclooctatetraene_14halfs.xyz', with_hydrogen=True).get_total_energy())
+    res = lambda_taylorseries_electronic_energy(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True), [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], [0.5,0.5,-0.5,-0.5,-0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], i)
+    sum += res
+    print("Sum = "+str(sum))
+sum = 0
+print("-------------------------CCNCCNNN-------------------------")
+print("Actual")
+print(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).get_electronic_energy([0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0]))
+for i in range(0,7):
+    print("Taylor series of energy, order "+str(i)+" :")
+    res = lambda_taylorseries_electronic_energy(parse_QM9toMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True), [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], [-0.5,-0.5,0.5,0.5,.5,-0.5,-0.5,-0.5,0,0,0,0,0,0,0,0], i)
+    sum += res
+    print("Sum = "+str(sum))'''
+
+
+sum=0
+print("-------------------------NBBNCC-------------------------")
+print("Actual")
+print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_electronic_energy([1,-1,-1,1,0,0,0,0,0,0,0,0]))
+for i in range(0,12):
+    print("Taylor series of energy, order "+str(i)+" :")
+    res = lambda_taylorseries_electronic_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True), [0,0,0,0,0,0,0,0,0,0,0,0], [1,-1,-1,1,0,0,0,0,0,0,0,0], i)
+    print(res)
+    sum += res
+    print("Sum = "+str(sum))
+sum = 0
+print("-------------------------BNNBCC-------------------------")
+print("Actual")
+print(parse_QM9toMAG('benzene.xyz', with_hydrogen=True).get_electronic_energy([-1,1,1,-1,0,0,0,0,0,0,0,0]))
+for i in range(0,12):
+    print("Taylor series of energy, order "+str(i)+" :")
+    res = lambda_taylorseries_electronic_energy(parse_QM9toMAG('benzene.xyz', with_hydrogen=True), [0,0,0,0,0,0,0,0,0,0,0,0], [-1,1,1,-1,0,0,0,0,0,0,0,0], i)
+    print(res)
+    sum += res
+    print("Sum = "+str(sum))
+
 
 
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
