@@ -22,3 +22,8 @@ def read_list(fname):
         for line in f:
             data.append(line.strip('\n'))
     return(data)
+
+def write_list(fname, ls):
+    with open(fname, 'w') as f:
+        for line in ls:
+            f.write(line+'\n')
