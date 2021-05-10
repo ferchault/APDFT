@@ -45,7 +45,7 @@ def crossvalidate(reps, labels, tr_size, sigma, lam_val, num_cv):
     errors = np.array(errors)
     return(errors.mean(), errors.std())
 
-def wrapper_alch_data(path='/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/atomic_energies_mic'):
+def wrapper_alch_data(path='/home/misa/projects/Atomic-Energies/data/ueg_reference/qm9_ve38_lda/energies_ve38_paths'):
     """
     returns paths to files from file with all directories
     """
