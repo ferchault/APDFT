@@ -1,6 +1,7 @@
 import pathlib
 import glob
 import os
+import sys
 import pandas as pd
 import numpy as np
 
@@ -218,7 +219,9 @@ def update(database):
     """
     update of status of database entries
     """
-    for wd in database['workdir']:
+    workdirs = list(database.loc[database['status'] != 'converged' ,'workdir'])
+    
+    for wd in workdirs:
         #print(workdir)
         status = get_status(wd)
         database.loc[database['workdir'] == wd ,'status'] = status
@@ -229,9 +232,13 @@ def update(database):
 #                 database.loc[database['workdir'] == wd ,'time'] += time
                               
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+    else:
+        path = '/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons/amons_32'
     # load database
     print('Loading Database...', flush = True)
-    db = pd.read_pickle('/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons/calculation_manager.pd')
+    db = pd.read_pickle(os.path.join(path, 'calculation_manager.pd'))
     # update
     print('Updating database...', flush = True)
     update(db)
@@ -239,7 +246,7 @@ if __name__ == "__main__":
     enable_restart(db)
     # save results
     print('Writing status report...', flush = True)
-    status_report(db, '/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons')
+    status_report(db, path) 
     print('Saving Database...', flush = True)
-    db.to_pickle('/scicore/home/lilienfeld/sahre0000/projects/atomic_energies/results/amons/calculation_manager.pd')
+    db.to_pickle(os.path.join(path, 'calculation_manager.pd'))
     print('All done! Maybe the restart option should be enabled in some input files.', flush= True)
