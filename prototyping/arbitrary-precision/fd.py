@@ -1,28 +1,16 @@
 #!/usr/bin/env python
 #%%
 import mpmath
-import click
+import configparser
 import json
+from multiprocessing import Pool, pool
+import multiprocessing as mp
 
 from RHF import *
 from matrices import *
 from integrals import *
 from basis import *
 from molecules import *
-
-
-def energy(lval):
-    return 2 * lval ** 2 + lval ** 3
-
-
-def cfd(h, n):
-    value = mpmath.mpf("0.0")
-    for i in range(0, n + 1):
-        binom = mpmath.binomial(n, i)
-        xval = (n / 2 - i) * h
-        value += energy(xval) * binom * (-1) ** i
-    return value / h ** n / mpmath.fac(n)
-
 
 # region
 import functools
@@ -33,29 +21,31 @@ def get_ee(bs):
     return EE_list(bs)
 
 
-def energy(lval, distance):
-    print(lval)
+def energy(lval, dps, distance):
+    bs = sto3g_H2
+    ee = get_ee(bs)
+    print(str(lval), dps)
+    mpmath.mp.dps = dps
     mol = [
         Atom(
             "H",
             (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf(0)),
-            mpmath.mpf("1.0") + lval,
+            mpmath.mpf("2.0") - lval,
             ["1s"],
         ),
         Atom(
             "H",
             (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf(distance)),
-            mpmath.mpf("1.0") - lval,
+            mpmath.mpf("1.0") + lval,
             ["1s"],
         ),
     ]
-    bs = sto3g_H2
     N = 2
     K = bs.K
     S = S_overlap(bs)
     X = X_transform(S)
     Hc = H_core(bs, mol)
-    ee = get_ee(bs)
+    # ee = get_ee(bs)
     Pnew = mpmath.matrix(K, K)
     P = mpmath.matrix(K, K)
     iter = 1
@@ -66,58 +56,58 @@ def energy(lval, distance):
             break
         P = Pnew
         iter += 1
-    return energy_el(P, F, Hc)
+    return (lval, dps), mpmath.chop(energy_el(P, F, Hc))
 
 
-@click.command()
-@click.option("--distance", default="1.4")
-@click.option("--dps", default=100)
-@click.option("--orders", default=40)
-@click.option("--deltaexp", default=65)
-@click.option("--profile", default=False)
-def main(distance, dps, orders, deltaexp, profile):
-    meta = {
-        "distance": distance,
-        "dps": dps,
-        "ref": "H2",
-        "target": "He",
-        "orders": orders,
-        "deltaexp": deltaexp,
+def main(distance, dps, orders, deltaexp):
+    mp.set_start_method("spawn")
+    mpmath.mp.dps = dps
+
+    direction = 1
+    around = 0
+    args = around, orders
+    kwargs = {
+        "h": mpmath.mpf(f"1e-{deltaexp}"),
+        "addprec": 100,
+        "direction": direction,
+        "method": "step",
     }
 
-    mpmath.mp.dps = dps
-    if profile:
-        from pyinstrument import Profiler
-
-        profiler = Profiler()
-        profiler.start()
-
+    pos = []
     coeffs = mpmath.taylor(
-        lambda _: energy(_, distance),
-        0,
-        orders,
-        direction=1,
-        h=mpmath.mpf(f"1e-{deltaexp}"),
-        addprec=100,
+        lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs
     )
-    if profile:
-        profiler.stop()
-        print(profiler.output_text(unicode=True, color=True))
+
+    content = [(*_, distance) for _ in pos]
+    with Pool(40) as p:
+        res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
+    res = dict(res)
+
+    coeffs = mpmath.taylor(lambda _: res[(_, mpmath.mp.dps)], *args, **kwargs)
 
     total = mpmath.mpf("0")
+    vals = []
+    ref = energy(mpmath.mpf("0.0"), dps, distance)[1]
+    target = energy(mpmath.mpf("1.0"), dps, distance)[1]
+    print("ref", ref)
+    print("target", target)
+
     for order, c in enumerate(coeffs):
         total += c
-        thisdict = {"order": order, "coefficient": str(c), "total": str(total)}
+        vals.append(total)
+        thisdict = {
+            "order": order,
+            "coefficient": str(c),
+            "total": str(total),
+            "error": str(total - target),
+        }
         thisdict.update(meta)
         print(json.dumps(thisdict))
 
-    ref = energy(mpmath.mpf("0.0"), distance)
-    target = energy(mpmath.mpf("1.0"), distance)
-    print("ref", ref)
-    print("target", target)
-    thisdict = {"ref": str(ref), "target": str(target)}
-    thisdict.update(meta)
-    print(json.dumps(thisdict))
+    # thisdict = {"ref": str(ref), "target": str(target)}
+    # thisdict.update(meta)
+    # print(json.dumps(thisdict))
+    return vals
 
 
 if __name__ == "__main__":

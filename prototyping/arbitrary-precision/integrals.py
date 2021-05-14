@@ -204,31 +204,31 @@ def kinetic(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb):
 
     def Kxyz(ac, a1, a2, bc, b1, b2, aa, bb, Ra, Rb, Ra1, Rb1, Ra2, Rb2, Rc, R1, R2):
         """
-            Compute kinetic integral between two Cartesian gaussian functions along one direction.
+        Compute kinetic integral between two Cartesian gaussian functions along one direction.
 
-            INPUT:
-                AC: Component of angular momentum for Gaussian 1 along direction of interest
-                A1: Component of angular momentum for Gaussian 1 along second direction
-                A2: Component of angular momentum for Gaussian 1 along third direction
-                BC: Component of angular momentum for Gaussian 2 along direction of interest
-                B1: Component of angular momentum for Gaussian 2 along second direction
-                B2: Component of angular momentum for Gaussian 2 along third direction
-                AA: Exponential coefficient for Gaussian 1
-                BB: Exponential coefficient for Gaussian 2
-                RA: Component of the center of Gaussian 1 along direction of interest
-                RB: Component of the center of Gaussian 2 along direction of interest
-                RA1: Component of the center of Gaussian 1 along second direction
-                RA2: Component of the center of Gaussian 1 along third direction
-                RB1: Component of the center of Gaussian 2 along second direction
-                RB2: Component of the center of Gaussian 2 along third direction
-            OUTPUT:
-                KC: Kinetic integral between two gaussians along chosen direction
+        INPUT:
+            AC: Component of angular momentum for Gaussian 1 along direction of interest
+            A1: Component of angular momentum for Gaussian 1 along second direction
+            A2: Component of angular momentum for Gaussian 1 along third direction
+            BC: Component of angular momentum for Gaussian 2 along direction of interest
+            B1: Component of angular momentum for Gaussian 2 along second direction
+            B2: Component of angular momentum for Gaussian 2 along third direction
+            AA: Exponential coefficient for Gaussian 1
+            BB: Exponential coefficient for Gaussian 2
+            RA: Component of the center of Gaussian 1 along direction of interest
+            RB: Component of the center of Gaussian 2 along direction of interest
+            RA1: Component of the center of Gaussian 1 along second direction
+            RA2: Component of the center of Gaussian 1 along third direction
+            RB1: Component of the center of Gaussian 2 along second direction
+            RB2: Component of the center of Gaussian 2 along third direction
+        OUTPUT:
+            KC: Kinetic integral between two gaussians along chosen direction
 
-            Source:
-                The Mathematica Journal
-                Evaluation of Gaussian Molecular Integrals
-                II. Kinetic-Energy Integrals
-                Minhhuy Hô and Julio Manuel Hernández-Pérez
+        Source:
+            The Mathematica Journal
+            Evaluation of Gaussian Molecular Integrals
+            II. Kinetic-Energy Integrals
+            Minhhuy Hô and Julio Manuel Hernández-Pérez
         """
 
         kc = 0
@@ -355,7 +355,7 @@ def F(nu, x):
         2006
     """
 
-    if x < 1e-8:
+    if x < 1e-20:
         # Taylor expansion for argument close or equal to zero (avoid division by zero)
         ff = 1 / (2 * nu + 1) - x / (2 * nu + 3)
     else:
@@ -705,71 +705,68 @@ def EE_list(basis):
 
     EE = mpmath.matrix(K, K, K, K)
 
-    with tqdm.tqdm(desc="2e integrals", total=len(B) ** 4) as pbar:
-        for i, b1 in enumerate(B):
-            for j, b2 in enumerate(B):
-                for k, b3 in enumerate(B):
-                    for l, b4 in enumerate(B):
+    for i, b1 in enumerate(B):
+        for j, b2 in enumerate(B):
+            for k, b3 in enumerate(B):
+                for l, b4 in enumerate(B):
 
-                        pbar.update(1)
+                    for a1, d1 in zip(b1["a"], b1["d"]):
+                        for a2, d2 in zip(b2["a"], b2["d"]):
+                            for a3, d3 in zip(b3["a"], b3["d"]):
+                                for a4, d4 in zip(b4["a"], b4["d"]):
+                                    # Basis functions centers
+                                    R1 = b1["R"]
+                                    R2 = b2["R"]
+                                    R3 = b3["R"]
+                                    R4 = b4["R"]
 
-                        for a1, d1 in zip(b1["a"], b1["d"]):
-                            for a2, d2 in zip(b2["a"], b2["d"]):
-                                for a3, d3 in zip(b3["a"], b3["d"]):
-                                    for a4, d4 in zip(b4["a"], b4["d"]):
-                                        # Basis functions centers
-                                        R1 = b1["R"]
-                                        R2 = b2["R"]
-                                        R3 = b3["R"]
-                                        R4 = b4["R"]
+                                    # Basis functions angular momenta
+                                    ax = b1["lx"]
+                                    ay = b1["ly"]
+                                    az = b1["lz"]
 
-                                        # Basis functions angular momenta
-                                        ax = b1["lx"]
-                                        ay = b1["ly"]
-                                        az = b1["lz"]
+                                    # Basis functions angular momenta
+                                    bx = b2["lx"]
+                                    by = b2["ly"]
+                                    bz = b2["lz"]
 
-                                        # Basis functions angular momenta
-                                        bx = b2["lx"]
-                                        by = b2["ly"]
-                                        bz = b2["lz"]
+                                    # Basis functions angular momenta
+                                    cx = b3["lx"]
+                                    cy = b3["ly"]
+                                    cz = b3["lz"]
 
-                                        # Basis functions angular momenta
-                                        cx = b3["lx"]
-                                        cy = b3["ly"]
-                                        cz = b3["lz"]
+                                    # Basis functions angular momenta
+                                    dx = b4["lx"]
+                                    dy = b4["ly"]
+                                    dz = b4["lz"]
 
-                                        # Basis functions angular momenta
-                                        dx = b4["lx"]
-                                        dy = b4["ly"]
-                                        dz = b4["lz"]
+                                    tmp = 1
+                                    tmp *= d1.conjugate() * d2.conjugate()
+                                    tmp *= d3 * d4
+                                    tmp *= electronic(
+                                        ax,
+                                        ay,
+                                        az,
+                                        bx,
+                                        by,
+                                        bz,
+                                        cx,
+                                        cy,
+                                        cz,
+                                        dx,
+                                        dy,
+                                        dz,
+                                        a1,
+                                        a2,
+                                        a3,
+                                        a4,
+                                        R1,
+                                        R2,
+                                        R3,
+                                        R4,
+                                    )
 
-                                        tmp = 1
-                                        tmp *= d1.conjugate() * d2.conjugate()
-                                        tmp *= d3 * d4
-                                        tmp *= electronic(
-                                            ax,
-                                            ay,
-                                            az,
-                                            bx,
-                                            by,
-                                            bz,
-                                            cx,
-                                            cy,
-                                            cz,
-                                            dx,
-                                            dy,
-                                            dz,
-                                            a1,
-                                            a2,
-                                            a3,
-                                            a4,
-                                            R1,
-                                            R2,
-                                            R3,
-                                            R4,
-                                        )
-
-                                        EE[i, j, k, l] += tmp
+                                    EE[i, j, k, l] += tmp
 
     return EE
 
