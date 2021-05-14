@@ -159,10 +159,13 @@ for i in range(0,7):
     print("Sum = "+str(sum))
 """
 #parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_delta_rho([-1,1,1,-1,0,0,0,0,0,0,0,0],[1,-1,-1,1,0,0,0,0,0,0,0,0])
-#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_rho(dZ=[1,-1,-1,1,0,0,0,0,0,0,0,0])
-#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000214.xyz', with_hydrogen=True, angle=[0,0,30]).plot_rho(dZ=[0,0,0,0,0,0,0,0,0,0,0,0], z_filter=0.001, title='Benzene')
-parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000010.xyz', with_hydrogen=True, angle=[180,90,90]).plot_rho(z_filter=0.1)
-#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).plot_rho(dZ=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], z_filter=0.01)
+#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_rho_2D(dZ=[1,-1,-1,1,0,0,0,0,0,0,0,0])
+#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000018.xyz', with_hydrogen=True, angle=[0,0,-60]).plot_rho_3D()
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000024.xyz', with_hydrogen=True).geometry)
+for i in range(30,40):
+    print(i)
+    parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_'+'000000'[:(6-len(str(i)))] + str(i)+'.xyz', with_hydrogen=True).plot_rho_2D()
+#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True).plot_rho_2D(dZ=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], z_filter=0.01)
 
 #test = MoleAsGraph('H2', [[0,1]], ['H','H'], [['H', 0,0,0],['H',0,0,1.4]])
 
