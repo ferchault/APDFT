@@ -16,6 +16,7 @@ from scipy.interpolate import griddata
 from matplotlib import colors
 mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
 from HF_arbprec import *
+import imageio
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
@@ -98,12 +99,16 @@ def are_close_lists(a,b):
             value = False
     return value
 
+def rot(angle_x, angle_y, angle_z):
+    return np.array(   [[np.cos(angle_z)*np.cos(angle_y),   np.cos(angle_z)*np.sin(angle_y)*np.sin(angle_x) - np.sin(angle_z)*np.cos(angle_x),  np.cos(angle_z)*np.sin(angle_y)*np.cos(angle_x) + np.sin(angle_z)*np.sin(angle_x)],
+                        [np.sin(angle_z)*np.cos(angle_y),   np.sin(angle_z)*np.sin(angle_y)*np.sin(angle_x) + np.cos(angle_z)*np.cos(angle_x),  np.sin(angle_z)*np.sin(angle_y)*np.cos(angle_x) - np.cos(angle_z)*np.sin(angle_x)],
+                        [-np.sin(angle_y),                  np.cos(angle_y)*np.sin(angle_x),                                                    np.cos(angle_y)*np.cos(angle_x)]])
+
+
 def center_mole(mole, angle_aligning=True, angle=None):
-    #IS THIS ACTUALLY CORRECT??? SEEMS LIKE X AND Y SHOULD BE SWAPPED
-    def rot(angle_x, angle_y, angle_z):
-        return np.array(   [[np.cos(angle_z)*np.cos(angle_y),   np.cos(angle_z)*np.sin(angle_y)*np.sin(angle_x) - np.sin(angle_z)*np.cos(angle_x),  np.cos(angle_z)*np.sin(angle_y)*np.cos(angle_x) + np.sin(angle_z)*np.sin(angle_x)],
-                            [np.sin(angle_z)*np.cos(angle_y),   np.sin(angle_z)*np.sin(angle_y)*np.sin(angle_x) + np.cos(angle_z)*np.cos(angle_x),  np.sin(angle_z)*np.sin(angle_y)*np.cos(angle_x) - np.cos(angle_z)*np.sin(angle_x)],
-                            [-np.sin(angle_y),                  np.cos(angle_y)*np.sin(angle_x),                                                    np.cos(angle_y)*np.cos(angle_x)]])
+    """
+
+    """
     #Centers a molecule
     sum = [0,0,0]
     N = len(mole)
@@ -118,34 +123,42 @@ def center_mole(mole, angle_aligning=True, angle=None):
         result[i][1:] = np.subtract(result[i][1:],sum)
     if not angle_aligning:
         return result
-    elif angle == None:
+    else:
         #Take the first two non-linearly dep. points to rotate molecule into xy plane
         if N < 3:
             return result
         else:
-            for i in range(N-2):
-                r1 = np.array(result[i][1:], copy=True)-np.array(result[i+1][1:], copy=True)
-                r2 = np.array(result[i+1][1:], copy=True) - np.array(result[i+2][1:], copy=True)
-                normal = np.cross(r1,r2)
-                normal_length = np.linalg.norm(normal)
-                if abs(normal_length) > 0.00001:
-                    break
-            if abs(normal_length) < 0.00001:
-                #print(result)
-                return result #The molecule is a straight line
-            angle_x = np.arcsin(normal[1]/normal_length)
-            angle_y = np.arcsin(normal[0]/normal_length)
-            #print(angle_x, angle_y)
-            R = rot(angle_x, angle_y,0)
-            result_rotated = mole.copy()
-            #print(R)
-            #print(R, result[0])
-            for i in range(N):
-                vector = np.matmul(R,result[i][1:])
-                for j in [1,2,3]:
-                    result_rotated[i][j] = vector[j-1]
-            #print(result_rotated)
-            return result_rotated
+            limit = 0.0001
+            angle_x = 1
+            angle_y = 1
+            while abs(angle_x) > limit or abs(angle_y) > limit:
+                for i in range(N-2):
+                    if np.linalg.norm(result[i][1:]) < limit: #points too close to origin are plotted anyways
+                        continue
+                    else:
+                        r1 = np.array(result[i][1:], copy=True)-np.array(result[i+1][1:], copy=True)
+                        r2 = np.array(result[i+1][1:], copy=True) - np.array(result[i+2][1:], copy=True)
+                        normal = np.cross(r1,r2)
+                        normal_length = np.linalg.norm(normal)
+                        if abs(normal_length) > 0.00001: #We found a suitable cadidate vector
+                            break
+                if abs(normal_length) < 0.00001:
+                    #print(result)
+                    return result #Not one (!) suitable candidate found. The molecule is a straight line
+                angle_x = np.arcsin(normal[1]/normal_length)
+                angle_y = np.arcsin(normal[0]/normal_length)
+                #print('aligning... [x: '+str(angle_x*180/np.pi)+', y: '+str(angle_y*180/np.pi)+']')
+                R = rot(angle_x, angle_y,0)
+                result_rotated = mole.copy()
+                #print(R)
+                #print(R, result[0])
+                for i in range(N):
+                    vector = np.matmul(R,result[i][1:])
+                    for j in [1,2,3]:
+                        result_rotated[i][j] = vector[j-1]
+                result = result_rotated.copy()
+    if angle == None:
+        return result
     else:
         if len(angle) != 3:
             raise ValueError("angle needs to be list with 3 elements!")
@@ -511,7 +524,7 @@ class MoleAsGraph:
         h = mf.Hessian().kernel()
         return h
 
-    def plot_rho(self, dZ=[], z_filter = 0.0001, title = '', basis=basis):
+    def plot_rho_2D(self, dZ=[], z_offset = 0, title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
         if len(dZ) == 0:
@@ -539,10 +552,9 @@ class MoleAsGraph:
         x = []
         y = []
         density = []
-        #z = []
-        tol = 0.1
+        z_filter = 0.1 #The tolerance in z when something is still considered part of the plane
         for i in range(len(grid.coords)):
-            if abs(grid.coords[i][2]) - z_filter/0.52917721067 < tol:
+            if abs(grid.coords[i][2] - z_offset/0.52917721067) < z_filter:
                 x.append(grid.coords[i][0])
                 y.append(grid.coords[i][1])
                 density.append(rhos[i])
@@ -570,10 +582,10 @@ class MoleAsGraph:
         #Find maximum distance of molecule to scale window
         max_value = 0
         for i in range(self.number_atoms):
-            for j in [1,2,3]:
+            for j in [1,2]: #The z axis is not of interest here
                 if abs(self.geometry[i][j]) > max_value:
                     max_value = abs(self.geometry[i][j])
-        max_value *= 1.3/0.52917721067 #in Bohr radii
+        max_value *= 1.6/0.52917721067 #in Bohr radii
         plt.xlim([-max_value,max_value])
         plt.ylim([-max_value,max_value])
         #plt.plot(x,y,'k.')
@@ -583,7 +595,96 @@ class MoleAsGraph:
         plt.savefig('rho_plots/'+self.name + '_rho.png',dpi=300)
         plt.close(fig)
 
-    def plot_delta_rho(self, dZ1, dZ2, z_filter = 0.0001, title = '', basis=basis):
+
+    def plot_rho_3D(self, dZ=[], title = '', basis=basis):
+        #PARSE THE HYDROGENS!!!!!
+        atom_string = ''
+        if len(dZ) == 0:
+            dZ = np.zeros((self.number_atoms)).tolist()
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        mol = gto.Mole()
+        mol.unit = 'Angstrom'
+        mol.atom = atom_string[:-2]
+        mol.basis = basis
+        mol.verbose = 0
+        mol.build()
+        calc = add_qmmm(scf.RHF(mol), mol, dZ)
+        hfe = calc.kernel(verbose=0)
+        dm1_ao = calc.make_rdm1()
+        grid = pyscf.dft.gen_grid.Grids(mol)
+        grid.level = 3
+        grid.build()
+        ao_value = pyscf.dft.numint.eval_ao(mol, grid.coords, deriv=0)
+        rhos = pyscf.dft.numint.eval_rho(mol, ao_value, dm1_ao, xctype="LDA")
+        #Crate a GIF from all the files (all slices)
+        filenames = []
+        counter = 0
+        #Find maximum distance of molecule to scale window
+        max_value = 0
+        for i in range(self.number_atoms):
+            for j in [1,2]: #The z axis is not of interest here
+                if abs(self.geometry[i][j]) > max_value:
+                    max_value = abs(self.geometry[i][j])
+        max_value *= 1.6/0.52917721067 #in Bohr radii
+        for z_offset in np.arange(-max_value*0.25,max_value*0.25,0.05):
+            #Now we have all rhos at grid.coords; plot them:
+            x = []
+            y = []
+            density = []
+            z_filter = 0.1 #The tolerance in z when something is still considered part of the plane
+            for i in range(len(grid.coords)):
+                if abs(grid.coords[i][2] - z_offset/0.52917721067) < z_filter:
+                    x.append(grid.coords[i][0])
+                    y.append(grid.coords[i][1])
+                    density.append(rhos[i])
+                    #z.append(grid.coords[i][2])
+            #print(x)
+            #plt.scatter(x, y, c=density)
+            #plt.show()
+            #Source: https://earthscience.stackexchange.com/questions/12057/how-to-interpolate-scattered-data-to-a-regular-grid-in-python
+            x_min = min(x)
+            x_max = max(x)
+            y_min = min(y)
+            y_max = max(y)
+            # target grid to interpolate to
+            xi = np.arange(x_min,x_max,0.1)
+            yi = np.arange(y_min,y_max,0.1)
+            xi,yi = np.meshgrid(xi,yi)
+            # interpolate
+            zi = griddata((x,y),density,(xi,yi),method='nearest')
+            #zi = griddata((x,y),density,(xi,yi),method='cubic')
+            # plot
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            plt.contourf(xi,yi,zi,np.arange(0,0.81,0.05))
+            plt.colorbar(label=r'$\rho$ [$a_0^{-3}$]')
+            plt.xlim([-max_value,max_value])
+            plt.ylim([-max_value,max_value])
+            #plt.plot(x,y,'k.')
+            plt.title(title)
+            plt.xlabel(r'x [$a_0$]')
+            plt.ylabel(r'y [$a_0$]')
+            filename = f'weird_named_png'+str(counter)+'.png'
+            plt.savefig(filename,dpi=300)
+            plt.close(fig)
+            filenames.append(filename)
+            counter += 1
+        # build gif
+        with imageio.get_writer('rho_plots/'+self.name + '_rho.gif', mode='I') as writer:
+            for filename in filenames:
+                image = imageio.imread(filename)
+                writer.append_data(image)
+        # Remove files
+        for filename in set(filenames):
+            os.remove(filename)
+        #Source: https://towardsdatascience.com/basics-of-gifs-with-pythons-matplotlib-54dd544b6f30
+
+
+    def plot_delta_rho_2D(self, dZ1, dZ2, z_offset = 0, title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
         if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms:
@@ -619,9 +720,9 @@ class MoleAsGraph:
         x1 = []
         y1 = []
         density1 = []
-        tol = 0.1
+        z_filter = 0.1
         for i in range(len(grid1.coords)):
-            if abs(grid1.coords[i][2]) - z_filter/0.52917721067 < tol:
+            if abs(grid1.coords[i][2] - z_offset/0.52917721067) < z_filter:
                 x1.append(grid1.coords[i][0])
                 y1.append(grid1.coords[i][1])
                 density1.append(rhos1[i])
@@ -638,9 +739,8 @@ class MoleAsGraph:
         x2 = []
         y2 = []
         density2 = []
-        tol = 0.1
         for i in range(len(grid2.coords)):
-            if abs(grid2.coords[i][2]) - z_filter/0.52917721067 < tol:
+            if abs(grid2.coords[i][2] - z_offset/0.52917721067) < z_filter:
                 x2.append(grid2.coords[i][0])
                 y2.append(grid2.coords[i][1])
                 density2.append(rhos2[i])
@@ -658,7 +758,7 @@ class MoleAsGraph:
         xi,yi = np.meshgrid(xi,yi)
         # interpolate
         zi = griddata((x1,y1),density1,(xi,yi),method='nearest') - griddata((x2,y2),density2,(xi,yi),method='nearest')
-        #zi = griddata((x,y),density,(xi,yi),method='cubic')
+        #zi = griddata((x1,y1),density1,(xi,yi),method='cubic') - griddata((x2,y2),density2,(xi,yi),method='cubic')
         # plot
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -667,10 +767,10 @@ class MoleAsGraph:
         #Find maximum distance of molecule to scale window
         max_value = 0
         for i in range(self.number_atoms):
-            for j in [1,2,3]:
+            for j in [1,2]:
                 if abs(self.geometry[i][j]) > max_value:
                     max_value = abs(self.geometry[i][j])
-        max_value *= 1.3/0.52917721067 #in Bohr radii
+        max_value *= 1.6/0.52917721067 #in Bohr radii
         plt.xlim([-max_value,max_value])
         plt.ylim([-max_value,max_value])
         #plt.plot(x,y,'k.')
@@ -764,7 +864,7 @@ water = MoleAsGraph(        'Water',
                             [['H', 0, +1.43233673, -0.96104039], ['O', 0, 0, 0.24026010], ['H', 0, -1.43233673, -0.96104039]])
 
 #PARSER FUNCTION FOR QM9--------------------------------------------------------
-def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle=None):
+def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True, angle=None):
     '''MoleAsGraph instance returned'''
     #check if file is present
     if os.path.isfile(input_PathToFile):
@@ -795,12 +895,17 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle=None):
         mole.append([symbol,x,y,z])
         elements_at_index.append(symbol)
     #Find edge_layout:
-    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0])
+    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=True)
     edge_layout = [list(v) for v in network.edges()]
+    """
+    #All of this is only necessary if one explicitly introduces elements outside of the PSE
+    N_hydrogen = N - N_heavyatoms
+    Hydrogen_counter = 0
     if with_hydrogen == True:
         for i in range(N):
             #get only the hydrogens and their coordinates
             if mole[i][0] == 'H':
+                Hydrogen_counter += 1
                 #find the index of the heavy atom with the shortest distance
                 shortest_distance = 100000
                 for j in range(N):
@@ -811,9 +916,10 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle=None):
                         if distance < shortest_distance:
                             shortest_distance = distance
                             index_of_shortest = j
-                edge_layout.append([int(index_of_shortest),int(i)])
-    if angle != None:
-        mole = center_mole(mole, angle=angle)
+                edge_layout.append([int(index_of_shortest),int(N_heavyatoms+Hydrogen_counter-1)])
+    print(edge_layout)
+    """
+    mole = center_mole(mole, angle_aligning=angle_aligning, angle=angle)
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
 
