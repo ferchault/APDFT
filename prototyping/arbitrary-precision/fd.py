@@ -74,7 +74,8 @@ def energy(lval, distance):
 @click.option("--dps", default=100)
 @click.option("--orders", default=40)
 @click.option("--deltaexp", default=65)
-def main(distance, dps, orders, deltaexp):
+@click.option("--profile", default=False)
+def main(distance, dps, orders, deltaexp, profile):
     meta = {
         "distance": distance,
         "dps": dps,
@@ -85,6 +86,12 @@ def main(distance, dps, orders, deltaexp):
     }
 
     mpmath.mp.dps = dps
+    if profile:
+        from pyinstrument import Profiler
+
+        profiler = Profiler()
+        profiler.start()
+
     coeffs = mpmath.taylor(
         lambda _: energy(_, distance),
         0,
@@ -93,6 +100,10 @@ def main(distance, dps, orders, deltaexp):
         h=mpmath.mpf(f"1e-{deltaexp}"),
         addprec=100,
     )
+    if profile:
+        profiler.stop()
+        print(profiler.output_text(unicode=True, color=True))
+
     total = mpmath.mpf("0")
     for order, c in enumerate(coeffs):
         total += c
@@ -100,8 +111,8 @@ def main(distance, dps, orders, deltaexp):
         thisdict.update(meta)
         print(json.dumps(thisdict))
 
-    ref = energy(mpmath.mpf("0.0"))
-    target = energy(mpmath.mpf("1.0"))
+    ref = energy(mpmath.mpf("0.0"), distance)
+    target = energy(mpmath.mpf("1.0"), distance)
     print("ref", ref)
     print("target", target)
     thisdict = {"ref": str(ref), "target": str(target)}
