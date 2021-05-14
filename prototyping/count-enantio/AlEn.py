@@ -8,9 +8,14 @@ import os
 import igraph
 import itertools
 from pyscf import gto, scf, qmmm
+import pyscf
 from pysmiles import read_smiles
 import networkx as nx
 import mpmath
+from scipy.interpolate import griddata
+from matplotlib import colors
+mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
+from HF_arbprec import *
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 original_stdout = sys.stdout # Save a reference to the original standard output
@@ -19,6 +24,7 @@ basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
 representation = 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb'
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
+PathToArbitPrec = '/home/simon/github/APDFT/prototyping/arbitrary-precision/'
 
 elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -92,11 +98,16 @@ def are_close_lists(a,b):
             value = False
     return value
 
-def center_mole(mole):
+def center_mole(mole, angle_aligning=True, angle=None):
+    #IS THIS ACTUALLY CORRECT??? SEEMS LIKE X AND Y SHOULD BE SWAPPED
+    def rot(angle_x, angle_y, angle_z):
+        return np.array(   [[np.cos(angle_z)*np.cos(angle_y),   np.cos(angle_z)*np.sin(angle_y)*np.sin(angle_x) - np.sin(angle_z)*np.cos(angle_x),  np.cos(angle_z)*np.sin(angle_y)*np.cos(angle_x) + np.sin(angle_z)*np.sin(angle_x)],
+                            [np.sin(angle_z)*np.cos(angle_y),   np.sin(angle_z)*np.sin(angle_y)*np.sin(angle_x) + np.cos(angle_z)*np.cos(angle_x),  np.sin(angle_z)*np.sin(angle_y)*np.cos(angle_x) - np.cos(angle_z)*np.sin(angle_x)],
+                            [-np.sin(angle_y),                  np.cos(angle_y)*np.sin(angle_x),                                                    np.cos(angle_y)*np.cos(angle_x)]])
     #Centers a molecule
     sum = [0,0,0]
     N = len(mole)
-    result = mole
+    result = mole.copy()
     for i in range(N):
         sum[0] += result[i][1]
         sum[1] += result[i][2]
@@ -105,7 +116,54 @@ def center_mole(mole):
     #print(sum)
     for i in range(N):
         result[i][1:] = np.subtract(result[i][1:],sum)
-    return result
+    if not angle_aligning:
+        return result
+    elif angle == None:
+        #Take the first two non-linearly dep. points to rotate molecule into xy plane
+        if N < 3:
+            return result
+        else:
+            for i in range(N-2):
+                r1 = np.array(result[i][1:], copy=True)-np.array(result[i+1][1:], copy=True)
+                r2 = np.array(result[i+1][1:], copy=True) - np.array(result[i+2][1:], copy=True)
+                normal = np.cross(r1,r2)
+                normal_length = np.linalg.norm(normal)
+                if abs(normal_length) > 0.00001:
+                    break
+            if abs(normal_length) < 0.00001:
+                #print(result)
+                return result #The molecule is a straight line
+            angle_x = np.arcsin(normal[1]/normal_length)
+            angle_y = np.arcsin(normal[0]/normal_length)
+            #print(angle_x, angle_y)
+            R = rot(angle_x, angle_y,0)
+            result_rotated = mole.copy()
+            #print(R)
+            #print(R, result[0])
+            for i in range(N):
+                vector = np.matmul(R,result[i][1:])
+                for j in [1,2,3]:
+                    result_rotated[i][j] = vector[j-1]
+            #print(result_rotated)
+            return result_rotated
+    else:
+        if len(angle) != 3:
+            raise ValueError("angle needs to be list with 3 elements!")
+        else:
+            angle_x = angle[0]*np.pi/180
+            angle_y = angle[1]*np.pi/180
+            angle_z = angle[2]*np.pi/180
+            #print(angle_x, angle_y)
+            R = rot(angle_x, angle_y, angle_z)
+            result_rotated = mole.copy()
+            #print(R)
+            #print(R, result[0])
+            for i in range(N):
+                vector = np.matmul(R,result[i][1:])
+                for j in [1,2,3]:
+                    result_rotated[i][j] = vector[j-1]
+            #print(result_rotated)
+            return result_rotated
 
 def Coulomb_matrix(mole):
     #returns the Coulomb matrix of a given molecule
@@ -242,6 +300,31 @@ def geom_hash(input_geometry, dZ):
     return hash
 
 
+#EVERYTHING BELONGING TO ARBITRARY PRECISION------------------------------------
+
+def orbital_list(element):
+    if element in ['H','He']:
+        return ["1s"]
+    if element in ['Li','Be']:
+        return ["1s", "2s"]
+    if element in ["B","C","N","O","F","Ne"]:
+        return ["1s", "2s", "2p"]
+    if element in ['Na','Mg']:
+        return ["1s", "2s", "2p", "3s"]
+    if element in ['Al', 'Si', 'P', 'S','Cl','Ar']:
+        return ["1s", "2s", "2p", "3s", "3p"]
+    if element in ['K', 'Ca']:
+        return ["1s", "2s", "2p", "3s", "3p", "4s"]
+
+def MAGtoMole(MAG):
+    Mole = []
+    sum_elec = 0
+    for i in range(len(MAG.geometry)):
+        Mole.append(Atom(MAG.geometry[i][0], (mpmath.mpf(MAG.geometry[i][1]), mpmath.mpf(MAG.geometry[i][2]), mpmath.mpf(MAG.geometry[i][3])), elements[MAG.geometry[i][0]], orbital_list(MAG.geometry[i][0])))
+        sum_elec += elements[MAG.geometry[i][0]]
+    return Mole, sum_elec
+
+
 #CLASS DEFINITION OF MoleAsGraph------------------------------------------------
 
 class MoleAsGraph:
@@ -253,7 +336,7 @@ class MoleAsGraph:
         self.name = name
         self.edge_layout = edge_layout #edge_layout = [[site_index, connected site index (singular!!!)], [...,...], [...,...]]
         self.elements_at_index = elements_at_index #Which element is at which vertex number
-        self.geometry = center_mole(geometry) #The usual xyz representation
+        self.geometry = center_mole(geometry, angle_aligning=False) #The usual xyz representation
         if len(np.unique(edge_layout)) == len(elements_at_index):
             self.number_atoms = len(elements_at_index)
         else:
@@ -273,12 +356,6 @@ class MoleAsGraph:
         #if not np.array([elements_at_index[i] == geometry[i][0] for i in range(self.number_atoms)]).all():
         #    print("Warning in MoleAsGraph: Indexing of atoms in attribute 'geometry' does not match indexing in attribute 'elements_at_index' of molecule "+name)
 
-    def get_site(self,site_number):
-        if site_number >= self.number_atoms:
-            raise ValueError("Cannot return site with index "+str(site_number)+". Molecule only has "+str(self.number_atoms)+" atoms.")
-        else:
-            return self.elements_at_index(site_number)
-
     def get_number_automorphisms(self):
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
@@ -289,6 +366,11 @@ class MoleAsGraph:
 
 
     def get_orbits_from_graph(self):
+        #return [] #The caveman approach: If orbits are not needed, why bother
+        """
+        The vf2 algorithm pf igraph sometimes forces the OS to kill the process;
+        hence, the extra bit of code up front
+        """
         #Prepare the graph
         g = igraph.Graph([tuple(v) for v in self.edge_layout])
         #Get all automorphisms with colored vertices according to self.elements_at_index
@@ -328,7 +410,7 @@ class MoleAsGraph:
     def get_equi_atoms_from_geom(self):
         mole = self.geometry.copy()
         #Sort CN and group everything together that is not farther than tolerance
-        CN = atomrep(center_mole(mole))
+        CN = atomrep(center_mole(mole, angle_aligning=False))
         indices = np.argsort(CN).tolist()
         indices2 = np.copy(indices).tolist()
         lst = []
@@ -353,9 +435,11 @@ class MoleAsGraph:
                 del similars[num_similars]
         return similars
 
-    def get_nuclear_energy(self, dZ):
+    def get_nuclear_energy(self, dZ=[]):
         #Calculate the nuclear energy of the molecule
         sum = 0
+        if len(dZ) == 0:
+            dZ = np.zeros((self.number_atoms)).tolist()
         for i in range(self.number_atoms):
             for j in range(i+1,self.number_atoms):
                 sum += (elements[self.geometry[i][0]]+dZ[i])*(elements[self.geometry[j][0]]+dZ[j])/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
@@ -364,11 +448,11 @@ class MoleAsGraph:
     def get_molecular_norm(self):
         return np.linalg.norm(atomrep_inertia_tensor(self.geometry.copy()))
 
-    def print_atomic_norms(self, input_PathToFile):
+    def print_atomic_norms(self):
         N = self.number_atoms
-        file = open(input_PathToFile, 'r')
-        data = file.read()
-        file.close()
+        #file = open(input_PathToFile, 'r')
+        #data = file.read()
+        #file.close()
         for i in range(N):
             result = 0 #=norm of the row/column of the Coulomb matrix
             for j in range(N):
@@ -377,15 +461,39 @@ class MoleAsGraph:
                 else:
                     result += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
             #Get the number of bonds (including hydrogen for hybridisation purposes)
-            Num = int(data.splitlines(False)[0]) #number of atoms including hydrogen
-            smiles = data.splitlines(False)[Num+3].split('\t')[0]
+            #Num = int(data.splitlines(False)[0]) #number of atoms including hydrogen
+            #smiles = data.splitlines(False)[Num+3].split('\t')[0]
             #mol = read_smiles(smiles) #include hydrogen for hybridisation counting
             #graph = nx.to_networkx_graph(mol)
             #degree = graph.degree([i])[1]
-            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+smiles+'\t'+str(result))
+            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+str(result))
             #Name   Chemical Element    Index   SMILES  Norm
 
-    def get_total_energy(self, dZ, basis=basis):
+    def get_total_energy(self, dZ=[], basis=basis):
+        #PARSE THE HYDROGENS!!!!!
+        atom_string = ''
+        if len(dZ) == 0:
+            dZ = np.zeros((self.number_atoms)).tolist()
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        mol = gto.Mole()
+        mol.unit = 'Angstrom'
+        mol.atom = atom_string[:-2]
+        mol.basis = basis
+        mol.verbose = 0
+        mol.build()
+        calc = add_qmmm(scf.RHF(mol), mol, dZ)
+        hfe = calc.kernel(verbose=0)
+        total_energy = calc.e_tot
+        return total_energy
+
+    def get_electronic_energy(self, dZ=[], basis=basis):
+        return self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
+
+    def get_Hessian(self, basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
         for i in range(len(self.geometry)): #get the atoms and their coordinates
@@ -399,16 +507,178 @@ class MoleAsGraph:
         mol.basis = basis
         mol.verbose = 0
         mol.build()
-        #print('-------------------------')
-        #print(extra_Z[:4])
-        #print(atom_string)
+        mf = mol.RHF().run()
+        h = mf.Hessian().kernel()
+        return h
+
+    def plot_rho(self, dZ=[], z_filter = 0.0001, title = '', basis=basis):
+        #PARSE THE HYDROGENS!!!!!
+        atom_string = ''
+        if len(dZ) == 0:
+            dZ = np.zeros((self.number_atoms)).tolist()
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        mol = gto.Mole()
+        mol.unit = 'Angstrom'
+        mol.atom = atom_string[:-2]
+        mol.basis = basis
+        mol.verbose = 0
+        mol.build()
         calc = add_qmmm(scf.RHF(mol), mol, dZ)
         hfe = calc.kernel(verbose=0)
-        total_energy = calc.e_tot
-        return total_energy
+        dm1_ao = calc.make_rdm1()
+        grid = pyscf.dft.gen_grid.Grids(mol)
+        grid.level = 3
+        grid.build()
+        ao_value = pyscf.dft.numint.eval_ao(mol, grid.coords, deriv=0)
+        rhos = pyscf.dft.numint.eval_rho(mol, ao_value, dm1_ao, xctype="LDA")
+        #Now we have all rhos at grid.coords; plot them:
+        x = []
+        y = []
+        density = []
+        #z = []
+        tol = 0.1
+        for i in range(len(grid.coords)):
+            if abs(grid.coords[i][2]) - z_filter/0.52917721067 < tol:
+                x.append(grid.coords[i][0])
+                y.append(grid.coords[i][1])
+                density.append(rhos[i])
+                #z.append(grid.coords[i][2])
+        #print(x)
+        #plt.scatter(x, y, c=density)
+        #plt.show()
+        #Source: https://earthscience.stackexchange.com/questions/12057/how-to-interpolate-scattered-data-to-a-regular-grid-in-python
+        x_min = min(x)
+        x_max = max(x)
+        y_min = min(y)
+        y_max = max(y)
+        # target grid to interpolate to
+        xi = np.arange(x_min,x_max,0.1)
+        yi = np.arange(y_min,y_max,0.1)
+        xi,yi = np.meshgrid(xi,yi)
+        # interpolate
+        zi = griddata((x,y),density,(xi,yi),method='nearest')
+        #zi = griddata((x,y),density,(xi,yi),method='cubic')
+        # plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plt.contourf(xi,yi,zi,np.arange(0,0.81,0.05))
+        plt.colorbar(label=r'$\rho$ [$a_0^{-3}$]')
+        #Find maximum distance of molecule to scale window
+        max_value = 0
+        for i in range(self.number_atoms):
+            for j in [1,2,3]:
+                if abs(self.geometry[i][j]) > max_value:
+                    max_value = abs(self.geometry[i][j])
+        max_value *= 1.3/0.52917721067 #in Bohr radii
+        plt.xlim([-max_value,max_value])
+        plt.ylim([-max_value,max_value])
+        #plt.plot(x,y,'k.')
+        plt.title(title)
+        plt.xlabel(r'x [$a_0$]')
+        plt.ylabel(r'y [$a_0$]')
+        plt.savefig('rho_plots/'+self.name + '_rho.png',dpi=300)
+        plt.close(fig)
 
-    def get_electronic_energy(self, dZ, basis=basis):
-        return self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
+    def plot_delta_rho(self, dZ1, dZ2, z_filter = 0.0001, title = '', basis=basis):
+        #PARSE THE HYDROGENS!!!!!
+        atom_string = ''
+        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms:
+            raise ValueError("dZ1, dZ2 and "+self.name+" must have the same number of atoms.")
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        #Create two distinct molecules
+        mol1 = gto.Mole()
+        mol1.unit = 'Angstrom'
+        mol1.atom = atom_string[:-2]
+        mol1.basis = basis
+        mol1.verbose = 0
+        mol1.build()
+        mol2 = gto.Mole()
+        mol2.unit = 'Angstrom'
+        mol2.atom = atom_string[:-2]
+        mol2.basis = basis
+        mol2.verbose = 0
+        mol2.build()
+
+        calc1 = add_qmmm(scf.RHF(mol1), mol1, dZ1)
+        hfe1 = calc1.kernel(verbose=0)
+        dm1_ao_1 = calc1.make_rdm1()
+        grid1 = pyscf.dft.gen_grid.Grids(mol1)
+        grid1.level = 3
+        grid1.build()
+        ao_value1 = pyscf.dft.numint.eval_ao(mol1, grid1.coords, deriv=0)
+        rhos1 = pyscf.dft.numint.eval_rho(mol1, ao_value1, dm1_ao_1, xctype="LDA")
+        #Now we have all rhos at grid.coords; plot them:
+        x1 = []
+        y1 = []
+        density1 = []
+        tol = 0.1
+        for i in range(len(grid1.coords)):
+            if abs(grid1.coords[i][2]) - z_filter/0.52917721067 < tol:
+                x1.append(grid1.coords[i][0])
+                y1.append(grid1.coords[i][1])
+                density1.append(rhos1[i])
+
+        calc2 = add_qmmm(scf.RHF(mol2), mol2, dZ2)
+        hfe2 = calc2.kernel(verbose=0)
+        dm1_ao_2 = calc2.make_rdm1()
+        grid2 = pyscf.dft.gen_grid.Grids(mol2)
+        grid2.level = 3
+        grid2.build()
+        ao_value2 = pyscf.dft.numint.eval_ao(mol2, grid2.coords, deriv=0)
+        rhos2 = pyscf.dft.numint.eval_rho(mol2, ao_value2, dm1_ao_2, xctype="LDA")
+        #Now we have all rhos at grid.coords; plot them:
+        x2 = []
+        y2 = []
+        density2 = []
+        tol = 0.1
+        for i in range(len(grid2.coords)):
+            if abs(grid2.coords[i][2]) - z_filter/0.52917721067 < tol:
+                x2.append(grid2.coords[i][0])
+                y2.append(grid2.coords[i][1])
+                density2.append(rhos2[i])
+        #print(x)
+        #plt.scatter(x, y, c=density)
+        #plt.show()
+        #Source: https://earthscience.stackexchange.com/questions/12057/how-to-interpolate-scattered-data-to-a-regular-grid-in-python
+        x_min = min(x1)
+        x_max = max(x1)
+        y_min = min(y1)
+        y_max = max(y1)
+        # target grid to interpolate to
+        xi = np.arange(x_min,x_max,0.1)
+        yi = np.arange(y_min,y_max,0.1)
+        xi,yi = np.meshgrid(xi,yi)
+        # interpolate
+        zi = griddata((x1,y1),density1,(xi,yi),method='nearest') - griddata((x2,y2),density2,(xi,yi),method='nearest')
+        #zi = griddata((x,y),density,(xi,yi),method='cubic')
+        # plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plt.contourf(xi,yi,zi,np.arange(-0.3,0.31,0.05))
+        plt.colorbar(label=r'$\rho$ [$a_0^{-3}$]')
+        #Find maximum distance of molecule to scale window
+        max_value = 0
+        for i in range(self.number_atoms):
+            for j in [1,2,3]:
+                if abs(self.geometry[i][j]) > max_value:
+                    max_value = abs(self.geometry[i][j])
+        max_value *= 1.3/0.52917721067 #in Bohr radii
+        plt.xlim([-max_value,max_value])
+        plt.ylim([-max_value,max_value])
+        #plt.plot(x,y,'k.')
+        plt.title(title)
+        plt.xlabel(r'x [$a_0$]')
+        plt.ylabel(r'y [$a_0$]')
+        plt.savefig('rho_plots/'+self.name + '_delta_rho.png',dpi=300)
+        plt.close(fig)
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
@@ -456,6 +726,12 @@ class MoleAsGraph:
             new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
         return MoleAsGraph(name, new_edge_layout, new_elements_at_index, new_geometry)
 
+
+    def get_total_energy_arbprec(self, digits=30):
+        mpmath.mp.dps = digits
+        molecule, N = MAGtoMole(self)
+        return energy_tot_arbprec(molecule, N)
+
 #MoleAsGraph EXAMPLES-----------------------------------------------------------
 anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
@@ -482,8 +758,13 @@ naphthalene = MoleAsGraph(  'Naphthalene',
                             ['C', 0,2*0.8660254037844386467637231707,-0.5], ['C', 0,0.8660254037844386467637231707,-1], ['C', 0,0,-0.5],
                             ['C', 0,-0.8660254037844386467637231707,1], ['C', 0,-2*0.8660254037844386467637231707,0.5], ['C', 0,-2*0.8660254037844386467637231707, -0.5], ['C', 0,-0.8660254037844386467637231707,-1]])
 
+water = MoleAsGraph(        'Water',
+                            [[0,1],[1,2]],
+                            ['H', 'O', 'H'],
+                            [['H', 0, +1.43233673, -0.96104039], ['O', 0, 0, 0.24026010], ['H', 0, -1.43233673, -0.96104039]])
+
 #PARSER FUNCTION FOR QM9--------------------------------------------------------
-def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
+def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle=None):
     '''MoleAsGraph instance returned'''
     #check if file is present
     if os.path.isfile(input_PathToFile):
@@ -520,21 +801,26 @@ def parse_QM9toMAG(input_PathToFile, with_hydrogen = False):
         for i in range(N):
             #get only the hydrogens and their coordinates
             if mole[i][0] == 'H':
-                #find the index of the atom with the shortest distance
+                #find the index of the heavy atom with the shortest distance
                 shortest_distance = 100000
                 for j in range(N):
-                    distance = np.linalg.norm(np.subtract(mole[j][1:],mole[i][1:]))
-                    if distance < shortest_distance:
-                        shortest_distance = distance
-                        index_of_shortest = j
+                    if mole[j][0] == 'H':
+                        continue
+                    else:
+                        distance = np.linalg.norm(np.subtract(mole[j][1:],mole[i][1:]))
+                        if distance < shortest_distance:
+                            shortest_distance = distance
+                            index_of_shortest = j
                 edge_layout.append([int(index_of_shortest),int(i)])
+    if angle != None:
+        mole = center_mole(mole, angle=angle)
     return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
 def dlambda_electronic_energy(mole, dZ, dlambda, order):
     #dZ is the deviation of the molecule from integer nuclear charges
-    #dlambda is needed as the basis vector for the parameter lambda
+    #dlambda is needed as the basis vector for the parameter lambda and is the change of nuclear charges at lamda=1
     step = 0.02
     if order < 1:
         #print(mole.geometry)
@@ -545,35 +831,18 @@ def dlambda_electronic_energy(mole, dZ, dlambda, order):
             already_compt.update({geom_hash(mole.geometry, dZ):result})
             return result
     else:
-        return (-dlambda_electronic_energy(mole, [x+2*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) +8*dlambda_electronic_energy(mole, [x+step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) -8*dlambda_electronic_energy(mole, [x-step*y for x,y in zip(dZ,dlambda)], dlambda, order-1) + dlambda_electronic_energy(mole, [x-2*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1))/(12*step)
-
+        def f(b):
+            return dlambda_electronic_energy(mole, [x+b*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1)
+        #return (-f(4)/280 + 4*f(3)/105 - f(2)/5 + 4*f(1)/5 - 4*f(-1)/5 + f(-2)/5 - 4*f(-3)/105 + f(-4)/280)/step
+        return (-f(2)/12 + 2*f(1)/3 - 2*f(-1)/3 + f(-2)/12)/step
 
 def lambda_taylorseries_electronic_energy(mole, dZ, dlambda, order):
+    """
+    dlambda is a list with the desired difference in nuclear charge of the endpoints
+    compared to the current state of the molecule (so the difference transmuted for
+    lambda = 1
+    """
     return dlambda_electronic_energy(mole, dZ, dlambda, order)/math.factorial(order)
-
-
-def charge_taylorseries_electronic_energy(geometry, dZ, order):
-    num = len(dZ) #number of possible transmutations for this geometry
-    if order < 1:
-        return Multi_electronic_energy(geometry, [])
-    else:
-        sum = 0
-        for comb in itertools.combinations_with_replacement([i for i in range(num)], order):
-            #print(list(comb))
-            if np.array([dZ[j] != 0 for j in list(comb)]).all():
-                #First: Get the derivative:
-                tmp = Multi_electronic_energy(geometry, list(comb))
-                for k in list(comb):
-                    tmp *= dZ[k]
-                #Here, not just division by factorial(order) but instead the respective multiplicites:
-                #multi = np.unique(list(comb), return_counts= True)[1].tolist()
-                #print(multi)
-                #for i in multi:
-                #    tmp /= math.factorial(i)
-                sum += tmp
-            else:
-                continue
-        return sum/math.factorial(order)
 
 
 def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, get_electronic_energy_difference = False, electronic_energy_order=-1, take_hydrogen_data_from=''):
