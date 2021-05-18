@@ -1,28 +1,30 @@
 #ALL IMPORT STATEMENTS----------------------------------------------------------
 import numpy as np
 import math
+import os
 import sys
+original_stdout = sys.stdout # Save a reference to the original standard output
 import time
 import matplotlib.pyplot as plt
-import os
+from matplotlib import colors
+from scipy.interpolate import griddata
 import igraph
+import networkx as nx
 import itertools
 from pyscf import gto, scf, qmmm
 import pyscf
 from pysmiles import read_smiles
-import networkx as nx
 import mpmath
-from scipy.interpolate import griddata
-from matplotlib import colors
 mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
 from HF_arbprec import *
 import imageio
+import copy
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
-original_stdout = sys.stdout # Save a reference to the original standard output
 tolerance = 0.5 #0.5 gives reliable results; rounding error in geometry-based method
 basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
-representation = 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb'
+representation = 'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
+yukawa_mass = 0 # 0 <=> Coulomb potential # >10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToArbitPrec = '/home/simon/github/APDFT/prototyping/arbitrary-precision/'
@@ -132,7 +134,7 @@ def center_mole(mole, angle_aligning=True, angle=None):
             angle_x = 1
             angle_y = 1
             while abs(angle_x) > limit or abs(angle_y) > limit:
-                for i in range(N-2):
+                for i in [1,2,5]:#range(N-2):
                     if np.linalg.norm(result[i][1:]) < limit: #points too close to origin are plotted anyways
                         continue
                     else:
@@ -142,7 +144,7 @@ def center_mole(mole, angle_aligning=True, angle=None):
                         normal_length = np.linalg.norm(normal)
                         if abs(normal_length) > 0.00001: #We found a suitable cadidate vector
                             break
-                if abs(normal_length) < 0.00001:
+                if abs(normal_length) <= 0.00001:
                     #print(result)
                     return result #Not one (!) suitable candidate found. The molecule is a straight line
                 angle_x = np.arcsin(normal[1]/normal_length)
@@ -180,7 +182,6 @@ def center_mole(mole, angle_aligning=True, angle=None):
 
 def Coulomb_matrix(mole):
     #returns the Coulomb matrix of a given molecule
-    #The elements are gated, such that any discussion of electronic similarity can be restricted to an atoms direct neighborhood
     N = len(mole)
     result = np.zeros((N,N))
     for i in range(N):
@@ -214,6 +215,23 @@ def exaggerated_Coulomb_matrix(mole):
                 result[i][j] = summand
     return result
 
+def yukawa_matrix(mole, yukawa_mass = yukawa_mass):
+    N = len(mole)
+    result = np.zeros((N,N))
+    for i in range(N):
+        for j in range(N):
+            if (j == i):
+                charge = elements[mole[i][0]]
+                summand = 0.5*pow(charge, 2.4)
+                #print(summand)
+                result[i][i] = summand
+            else:
+                r = np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:]))
+                summand = elements[mole[i][0]]*elements[mole[j][0]]*np.exp(yukawa_mass*r)/r
+                #print(summand) #Find out about the size of the summands
+                result[i][j] = summand
+    return result
+
 def atomrep(mole, representation=representation):
     if representation == 'atomic_Coulomb':
         '''returns the sum over rows/columns of the Coulomb matrix.
@@ -221,6 +239,8 @@ def atomrep(mole, representation=representation):
         matrix = Coulomb_matrix(mole)
     elif representation == 'exaggerated_atomic_Coulomb':
         matrix = exaggerated_Coulomb_matrix(mole)
+    elif representation == 'yukawa':
+        matrix = yukawa_matrix(mole)
     return matrix.sum(axis = 0)
 
 def atomrep_inertia_tensor(mole, representation=representation):
@@ -592,7 +612,7 @@ class MoleAsGraph:
         plt.title(title)
         plt.xlabel(r'x [$a_0$]')
         plt.ylabel(r'y [$a_0$]')
-        plt.savefig('rho_plots/'+self.name + '_rho.png',dpi=300)
+        plt.savefig('rho_plots/'+self.name + '_rho.png',dpi=150)
         plt.close(fig)
 
 
@@ -669,7 +689,7 @@ class MoleAsGraph:
             plt.xlabel(r'x [$a_0$]')
             plt.ylabel(r'y [$a_0$]')
             filename = f'weird_named_png'+str(counter)+'.png'
-            plt.savefig(filename,dpi=300)
+            plt.savefig(filename,dpi=150)
             plt.close(fig)
             filenames.append(filename)
             counter += 1
@@ -777,8 +797,130 @@ class MoleAsGraph:
         plt.title(title)
         plt.xlabel(r'x [$a_0$]')
         plt.ylabel(r'y [$a_0$]')
-        plt.savefig('rho_plots/'+self.name + '_delta_rho.png',dpi=300)
+        plt.savefig('rho_plots/'+self.name + '_delta_rho.png',dpi=150)
         plt.close(fig)
+
+
+    def plot_delta_rho_3D(self, dZ1, dZ2, z_offset = 0, title = '', basis=basis):
+        #PARSE THE HYDROGENS!!!!!
+        atom_string = ''
+        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms:
+            raise ValueError("dZ1, dZ2 and "+self.name+" must have the same number of atoms.")
+        for i in range(len(self.geometry)): #get the atoms and their coordinates
+            atom_string += self.geometry[i][0]
+            for j in [1,2,3]:
+                atom_string += ' ' + str(self.geometry[i][j])
+            atom_string += '; '
+        #Create two distinct molecules
+        mol1 = gto.Mole()
+        mol1.unit = 'Angstrom'
+        mol1.atom = atom_string[:-2]
+        mol1.basis = basis
+        mol1.verbose = 0
+        mol1.build()
+        mol2 = gto.Mole()
+        mol2.unit = 'Angstrom'
+        mol2.atom = atom_string[:-2]
+        mol2.basis = basis
+        mol2.verbose = 0
+        mol2.build()
+
+        calc1 = add_qmmm(scf.RHF(mol1), mol1, dZ1)
+        hfe1 = calc1.kernel(verbose=0)
+        dm1_ao_1 = calc1.make_rdm1()
+        grid1 = pyscf.dft.gen_grid.Grids(mol1)
+        grid1.level = 3
+        grid1.build()
+        ao_value1 = pyscf.dft.numint.eval_ao(mol1, grid1.coords, deriv=0)
+        rhos1 = pyscf.dft.numint.eval_rho(mol1, ao_value1, dm1_ao_1, xctype="LDA")
+
+        calc2 = add_qmmm(scf.RHF(mol2), mol2, dZ2)
+        hfe2 = calc2.kernel(verbose=0)
+        dm1_ao_2 = calc2.make_rdm1()
+        grid2 = pyscf.dft.gen_grid.Grids(mol2)
+        grid2.level = 3
+        grid2.build()
+        ao_value2 = pyscf.dft.numint.eval_ao(mol2, grid2.coords, deriv=0)
+        rhos2 = pyscf.dft.numint.eval_rho(mol2, ao_value2, dm1_ao_2, xctype="LDA")
+        #Now we have all rhos at grid.coords; plot them:
+        #Find maximum distance of molecule to scale window
+        max_value = 0
+        for i in range(self.number_atoms):
+            for j in [1,2]: #The z axis is not of interest here
+                if abs(self.geometry[i][j]) > max_value:
+                    max_value = abs(self.geometry[i][j])
+        max_value *= 1.6/0.52917721067 #in Bohr radii
+        counter = 0
+        filenames = []
+        for z_offset in np.arange(-max_value*0.25,max_value*0.25,0.05):
+            #Now we have all rhos at grid.coords; plot them:
+            x1 = []
+            y1 = []
+            density1 = []
+            z_filter = 0.1
+            for i in range(len(grid1.coords)):
+                if abs(grid1.coords[i][2] - z_offset/0.52917721067) < z_filter:
+                    x1.append(grid1.coords[i][0])
+                    y1.append(grid1.coords[i][1])
+                    density1.append(rhos1[i])
+            #Now we have all rhos at grid.coords; plot them:
+            x2 = []
+            y2 = []
+            density2 = []
+            for i in range(len(grid2.coords)):
+                if abs(grid2.coords[i][2] - z_offset/0.52917721067) < z_filter:
+                    x2.append(grid2.coords[i][0])
+                    y2.append(grid2.coords[i][1])
+                    density2.append(rhos2[i])
+            #print(x)
+            #plt.scatter(x, y, c=density)
+            #plt.show()
+            #Source: https://earthscience.stackexchange.com/questions/12057/how-to-interpolate-scattered-data-to-a-regular-grid-in-python
+            x_min = min(x1)
+            x_max = max(x1)
+            y_min = min(y1)
+            y_max = max(y1)
+            # target grid to interpolate to
+            xi = np.arange(x_min,x_max,0.1)
+            yi = np.arange(y_min,y_max,0.1)
+            xi,yi = np.meshgrid(xi,yi)
+            # interpolate
+            zi = griddata((x1,y1),density1,(xi,yi),method='nearest') - griddata((x2,y2),density2,(xi,yi),method='nearest')
+            #zi = griddata((x1,y1),density1,(xi,yi),method='cubic') - griddata((x2,y2),density2,(xi,yi),method='cubic')
+            # plot
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            plt.contourf(xi,yi,zi,np.arange(-0.3,0.31,0.05))
+            plt.colorbar(label=r'$\rho$ [$a_0^{-3}$]')
+            #Find maximum distance of molecule to scale window
+            max_value = 0
+            for i in range(self.number_atoms):
+                for j in [1,2]:
+                    if abs(self.geometry[i][j]) > max_value:
+                        max_value = abs(self.geometry[i][j])
+            max_value *= 1.6/0.52917721067 #in Bohr radii
+            plt.xlim([-max_value,max_value])
+            plt.ylim([-max_value,max_value])
+            #plt.plot(x,y,'k.')
+            plt.title(title)
+            plt.xlabel(r'x [$a_0$]')
+            plt.ylabel(r'y [$a_0$]')
+            filename = f'weird_named_png'+str(counter)+'.png'
+            plt.savefig(filename,dpi=150)
+            plt.close(fig)
+            filenames.append(filename)
+            counter += 1
+
+        # build gif
+        with imageio.get_writer('rho_plots/'+self.name + '_delta_rho.gif', mode='I') as writer:
+            for filename in filenames:
+                image = imageio.imread(filename)
+                writer.append_data(image)
+        # Remove files
+        for filename in set(filenames):
+            os.remove(filename)
+        #Source: https://towardsdatascience.com/basics-of-gifs-with-pythons-matplotlib-54dd544b6f30
+
 
     def fill_hydrogen_valencies(self, input_PathToFile):
         '''If the xyz file from which this molecule originates is known,
@@ -880,7 +1022,7 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
     #Get the geometry of the molecule
     mole = []
-    N_heavyatoms = N
+    N_heavyatoms = copy.deepcopy(N)
     elements_at_index = []
     for i in range(2,N+2): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
@@ -895,13 +1037,17 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
         mole.append([symbol,x,y,z])
         elements_at_index.append(symbol)
     #Find edge_layout:
-    network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=True)
+    try:
+        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=with_hydrogen)
+    except:
+        network = read_smiles(data.splitlines(False)[N+3].split(' ')[0], explicit_hydrogen=with_hydrogen)
     edge_layout = [list(v) for v in network.edges()]
+    #print(mole)
+    #print(edge_layout)
     """
     #All of this is only necessary if one explicitly introduces elements outside of the PSE
     N_hydrogen = N - N_heavyatoms
     Hydrogen_counter = 0
-    if with_hydrogen == True:
         for i in range(N):
             #get only the hydrogens and their coordinates
             if mole[i][0] == 'H':
@@ -960,7 +1106,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
     N_dZ = len(dZ)
     start_time = time.time()
     mole = np.copy(np.array(graph.geometry, dtype=object))
-    N = graph.number_atoms
+    N = copy.copy(graph.number_atoms)
     equi_atoms = np.copy(np.array(graph.equi_atoms, dtype=object))
 
     if N < np.sum(m):
@@ -1087,65 +1233,38 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
     count += len(Total_CIM)
 
     if get_electronic_energy_difference == True:
+        '''Explicitly calculate the energies of all the configurations in Total_CIM[0]
+        and their mirrors, then print their energy difference'''
         if take_hydrogen_data_from != '':
-            '''Explicitly calculate the energies of all the configurations in Total_CIM[0]
-            and their mirrors, then print their energy difference'''
+            full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
-                #Create temporary MoleAsGraph object:
-                dummy_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
-                dummy_geometry = np.array(graph.geometry, copy=True, dtype=object)
+                #print('--------------------------------')
+                dZ = np.zeros((full_mole.number_atoms)).tolist()
                 num = 0
                 for j in similars:
-                    dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
-                    dummy_geometry[j][0] = Total_CIM[i][0][num][0]
+                    dZ[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
                     num += 1
-                dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
-                #print(dummy_mole.geometry)
-                dummy_energy_elec = dummy_mole.get_total_energy()- dummy_mole.get_nuclear_energy()
-                #Calculate mirror molecule's electornic energy:
-                current_config = np.zeros(len(similars),dtype=object)
-                for j in range(len(similars)):
-                    current_config[j] = elements[Total_CIM[i][0][j][0]]
-                mirror_config = 2*standard_config - current_config
-                #Create temporary MoleAsGraph object:
-                mirror_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
-                mirror_geometry = np.array(graph.geometry, copy=True, dtype=object)
-                num = 0
-                for j in similars:
-                    mirror_elements_at_index[j] = inv_elements[mirror_config[num]]
-                    mirror_geometry[j][0] = Total_CIM[i][0][num][0]
-                    mirror_geometry[j][0] = mirror_elements_at_index[j]
-                    num += 1
-                mirror_mole = MoleAsGraph('mirror', graph.edge_layout, mirror_elements_at_index.tolist(), mirror_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
-                mirror_energy_elec = mirror_mole.get_total_energy()- mirror_mole.get_nuclear_energy()
-                print("Electronic energy difference of AEs: "+str(dummy_energy_elec - mirror_energy_elec))
-            else:
-                print("'take_hydrogen_data_from' needs an argument")
-
-    if get_all_energies and len(Total_CIM) > 0:
-        if take_hydrogen_data_from != '':
-            '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
-            but do so by returning a list of MoleAsGraph objects'''
-            for i in range(len(Total_CIM)):
-                #Create temporary MoleAsGraph object:
-                dummy_elements_at_index = np.array(graph.elements_at_index, copy=True, dtype=object)
-                dummy_geometry = np.array(graph.geometry, copy=True, dtype=object)
-                num = 0
-                for j in similars:
-                    dummy_elements_at_index[j] = Total_CIM[i][0][num][0]
-                    dummy_geometry[j][0] = Total_CIM[i][0][num][0]
-                    num += 1
-                dummy_mole = MoleAsGraph('dummy', graph.edge_layout, dummy_elements_at_index.tolist(), dummy_geometry.tolist()).fill_hydrogen_valencies(take_hydrogen_data_from)
-                #print(dummy_mole.geometry)
-                dummy_energy_total = dummy_mole.get_total_energy()
-                dummy_energy_NN = dummy_mole.get_nuclear_energy()
-                print("Total energy: "+str(dummy_energy_total)+"\tNuclear energy: "+str(dummy_energy_NN)+"\tElectronic energy: "+str(dummy_energy_total-dummy_energy_NN))
+                #print(dZ)
+                diff = full_mole.get_electronic_energy(dZ = dZ) - full_mole.get_electronic_energy(dZ = [-x for x in dZ])
+                print(str(diff)+'\t'+str(full_mole.name))
         else:
             print("'take_hydrogen_data_from' needs an argument")
 
-    if electronic_energy_order >= 0:
+    if get_all_energies and len(Total_CIM) > 0:
+        '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
+        but do so by returning a list of MoleAsGraph objects'''
         if take_hydrogen_data_from != '':
-            print("Under contruction")
+            full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
+            for i in range(len(Total_CIM)):
+                #print('--------------------------------')
+                dZ = np.zeros((full_mole.number_atoms)).tolist()
+                num = 0
+                for j in similars:
+                    dZ[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
+                #print(dZ)
+                energy_total = full_mole.get_total_energy(dZ = dZ)
+                energy_nuclear = full_mole.get_nuclear_energy(dZ = dZ)
+                print("Total Energy [Ha]: "+str(energy_total)+"\tElectronic Energy [Ha]: "+str(energy_total-energy_nuclear)+"\tNuclear Energy [Ha]: "+str(energy_nuclear))
         else:
             print("'take_hydrogen_data_from' needs an argument")
 
@@ -1414,19 +1533,23 @@ def Find_theoAEfromgraph(N, dZ_max):
             count += 1
     print('Number of atoms: '+str(N)+'\tdZ_max: '+str(dZ_max)+'\tPossibles / % : '+str(count*batching*100/(num_lines)))
 
-def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'graph', take_hydrogen_data_from = ''):
+def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'geom', take_hydrogen_data_from = ''):
     '''In case of method = 'geom', log = 'verbose', the path for the xyz data of the hydrogens is
     needed to fill the valencies.'''
-    with_energies = False
+    with_all_energies = False
     with_bond_energy_rules = False
+    with_electronic_energy_difference = False
     if method == 'graph' and log == 'verbose':
         with_bond_energy_rules = True
         print('----------------------------')
         print('Bond energy rules:\n')
-    if method == 'geom' and log == 'verbose':
-        with_energies = True
-        print('----------------------------')
-        print('Energies of AEs in Eh:\n')
+    if method == 'geom':
+        if log == 'only_electronic_differences':
+            with_electronic_energy_difference = True
+        elif log == 'verbose':
+            with_all_energies = True
+            print('----------------------------')
+            print('Energies of AEs in Eh:\n')
     dZ_all = np.copy(dZ_possibilities)
     m_all = np.copy(m_possibilities)
     start_time = time.time()
@@ -1477,7 +1600,7 @@ def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'graph', take_hyd
         if method == 'graph':
             x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, bond_energy_rules = with_bond_energy_rules)
         if method == 'geom':
-            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, get_all_energies = with_energies, take_hydrogen_data_from= take_hydrogen_data_from)
+            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, get_all_energies = with_all_energies, get_electronic_energy_difference = with_electronic_energy_difference, take_hydrogen_data_from= take_hydrogen_data_from)
         if log == 'normal' or log == 'verbose':
             print('Time:', time.time()-m_time)
             print('Number of AEs:', x,'\n')
