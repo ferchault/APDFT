@@ -24,7 +24,7 @@ import copy
 tolerance = 0.5 #0.5 gives reliable results; rounding error in geometry-based method
 basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
 representation = 'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
-yukawa_mass = 0 # 0 <=> Coulomb potential # >10 <=> bullshit
+standard_yukawa_range = 1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToArbitPrec = '/home/simon/github/APDFT/prototyping/arbitrary-precision/'
@@ -134,7 +134,7 @@ def center_mole(mole, angle_aligning=True, angle=None):
             angle_x = 1
             angle_y = 1
             while abs(angle_x) > limit or abs(angle_y) > limit:
-                for i in [1,2,5]:#range(N-2):
+                for i in range(N-2): #[1,2,5]
                     if np.linalg.norm(result[i][1:]) < limit: #points too close to origin are plotted anyways
                         continue
                     else:
@@ -215,7 +215,7 @@ def exaggerated_Coulomb_matrix(mole):
                 result[i][j] = summand
     return result
 
-def yukawa_matrix(mole, yukawa_mass = yukawa_mass):
+def yukawa_matrix(mole, yukawa_range = standard_yukawa_range):
     N = len(mole)
     result = np.zeros((N,N))
     for i in range(N):
@@ -227,12 +227,16 @@ def yukawa_matrix(mole, yukawa_mass = yukawa_mass):
                 result[i][i] = summand
             else:
                 r = np.linalg.norm(np.subtract(mole[i][1:],mole[j][1:]))
-                summand = elements[mole[i][0]]*elements[mole[j][0]]*np.exp(yukawa_mass*r)/r
+                if yukawa_range > 0:
+                    summand = elements[mole[i][0]]*elements[mole[j][0]]*np.exp(-r/yukawa_range)/r
+                else:
+                    summand = elements[mole[i][0]]*elements[mole[j][0]]/r
                 #print(summand) #Find out about the size of the summands
                 result[i][j] = summand
     return result
 
-def atomrep(mole, representation=representation):
+def atomrep(mole, representation=representation, yukawa_range=standard_yukawa_range):
+    N = len(mole)
     if representation == 'atomic_Coulomb':
         '''returns the sum over rows/columns of the Coulomb matrix.
         Thus, each atom is assigned its Coulombic neighborhood'''
@@ -240,8 +244,17 @@ def atomrep(mole, representation=representation):
     elif representation == 'exaggerated_atomic_Coulomb':
         matrix = exaggerated_Coulomb_matrix(mole)
     elif representation == 'yukawa':
-        matrix = yukawa_matrix(mole)
-    return matrix.sum(axis = 0)
+        matrix = yukawa_matrix(mole, yukawa_range = yukawa_range)
+    #Calculate the norm:
+    sum = 0
+    result = []
+    for i in range(N):
+        for j in range(N):
+            sum += matrix[i][j]**2
+        sum = sum**0.5
+        result.append(sum)
+        sum = 0
+    return result
 
 def atomrep_inertia_tensor(mole, representation=representation):
     #Calculate an inertia tensor but with atomrep instead of masses
@@ -481,25 +494,11 @@ class MoleAsGraph:
     def get_molecular_norm(self):
         return np.linalg.norm(atomrep_inertia_tensor(self.geometry.copy()))
 
-    def print_atomic_norms(self):
+    def print_atomic_norms(self, yukawa_range = standard_yukawa_range):
         N = self.number_atoms
-        #file = open(input_PathToFile, 'r')
-        #data = file.read()
-        #file.close()
+        rep_norm = atomrep(self.geometry, yukawa_range=yukawa_range)
         for i in range(N):
-            result = 0 #=norm of the row/column of the Coulomb matrix
-            for j in range(N):
-                if (j == i):
-                    result += 0.5*pow(elements[self.geometry[i][0]], 2.4)
-                else:
-                    result += elements[self.geometry[i][0]]*elements[self.geometry[j][0]]/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
-            #Get the number of bonds (including hydrogen for hybridisation purposes)
-            #Num = int(data.splitlines(False)[0]) #number of atoms including hydrogen
-            #smiles = data.splitlines(False)[Num+3].split('\t')[0]
-            #mol = read_smiles(smiles) #include hydrogen for hybridisation counting
-            #graph = nx.to_networkx_graph(mol)
-            #degree = graph.degree([i])[1]
-            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+str(result))
+            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+str(rep_norm[i]))
             #Name   Chemical Element    Index   SMILES  Norm
 
     def get_total_energy(self, dZ=[], basis=basis):
@@ -524,7 +523,12 @@ class MoleAsGraph:
         return total_energy
 
     def get_electronic_energy(self, dZ=[], basis=basis):
-        return self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
+        if geom_hash(self.geometry, dZ) in already_compt:
+            return already_compt[geom_hash(self.geometry, dZ)]
+        else:
+            result = self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
+            already_compt.update({geom_hash(self.geometry, dZ):result})
+            return result
 
     def get_Hessian(self, basis=basis):
         #PARSE THE HYDROGENS!!!!!

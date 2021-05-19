@@ -74,6 +74,7 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         sys.stdout = f # Change the standard output to the created file
         inputpath = PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'
         #print(parse_XYZtoMAG(inputpath, with_hydrogen = False).get_electronic_energy())
+        standard_yukawa_range = batch_index
         Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'only_electronic_differences', method = 'geom', take_hydrogen_data_from=inputpath)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
@@ -106,15 +107,16 @@ for count in range(1,14+1):
 """
 #----------------------Finding Yukawa mass by going through QM9-----------------
 
-yukawa_mass = 0
-while yukawa_mass < 5:
+new_yukawa_range = 0
+for new_yukawa_range in [0.1,0.2,0.3,0.4]:
+    print('----------------------------------')
+    print(new_yukawa_range)
     start_tag = 4
     end_tag = 133885+1
     #---------------------------Mutliprocessing-----------------------------
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
-    pool.starmap(multicore_QM9, [(i,yukawa_mass,1) for i in range(start_tag,end_tag,1000)])
+    pool.starmap(multicore_QM9, [(i,new_yukawa_range,1) for i in range(start_tag,end_tag,1000)])
     pool.close()
-    yukawa_mass += 0.5
 
 #---------------------------theoretically possible graphs-------------------
 """
