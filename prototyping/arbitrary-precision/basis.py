@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import mpmath
+import basis_set_exchange as bse
 
 
 class Atom:
@@ -22,7 +23,7 @@ class Atom:
     Class representing an atom.
     """
 
-    def __init__(self, name, R, Z, orbitals):
+    def __init__(self, name, R, Z, refZ):
         """
         Initializer for ATOM
 
@@ -35,8 +36,40 @@ class Atom:
 
         self.name = name
         self.R = R
-        self.orbitals = orbitals
         self.Z = Z
+        self.refZ = refZ
+
+
+class Basis:
+    def __init__(self, basisset, atoms):
+        self._basis = []
+        for atom in atoms:
+            db = bse.get_basis(basisset, atom.name)
+
+            db = db["elements"][str(int(atom.refZ))]["electron_shells"]
+
+            for shell in db:
+                if shell["function_type"] != "gto":
+                    raise ValueError()
+                if shell["angular_momentum"] != [0]:
+                    raise ValueError()
+
+                a = [mpmath.mpf(_) for _ in shell["exponents"]]
+                d = [mpmath.mpf(_) for _ in shell["coefficients"][0]]
+                self._basis.append(
+                    {
+                        "R": atom.R,  #
+                        "lx": 0,  #
+                        "ly": 0,  #
+                        "lz": 0,  #
+                        "a": a,  #
+                        "d": d,
+                    }
+                )
+        self.K = len(self._basis)
+
+    def basis(self):
+        return self._basis
 
 
 class STO3G:

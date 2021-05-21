@@ -2,7 +2,7 @@
 #%%
 import mpmath
 import configparser
-import json
+import click
 from multiprocessing import Pool, pool
 import multiprocessing as mp
 
@@ -14,6 +14,7 @@ from molecules import *
 
 # region
 import functools
+import basis_set_exchange as bse
 
 
 @functools.lru_cache(maxsize=1)
@@ -21,31 +22,34 @@ def get_ee(bs):
     return EE_list(bs)
 
 
-def energy(lval, dps, distance):
-    bs = sto3g_H2
-    ee = get_ee(bs)
-    print(str(lval), dps)
+def build_system(config, lval):
+    reference_Zs = config["meta"]["reference"].strip().split()
+    target_Zs = config["meta"]["target"].strip().split()
+    coords = config["meta"]["coords"].strip().split("\n")
+
+    mol = []
+
+    N = 0
+    for ref, tar, coord in zip(reference_Zs, target_Zs, coords):
+        N += int(ref)
+        element = bse.lut.element_data_from_Z(int(ref))[0].capitalize()
+        Z = mpmath.mpf(tar) * lval + (1 - lval) * mpmath.mpf(ref)
+        print(coord)
+        atom = Atom(element, tuple([mpmath.mpf(_) for _ in coord.split()]), Z, ref)
+        mol.append(atom)
+    bs = Basis(config["meta"]["basisset"], mol)
+
+    return mol, bs, N
+
+
+def energy(lval, dps, config):
     mpmath.mp.dps = dps
-    mol = [
-        Atom(
-            "H",
-            (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf(0)),
-            mpmath.mpf("2.0") - lval,
-            ["1s"],
-        ),
-        Atom(
-            "H",
-            (mpmath.mpf(0), mpmath.mpf(0), mpmath.mpf(distance)),
-            mpmath.mpf("1.0") + lval,
-            ["1s"],
-        ),
-    ]
-    N = 2
+    mol, bs, N = build_system(config, lval)
+    ee = get_ee(bs)
     K = bs.K
     S = S_overlap(bs)
     X = X_transform(S)
     Hc = H_core(bs, mol)
-    # ee = get_ee(bs)
     Pnew = mpmath.matrix(K, K)
     P = mpmath.matrix(K, K)
     iter = 1
@@ -59,26 +63,33 @@ def energy(lval, dps, distance):
     return (lval, dps), mpmath.chop(energy_el(P, F, Hc))
 
 
-def main(distance, dps, orders, deltaexp):
+@click.command()
+@click.argument("infile")
+@click.argument("outfile")
+def main(infile, outfile):
+    config = configparser.ConfigParser()
+    with open(infile) as fh:
+        config.read_file(fh)
+
     mp.set_start_method("spawn")
+    dps = config["meta"].getint("dps")
     mpmath.mp.dps = dps
 
-    direction = 1
+    direction = config["meta"]["direction"]
+    direction = {"forward": 1, "central": 0, "backward": -1}[direction]
     around = 0
-    args = around, orders
+    args = around, config["meta"].getint("orders")
+
     kwargs = {
-        "h": mpmath.mpf(f"1e-{deltaexp}"),
-        "addprec": 100,
+        "h": mpmath.mpf(f'1e-{config["meta"].getint("deltalambda")}'),
         "direction": direction,
         "method": "step",
     }
 
     pos = []
-    coeffs = mpmath.taylor(
-        lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs
-    )
+    _ = mpmath.taylor(lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs)
 
-    content = [(*_, distance) for _ in pos]
+    content = [(*_, config) for _ in pos]
     with Pool(40) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
@@ -87,10 +98,8 @@ def main(distance, dps, orders, deltaexp):
 
     total = mpmath.mpf("0")
     vals = []
-    ref = energy(mpmath.mpf("0.0"), dps, distance)[1]
-    target = energy(mpmath.mpf("1.0"), dps, distance)[1]
-    print("ref", ref)
-    print("target", target)
+    ref = energy(mpmath.mpf("0.0"), dps, config)[1]
+    target = energy(mpmath.mpf("1.0"), dps, config)[1]
 
     for order, c in enumerate(coeffs):
         total += c
@@ -101,12 +110,8 @@ def main(distance, dps, orders, deltaexp):
             "total": str(total),
             "error": str(total - target),
         }
-        thisdict.update(meta)
-        print(json.dumps(thisdict))
+        print(thisdict)
 
-    # thisdict = {"ref": str(ref), "target": str(target)}
-    # thisdict.update(meta)
-    # print(json.dumps(thisdict))
     return vals
 
 
