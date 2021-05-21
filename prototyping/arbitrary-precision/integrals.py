@@ -709,7 +709,7 @@ def EE_list(basis):
         for j, b2 in enumerate(B):
             for k, b3 in enumerate(B):
                 for l, b4 in enumerate(B):
-
+                    print("ds")
                     for a1, d1 in zip(b1["a"], b1["d"]):
                         for a2, d2 in zip(b2["a"], b2["d"]):
                             for a3, d3 in zip(b3["a"], b3["d"]):
