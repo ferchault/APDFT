@@ -23,7 +23,7 @@ class Atom:
     Class representing an atom.
     """
 
-    def __init__(self, name, R, Z, refZ):
+    def __init__(self, name, R, Z, basisZ):
         """
         Initializer for ATOM
 
@@ -37,16 +37,16 @@ class Atom:
         self.name = name
         self.R = R
         self.Z = Z
-        self.refZ = refZ
+        self.basisZ = basisZ
 
 
 class Basis:
     def __init__(self, basisset, atoms):
         self._basis = []
         for atom in atoms:
-            db = bse.get_basis(basisset, atom.name)
+            db = bse.get_basis(basisset, int(atom.basisZ))
 
-            db = db["elements"][str(int(atom.refZ))]["electron_shells"]
+            db = db["elements"][str(int(atom.basisZ))]["electron_shells"]
 
             for shell in db:
                 if shell["function_type"] != "gto":

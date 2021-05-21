@@ -23,17 +23,18 @@ def get_ee(bs):
 
 def build_system(config, lval):
     reference_Zs = config["meta"]["reference"].strip().split()
+    basis_Zs = config["meta"]["basis"].strip().split()
     target_Zs = config["meta"]["target"].strip().split()
     coords = config["meta"]["coords"].strip().split("\n")
 
     mol = []
 
     N = 0
-    for ref, tar, coord in zip(reference_Zs, target_Zs, coords):
+    for ref, tar, bas, coord in zip(reference_Zs, target_Zs, basis_Zs, coords):
         N += int(ref)
-        element = bse.lut.element_data_from_Z(int(ref))[0].capitalize()
+        element = bse.lut.element_data_from_Z(int(bas))[0].capitalize()
         Z = mpmath.mpf(tar) * lval + (1 - lval) * mpmath.mpf(ref)
-        atom = Atom(element, tuple([mpmath.mpf(_) for _ in coord.split()]), Z, ref)
+        atom = Atom(element, tuple([mpmath.mpf(_) for _ in coord.split()]), Z, bas)
         mol.append(atom)
     bs = Basis(config["meta"]["basisset"], mol)
 
@@ -91,6 +92,13 @@ def main(infile, outfile):
     with Pool(40) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
+    config.add_section("singlepoints")
+    for c, item in enumerate(res.items()):
+        k, v = item
+        lval, d = k
+        config["singlepoints"][f"pos-{c}"] = str(lval)
+        config["singlepoints"][f"dps-{c}"] = str(d)
+        config["singlepoints"][f"energy-{c}"] = str(v)
 
     coeffs = mpmath.taylor(lambda _: res[(_, mpmath.mp.dps)], *args, **kwargs)
 
