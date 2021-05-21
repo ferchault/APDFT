@@ -51,21 +51,58 @@ class Basis:
             for shell in db:
                 if shell["function_type"] != "gto":
                     raise ValueError()
-                if shell["angular_momentum"] != [0]:
-                    raise ValueError()
 
                 a = [mpmath.mpf(_) for _ in shell["exponents"]]
-                d = [mpmath.mpf(_) for _ in shell["coefficients"][0]]
-                self._basis.append(
-                    {
-                        "R": atom.R,  #
-                        "lx": 0,  #
-                        "ly": 0,  #
-                        "lz": 0,  #
-                        "a": a,  #
-                        "d": d,
-                    }
-                )
+                for angmom, coeffs in zip(
+                    shell["angular_momentum"], shell["coefficients"]
+                ):
+                    if angmom > 1:
+                        raise ValueError()
+
+                    d = [mpmath.mpf(_) for _ in coeffs]
+                    if angmom == 0:
+                        self._basis.append(
+                            {
+                                "R": atom.R,  #
+                                "lx": 0,  #
+                                "ly": 0,  #
+                                "lz": 0,  #
+                                "a": a,  #
+                                "d": d,
+                            }
+                        )
+                    if angmom == 1:
+                        self._basis.append(
+                            {
+                                "R": atom.R,  #
+                                "lx": 1,  #
+                                "ly": 0,  #
+                                "lz": 0,  #
+                                "a": a,  #
+                                "d": d,
+                            }
+                        )
+                        self._basis.append(
+                            {
+                                "R": atom.R,  #
+                                "lx": 0,  #
+                                "ly": 1,  #
+                                "lz": 0,  #
+                                "a": a,  #
+                                "d": d,
+                            }
+                        )
+                        self._basis.append(
+                            {
+                                "R": atom.R,  #
+                                "lx": 0,  #
+                                "ly": 0,  #
+                                "lz": 1,  #
+                                "a": a,  #
+                                "d": d,
+                            }
+                        )
+
         self.K = len(self._basis)
 
     def basis(self):
@@ -206,72 +243,3 @@ class STO3G:
                     )
 
             self.K = len(self.STO3G)
-
-    def basis(self):
-        """
-        Return the basis set.
-        """
-
-        return self.STO3G
-
-    def info(self):
-        """
-        Print informations about the bais set.
-        """
-        print("########################")
-        print("STO-3G MINIMAL BASIS SET")
-        print("########################\n")
-
-        for b in self.STO3G:
-            print(b["AOn"] + " orbital:")
-            print("   " + b["AOt"] + ":")
-            print("      R = ", b["R"])
-            print("      lx = " + str(b["lx"]))
-            print("      ly = " + str(b["ly"]))
-            print("      lz = " + str(b["lz"]))
-            print("      alpha = ", b["a"])
-            print("      d = ", b["d"], "\n")
-
-
-if __name__ == "__main__":
-
-    """
-    Results compared with
-
-        Modern Quantum Chemistry
-        Szabo and Ostlund
-        Dover
-        1989
-
-    and
-
-        The Mathematica Journal
-        Evaluation of Gaussian Molecular Integrals
-        I. Overlap Integrals
-        Minhhuy Hô and Julio Manuel Hernández-Pérez
-        2012
-    """
-
-    # HeH+
-    atoms = [Atom("H", (0, 0, 0), ["1s"]), Atom("He", (0, 0, 1.4), ["1s"])]
-
-    # Create the basis set
-    sto3g = STO3G(atoms)
-
-    # Display informations
-    sto3g.info()
-
-    print("\n\n\n\n\n")
-
-    # H2O
-    atoms = [
-        Atom("H", (0, +1.43233673, -0.96104039), ["1s"]),
-        Atom("H", (0, -1.43233673, -0.96104039), ["1s"]),
-        Atom("O", (0, 0, 0.24026010), ["1s", "2s", "2p"]),
-    ]
-
-    # Create the basis set
-    sto3g = STO3G(atoms)
-
-    # Display informations
-    sto3g.info()
