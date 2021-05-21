@@ -20,7 +20,7 @@ import scipy.special as special
 import scipy.special as spec
 import scipy.integrate as quad
 import tqdm
-
+import itertools as it
 
 import mpmath
 
@@ -687,6 +687,73 @@ def electronic(
     return G
 
 
+def do_one(parts):
+    p, q, r, s = parts
+    i, b1 = p
+    j, b2 = q
+    k, b3 = r
+    l, b4 = s
+    ret = mpmath.mpf("0.0")
+    for a1, d1 in zip(b1["a"], b1["d"]):
+        for a2, d2 in zip(b2["a"], b2["d"]):
+            for a3, d3 in zip(b3["a"], b3["d"]):
+                for a4, d4 in zip(b4["a"], b4["d"]):
+                    # Basis functions centers
+                    R1 = b1["R"]
+                    R2 = b2["R"]
+                    R3 = b3["R"]
+                    R4 = b4["R"]
+
+                    # Basis functions angular momenta
+                    ax = b1["lx"]
+                    ay = b1["ly"]
+                    az = b1["lz"]
+
+                    # Basis functions angular momenta
+                    bx = b2["lx"]
+                    by = b2["ly"]
+                    bz = b2["lz"]
+
+                    # Basis functions angular momenta
+                    cx = b3["lx"]
+                    cy = b3["ly"]
+                    cz = b3["lz"]
+
+                    # Basis functions angular momenta
+                    dx = b4["lx"]
+                    dy = b4["ly"]
+                    dz = b4["lz"]
+
+                    tmp = 1
+                    tmp *= d1.conjugate() * d2.conjugate()
+                    tmp *= d3 * d4
+                    tmp *= electronic(
+                        ax,
+                        ay,
+                        az,
+                        bx,
+                        by,
+                        bz,
+                        cx,
+                        cy,
+                        cz,
+                        dx,
+                        dy,
+                        dz,
+                        a1,
+                        a2,
+                        a3,
+                        a4,
+                        R1,
+                        R2,
+                        R3,
+                        R4,
+                    )
+
+                    ret += tmp
+    return i, j, k, l, ret
+
+
 def EE_list(basis):
     """
     Multidimensional array of two-electron integrals.
@@ -705,68 +772,10 @@ def EE_list(basis):
 
     EE = mpmath.matrix(K, K, K, K)
 
-    for i, b1 in enumerate(B):
-        for j, b2 in enumerate(B):
-            for k, b3 in enumerate(B):
-                for l, b4 in enumerate(B):
-                    print("ds")
-                    for a1, d1 in zip(b1["a"], b1["d"]):
-                        for a2, d2 in zip(b2["a"], b2["d"]):
-                            for a3, d3 in zip(b3["a"], b3["d"]):
-                                for a4, d4 in zip(b4["a"], b4["d"]):
-                                    # Basis functions centers
-                                    R1 = b1["R"]
-                                    R2 = b2["R"]
-                                    R3 = b3["R"]
-                                    R4 = b4["R"]
-
-                                    # Basis functions angular momenta
-                                    ax = b1["lx"]
-                                    ay = b1["ly"]
-                                    az = b1["lz"]
-
-                                    # Basis functions angular momenta
-                                    bx = b2["lx"]
-                                    by = b2["ly"]
-                                    bz = b2["lz"]
-
-                                    # Basis functions angular momenta
-                                    cx = b3["lx"]
-                                    cy = b3["ly"]
-                                    cz = b3["lz"]
-
-                                    # Basis functions angular momenta
-                                    dx = b4["lx"]
-                                    dy = b4["ly"]
-                                    dz = b4["lz"]
-
-                                    tmp = 1
-                                    tmp *= d1.conjugate() * d2.conjugate()
-                                    tmp *= d3 * d4
-                                    tmp *= electronic(
-                                        ax,
-                                        ay,
-                                        az,
-                                        bx,
-                                        by,
-                                        bz,
-                                        cx,
-                                        cy,
-                                        cz,
-                                        dx,
-                                        dy,
-                                        dz,
-                                        a1,
-                                        a2,
-                                        a3,
-                                        a4,
-                                        R1,
-                                        R2,
-                                        R3,
-                                        R4,
-                                    )
-
-                                    EE[i, j, k, l] += tmp
+    combos = [_ for _ in enumerate(B)]
+    for parts in it.product(combos, repeat=4):
+        i, j, k, l, E = do_one(parts)
+        EE[i, j, k, l] = E
 
     return EE
 

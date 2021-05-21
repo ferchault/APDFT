@@ -89,7 +89,7 @@ def main(infile, outfile):
     _ = mpmath.taylor(lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs)
 
     content = [(*_, config) for _ in pos]
-    with Pool(40) as p:
+    with Pool(1) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
     config.add_section("singlepoints")
