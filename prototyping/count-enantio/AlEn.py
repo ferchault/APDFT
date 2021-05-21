@@ -4,6 +4,7 @@ import math
 import os
 import sys
 original_stdout = sys.stdout # Save a reference to the original standard output
+np.set_printoptions(threshold=sys.maxsize) #show full arrays
 import time
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -21,10 +22,10 @@ import imageio
 import copy
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
-tolerance = 0.5 #0.5 gives reliable results; rounding error in geometry-based method
+tolerance = 0.1 #0.5 gives reliable results; rounding error in geometry-based method
 basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
-representation = 'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
-standard_yukawa_range = 1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
+representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
+standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToArbitPrec = '/home/simon/github/APDFT/prototyping/arbitrary-precision/'
@@ -68,11 +69,11 @@ dZ_possibilities = np.array([
 ],dtype=object)
 
 #Monkey patching PySCF's qmmm:
-def add_qmmm(calc, mol, dZ):
-    mf = qmmm.mm_charge(calc, mol.atom_coords()*0.52917721067, dZ)
+def add_qmmm(calc, mol, Z):
+    mf = qmmm.mm_charge(calc, mol.atom_coords()*0.52917721067, Z)
     def energy_nuc(self):
         q = mol.atom_charges().copy().astype(np.float)
-        q += dZ
+        q += Z
         return mol.energy_nuc(q)
     mf.energy_nuc = energy_nuc.__get__(mf, mf.__class__)
     return mf
@@ -134,7 +135,7 @@ def center_mole(mole, angle_aligning=True, angle=None):
             angle_x = 1
             angle_y = 1
             while abs(angle_x) > limit or abs(angle_y) > limit:
-                for i in range(N-2): #[1,2,5]
+                for i in range(N-2):
                     if np.linalg.norm(result[i][1:]) < limit: #points too close to origin are plotted anyways
                         continue
                     else:
@@ -333,13 +334,13 @@ def bestest(list, dx):
     return best_x, result
 
 
-def geom_hash(input_geometry, dZ):
+def geom_hash(input_geometry, Z):
     #Assigns a hash value to a geometry
     hash = ''
     N = len(input_geometry)
     for i in range(N):
         hash += '___'
-        hash += input_geometry[i][0]+str(dZ[i])
+        hash += input_geometry[i][0]+str(Z[i])
         hash += '___'
         for j in [1,2,3]:
             hash += str(round(input_geometry[i][j],3))
@@ -481,80 +482,79 @@ class MoleAsGraph:
                 del similars[num_similars]
         return similars
 
-    def get_nuclear_energy(self, dZ=[]):
+    def get_nuclear_energy(self, Z=[]):
         #Calculate the nuclear energy of the molecule
         sum = 0
-        if len(dZ) == 0:
-            dZ = np.zeros((self.number_atoms)).tolist()
+        if len(Z) == 0:
+            Z = np.zeros((self.number_atoms)).tolist()
         for i in range(self.number_atoms):
             for j in range(i+1,self.number_atoms):
-                sum += (elements[self.geometry[i][0]]+dZ[i])*(elements[self.geometry[j][0]]+dZ[j])/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
+                sum += (elements[self.geometry[i][0]]+Z[i])*(elements[self.geometry[j][0]]+Z[j])/np.linalg.norm(np.subtract(self.geometry[i][1:],self.geometry[j][1:]))
         return sum*0.529177210903 #Result needs to be in Ha, and the length has been in Angstrom
 
     def get_molecular_norm(self):
         return np.linalg.norm(atomrep_inertia_tensor(self.geometry.copy()))
 
-    def print_atomic_norms(self, yukawa_range = standard_yukawa_range):
+    def print_atomic_norms(self, yukawa_range = standard_yukawa_range, tolist=False, with_hydrogen=False):
         N = self.number_atoms
         rep_norm = atomrep(self.geometry, yukawa_range=yukawa_range)
-        for i in range(N):
-            print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+str(rep_norm[i]))
-            #Name   Chemical Element    Index   SMILES  Norm
-
-    def get_total_energy(self, dZ=[], basis=basis):
-        #PARSE THE HYDROGENS!!!!!
-        atom_string = ''
-        if len(dZ) == 0:
-            dZ = np.zeros((self.number_atoms)).tolist()
-        for i in range(len(self.geometry)): #get the atoms and their coordinates
-            atom_string += self.geometry[i][0]
-            for j in [1,2,3]:
-                atom_string += ' ' + str(self.geometry[i][j])
-            atom_string += '; '
-        mol = gto.Mole()
-        mol.unit = 'Angstrom'
-        mol.atom = atom_string[:-2]
-        mol.basis = basis
-        mol.verbose = 0
-        mol.build()
-        calc = add_qmmm(scf.RHF(mol), mol, dZ)
-        hfe = calc.kernel(verbose=0)
-        total_energy = calc.e_tot
-        return total_energy
-
-    def get_electronic_energy(self, dZ=[], basis=basis):
-        if geom_hash(self.geometry, dZ) in already_compt:
-            return already_compt[geom_hash(self.geometry, dZ)]
+        result = []
+        if not tolist:
+            for i in range(N):
+                if self.geometry[i][0] == 'H' and with_hydrogen == False:
+                    continue
+                else:
+                    print(self.name+'\t'+self.geometry[i][0]+'\t'+str(i)+'\t'+str(rep_norm[i]))
+                    #Name   Chemical Element    Index   SMILES  Norm
         else:
-            result = self.get_total_energy(dZ, basis=basis) - self.get_nuclear_energy(dZ)
-            already_compt.update({geom_hash(self.geometry, dZ):result})
+            for i in range(N):
+                if self.geometry[i][0] == 'H' and with_hydrogen == False:
+                    continue
+                else:
+                    result.append([self.name, self.geometry[i][0], i,rep_norm[i]])
             return result
 
-    def get_Hessian(self, basis=basis):
-        #PARSE THE HYDROGENS!!!!!
-        atom_string = ''
-        for i in range(len(self.geometry)): #get the atoms and their coordinates
-            atom_string += self.geometry[i][0]
-            for j in [1,2,3]:
-                atom_string += ' ' + str(self.geometry[i][j])
-            atom_string += '; '
-        mol = gto.Mole()
-        mol.unit = 'Angstrom'
-        mol.atom = atom_string[:-2]
-        mol.basis = basis
-        mol.verbose = 0
-        mol.build()
-        mf = mol.RHF().run()
-        h = mf.Hessian().kernel()
-        return h
+    def get_total_energy(self, Z=[], basis=basis):
+        if geom_hash(self.geometry, Z) in already_compt:
+            return already_compt[geom_hash(self.geometry, Z)]
+        else:
+            #Z are additional charges; electrons are accounted for Z
+            #PARSE THE HYDROGENS!!!!!
+            atom_string = ''
+            overall_charge = 0
+            if len(Z) == 0:
+                Z = np.zeros((self.number_atoms)).tolist()
+            for i in range(len(self.geometry)): #get the atoms and their coordinates
+                atom_string += self.geometry[i][0]
+                overall_charge += elements[self.geometry[i][0]]+Z[i]
+                for j in [1,2,3]:
+                    atom_string += ' ' + str(self.geometry[i][j])
+                atom_string += '; '
+            mol = gto.Mole()
+            mol.unit = 'Angstrom'
+            mol.atom = atom_string[:-2]
+            mol.basis = basis
+            mol.verbose = 0
+            mol.nelectron = int(overall_charge+0.001) #Avoid .999 when adding thirds
+            mol.build()
+            calc = add_qmmm(scf.RHF(mol), mol, Z)
+            hfe = calc.kernel(verbose=0)
+            total_energy = calc.e_tot
+            already_compt.update({geom_hash(self.geometry, Z):total_energy})
+            return total_energy
 
-    def plot_rho_2D(self, dZ=[], z_offset = 0, title = '', basis=basis):
+    def get_electronic_energy(self, Z=[], basis=basis):
+        return self.get_total_energy(Z, basis=basis) - self.get_nuclear_energy(Z)
+
+    def plot_rho_2D(self, Z=[], z_offset = 0, title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        if len(dZ) == 0:
-            dZ = np.zeros((self.number_atoms)).tolist()
+        charge = 0
+        if len(Z) == 0:
+            Z = np.zeros((self.number_atoms)).tolist()
         for i in range(len(self.geometry)): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
+            charge += elements[self.geometry[i][0]]+Z[i]
             for j in [1,2,3]:
                 atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
@@ -563,8 +563,9 @@ class MoleAsGraph:
         mol.atom = atom_string[:-2]
         mol.basis = basis
         mol.verbose = 0
+        mol.nelectron = int(charge+0.001) #Avoid .999 when adding thirds
         mol.build()
-        calc = add_qmmm(scf.RHF(mol), mol, dZ)
+        calc = add_qmmm(scf.RHF(mol), mol, Z)
         hfe = calc.kernel(verbose=0)
         dm1_ao = calc.make_rdm1()
         grid = pyscf.dft.gen_grid.Grids(mol)
@@ -620,13 +621,15 @@ class MoleAsGraph:
         plt.close(fig)
 
 
-    def plot_rho_3D(self, dZ=[], title = '', basis=basis):
+    def plot_rho_3D(self, Z=[], title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        if len(dZ) == 0:
-            dZ = np.zeros((self.number_atoms)).tolist()
+        charge = 0
+        if len(Z) == 0:
+            Z = np.zeros((self.number_atoms)).tolist()
         for i in range(len(self.geometry)): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
+            charge += elements[self.geometry[i][0]]+Z[i]
             for j in [1,2,3]:
                 atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
@@ -635,8 +638,10 @@ class MoleAsGraph:
         mol.atom = atom_string[:-2]
         mol.basis = basis
         mol.verbose = 0
+        mol.nelectron = int(charge+0.001) #Avoid .999 when adding thirds
+        mol.spin = 0
         mol.build()
-        calc = add_qmmm(scf.RHF(mol), mol, dZ)
+        calc = add_qmmm(scf.RHF(mol), mol, Z)
         hfe = calc.kernel(verbose=0)
         dm1_ao = calc.make_rdm1()
         grid = pyscf.dft.gen_grid.Grids(mol)
@@ -708,13 +713,19 @@ class MoleAsGraph:
         #Source: https://towardsdatascience.com/basics-of-gifs-with-pythons-matplotlib-54dd544b6f30
 
 
-    def plot_delta_rho_2D(self, dZ1, dZ2, z_offset = 0, title = '', basis=basis):
+    def plot_delta_rho_2D(self, dZ1, dZ2, Z = [], z_offset = 0, title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms:
-            raise ValueError("dZ1, dZ2 and "+self.name+" must have the same number of atoms.")
+        charge1 = 0
+        charge2 = 0
+        if len(Z) == 0:
+            Z = np.zeros((len(dZ2))).tolist()
+        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms or len(dZ1) != len(Z):
+            raise ValueError("Z, dZ1, dZ2 and "+self.name+" must have the same number of atoms.")
         for i in range(len(self.geometry)): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
+            charge1 += elements[self.geometry[i][0]]+Z[i]
+            charge2 += elements[self.geometry[i][0]]+Z[i]
             for j in [1,2,3]:
                 atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
@@ -723,16 +734,18 @@ class MoleAsGraph:
         mol1.unit = 'Angstrom'
         mol1.atom = atom_string[:-2]
         mol1.basis = basis
+        mol1.nelectron = int(charge1)
         mol1.verbose = 0
         mol1.build()
         mol2 = gto.Mole()
         mol2.unit = 'Angstrom'
         mol2.atom = atom_string[:-2]
         mol2.basis = basis
+        mol2.nelectron = int(charge2)
         mol2.verbose = 0
         mol2.build()
 
-        calc1 = add_qmmm(scf.RHF(mol1), mol1, dZ1)
+        calc1 = add_qmmm(scf.RHF(mol1), mol1, [Z[j]+dZ1[j] for j in range(len(Z))])
         hfe1 = calc1.kernel(verbose=0)
         dm1_ao_1 = calc1.make_rdm1()
         grid1 = pyscf.dft.gen_grid.Grids(mol1)
@@ -751,7 +764,7 @@ class MoleAsGraph:
                 y1.append(grid1.coords[i][1])
                 density1.append(rhos1[i])
 
-        calc2 = add_qmmm(scf.RHF(mol2), mol2, dZ2)
+        calc2 = add_qmmm(scf.RHF(mol2), mol2, [Z[j]+dZ2[j] for j in range(len(Z))])
         hfe2 = calc2.kernel(verbose=0)
         dm1_ao_2 = calc2.make_rdm1()
         grid2 = pyscf.dft.gen_grid.Grids(mol2)
@@ -805,13 +818,19 @@ class MoleAsGraph:
         plt.close(fig)
 
 
-    def plot_delta_rho_3D(self, dZ1, dZ2, z_offset = 0, title = '', basis=basis):
+    def plot_delta_rho_3D(self, dZ1, dZ2, Z = [], z_offset = 0, title = '', basis=basis):
         #PARSE THE HYDROGENS!!!!!
         atom_string = ''
-        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms:
+        charge1 = 0
+        charge2 = 0
+        if len(Z) == 0:
+            Z = np.zeros((len(dZ2))).tolist()
+        if len(dZ1) != len(dZ2) or len(dZ1) != self.number_atoms or len(Z) != len(dZ1):
             raise ValueError("dZ1, dZ2 and "+self.name+" must have the same number of atoms.")
         for i in range(len(self.geometry)): #get the atoms and their coordinates
             atom_string += self.geometry[i][0]
+            charge1 += elements[self.geometry[i][0]]+Z[i]
+            charge2 += elements[self.geometry[i][0]]+Z[i]
             for j in [1,2,3]:
                 atom_string += ' ' + str(self.geometry[i][j])
             atom_string += '; '
@@ -820,15 +839,17 @@ class MoleAsGraph:
         mol1.unit = 'Angstrom'
         mol1.atom = atom_string[:-2]
         mol1.basis = basis
+        mol1.nelectron = int(charge1)
         mol1.verbose = 0
         mol1.build()
         mol2 = gto.Mole()
         mol2.unit = 'Angstrom'
         mol2.atom = atom_string[:-2]
         mol2.basis = basis
+        mol2.nelectron = int(charge2)
         mol2.verbose = 0
         mol2.build()
-
+        Z1 = [int(Z[j]+dZ1[j]) for j in range(len(Z))]
         calc1 = add_qmmm(scf.RHF(mol1), mol1, dZ1)
         hfe1 = calc1.kernel(verbose=0)
         dm1_ao_1 = calc1.make_rdm1()
@@ -837,8 +858,8 @@ class MoleAsGraph:
         grid1.build()
         ao_value1 = pyscf.dft.numint.eval_ao(mol1, grid1.coords, deriv=0)
         rhos1 = pyscf.dft.numint.eval_rho(mol1, ao_value1, dm1_ao_1, xctype="LDA")
-
-        calc2 = add_qmmm(scf.RHF(mol2), mol2, dZ2)
+        Z2 = [Z[j]+dZ2[j] for j in range(len(Z))]
+        calc2 = add_qmmm(scf.RHF(mol2), mol2, Z2)
         hfe2 = calc2.kernel(verbose=0)
         dm1_ao_2 = calc2.make_rdm1()
         grid2 = pyscf.dft.gen_grid.Grids(mol2)
@@ -1074,31 +1095,31 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
-def dlambda_electronic_energy(mole, dZ, dlambda, order):
-    #dZ is the deviation of the molecule from integer nuclear charges
+def dlambda_electronic_energy(mole, Z, dlambda, order):
+    #Z is the deviation of the molecule from integer nuclear charges
     #dlambda is needed as the basis vector for the parameter lambda and is the change of nuclear charges at lamda=1
     step = 0.02
     if order < 1:
         #print(mole.geometry)
-        if geom_hash(mole.geometry, dZ) in already_compt:
-            return already_compt[geom_hash(mole.geometry, dZ)]
+        if geom_hash(mole.geometry, Z) in already_compt:
+            return already_compt[geom_hash(mole.geometry, Z)]
         else:
-            result = mole.get_electronic_energy(dZ)
-            already_compt.update({geom_hash(mole.geometry, dZ):result})
+            result = mole.get_electronic_energy(Z)
+            already_compt.update({geom_hash(mole.geometry, Z):result})
             return result
     else:
         def f(b):
-            return dlambda_electronic_energy(mole, [x+b*step*y for x,y in zip(dZ,dlambda)], dlambda, order-1)
+            return dlambda_electronic_energy(mole, [x+b*step*y for x,y in zip(Z,dlambda)], dlambda, order-1)
         #return (-f(4)/280 + 4*f(3)/105 - f(2)/5 + 4*f(1)/5 - 4*f(-1)/5 + f(-2)/5 - 4*f(-3)/105 + f(-4)/280)/step
         return (-f(2)/12 + 2*f(1)/3 - 2*f(-1)/3 + f(-2)/12)/step
 
-def lambda_taylorseries_electronic_energy(mole, dZ, dlambda, order):
+def lambda_taylorseries_electronic_energy(mole, Z, dlambda, order):
     """
     dlambda is a list with the desired difference in nuclear charge of the endpoints
     compared to the current state of the molecule (so the difference transmuted for
     lambda = 1
     """
-    return dlambda_electronic_energy(mole, dZ, dlambda, order)/math.factorial(order)
+    return dlambda_electronic_energy(mole, Z, dlambda, order)/math.factorial(order)
 
 
 def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, get_electronic_energy_difference = False, electronic_energy_order=-1, take_hydrogen_data_from=''):
@@ -1243,13 +1264,13 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
             full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
                 #print('--------------------------------')
-                dZ = np.zeros((full_mole.number_atoms)).tolist()
+                Z = np.zeros((full_mole.number_atoms)).tolist()
                 num = 0
                 for j in similars:
-                    dZ[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
+                    Z[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
                     num += 1
-                #print(dZ)
-                diff = full_mole.get_electronic_energy(dZ = dZ) - full_mole.get_electronic_energy(dZ = [-x for x in dZ])
+                #print(Z)
+                diff = full_mole.get_electronic_energy(Z = Z) - full_mole.get_electronic_energy(Z = [-x for x in Z])
                 print(str(diff)+'\t'+str(full_mole.name))
         else:
             print("'take_hydrogen_data_from' needs an argument")
@@ -1261,13 +1282,14 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
             full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
                 #print('--------------------------------')
-                dZ = np.zeros((full_mole.number_atoms)).tolist()
+                Z = np.zeros((full_mole.number_atoms)).tolist()
                 num = 0
                 for j in similars:
-                    dZ[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
-                #print(dZ)
-                energy_total = full_mole.get_total_energy(dZ = dZ)
-                energy_nuclear = full_mole.get_nuclear_energy(dZ = dZ)
+                    Z[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
+                    num += 1
+                #print(Z)
+                energy_total = full_mole.get_total_energy(Z = Z)
+                energy_nuclear = full_mole.get_nuclear_energy(Z = Z)
                 print("Total Energy [Ha]: "+str(energy_total)+"\tElectronic Energy [Ha]: "+str(energy_total-energy_nuclear)+"\tNuclear Energy [Ha]: "+str(energy_nuclear))
         else:
             print("'take_hydrogen_data_from' needs an argument")
