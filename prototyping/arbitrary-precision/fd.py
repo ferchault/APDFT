@@ -85,6 +85,8 @@ def main(infile, outfile):
         "method": "step",
     }
 
+    _ = energy(0, mpmath.mp.dps, config)
+
     pos = []
     _ = mpmath.taylor(lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs)
 
