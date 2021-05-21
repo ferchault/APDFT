@@ -10,7 +10,6 @@ from RHF import *
 from matrices import *
 from integrals import *
 from basis import *
-from molecules import *
 
 # region
 import functools
@@ -34,7 +33,6 @@ def build_system(config, lval):
         N += int(ref)
         element = bse.lut.element_data_from_Z(int(ref))[0].capitalize()
         Z = mpmath.mpf(tar) * lval + (1 - lval) * mpmath.mpf(ref)
-        print(coord)
         atom = Atom(element, tuple([mpmath.mpf(_) for _ in coord.split()]), Z, ref)
         mol.append(atom)
     bs = Basis(config["meta"]["basisset"], mol)
@@ -97,22 +95,23 @@ def main(infile, outfile):
     coeffs = mpmath.taylor(lambda _: res[(_, mpmath.mp.dps)], *args, **kwargs)
 
     total = mpmath.mpf("0")
-    vals = []
+    config.add_section("endpoints")
     ref = energy(mpmath.mpf("0.0"), dps, config)[1]
     target = energy(mpmath.mpf("1.0"), dps, config)[1]
+    config["endpoints"]["reference"] = str(ref)
+    config["endpoints"]["target"] = str(target)
 
+    # prepare output
+    config.add_section("coefficients")
+    config.add_section("totals")
+    config.add_section("errors")
     for order, c in enumerate(coeffs):
         total += c
-        vals.append(total)
-        thisdict = {
-            "order": order,
-            "coefficient": str(c),
-            "total": str(total),
-            "error": str(total - target),
-        }
-        print(thisdict)
-
-    return vals
+        config["coefficients"][f"order-{order}"] = str(c)
+        config["totals"][f"order-{order}"] = str(total)
+        config["errors"][f"order-{order}"] = str(total - target)
+    with open(outfile, "w") as fh:
+        config.write(fh)
 
 
 if __name__ == "__main__":
