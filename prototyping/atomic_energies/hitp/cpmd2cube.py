@@ -6,7 +6,6 @@ import pickle
 
 def run_cpmp2cube(cpmd2cube_exe, work_dir):
     os.chdir(work_dir)
-    cpmd2cube_exe = '/home/misa/opt/cpmd2cube/cpmd2cube.x'
     process = subprocess.run([cpmd2cube_exe, 'DENSITY'], capture_output = True,text=True)
     return(process)
 
@@ -28,14 +27,19 @@ def save_obj(obj, fname ):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
     
 
-density_dirs = sys.argv[1]
+density_dirs = sys.argv[1] # file in which path to DENSITY files is stored
+cpmd2cube_exe = sys.argv[2] # path to cpmd2cube executable
+
+# filename where info about success of cube-file generation is stored
+# directory where fname is stored
+run_info_dir, run_info_name = os.path.split(density_dirs)
+run_info_name += '_info' 
+
 workdirs = []
 with open(density_dirs, 'r') as f:
     for line in f:
         workdirs.append(line.strip('\n'))
         
-
-cpmd2cube_exe = sys.argv[2]
 run_info = dict()
 for wd in workdirs:
     # make cube file
@@ -47,6 +51,8 @@ for wd in workdirs:
         success = check_conversion(process.stdout, process.stderr)
         run_info[wd] = success
         i += 1
+        if not success == 'reasonable density':
+            print(f'{success} in {wd}')
     # move cube file
     if success == 'reasonable density':
         src = os.path.join(wd, 'DENSITY.cube') # cube path source
@@ -66,8 +72,6 @@ for wd in workdirs:
         os.remove(density_pdb)
     
     
-    # save run_info
-    slurm_id = sys.argv[3]
-    slurm_submitdir = sys.argv[4]
-    info_filepath = os.path.join(slurm_submitdir, f'run_info_{slurm_id}')
-    save_obj(run_info, info_filepath)
+# save run_info
+info_filepath = os.path.join(run_info_dir, run_info_name)
+save_obj(run_info, info_filepath)

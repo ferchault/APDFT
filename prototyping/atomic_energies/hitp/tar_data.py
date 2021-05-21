@@ -11,6 +11,6 @@ with open(sys.argv[1], 'r') as f:
     for line in f:
         paths.append(line.strip('\n'))
 
-for p in paths[:5]:
-    print(f'{p[:-1]}.tar.gz')
-    make_tarfile(f'{p[:-1]}.tar.gz', p[:-1])
+for p in paths:
+    print(f'Generating {p}.tar.gz', flush=True)
+    make_tarfile(f'{p}.tar.gz', p)

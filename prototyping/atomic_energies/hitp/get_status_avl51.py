@@ -12,12 +12,15 @@ with open(paths_file, 'r') as f:
         paths.append(line.strip('\n'))
 results = []
 for workdir in paths:
-    with open(os.path.join(workdir, 'run.log'), 'r') as f:
-        logfile = f.readlines()
-    status = analyse_logfile(logfile)
-    results.append(f'{workdir}: {status}\n')
-    if status != 'converged':
-        print(f'{workdir}: {status}')
+    if os.path.isfile(os.path.join(workdir, 'run.log')):
+        with open(os.path.join(workdir, 'run.log'), 'r') as f:
+            logfile = f.readlines()
+        status = analyse_logfile(logfile)
+        results.append(f'{workdir}: {status}\n')
+        if status != 'converged':
+            print(f'{workdir}: {status}')
+    else:
+        results.append(f'{workdir}: not started\n')
 
 cwd = os.getcwd()
 print(cwd)

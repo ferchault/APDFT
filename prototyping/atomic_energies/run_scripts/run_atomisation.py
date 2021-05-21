@@ -21,22 +21,20 @@ import re
 
 import alchemy_tools2 as at
 from explore_qml_data import get_free_atom_data
-from find_converged import concatenate_files
-
+import utils_qm as uqm
 
 
 # paths to the compounds
-dirs_all = concatenate_files(['/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/batch2_paths_atomic_energies'])
-dirs = dirs_all[123:]
+dirs = uqm.read_list('/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/batch3')
 
-for compound_path in dirs:
-    print(f'Calculation energy in {compound_path}')
+for compound_path in dirs[101:]:
+    print(f'Calculation energy in {compound_path}', flush=True)
     # paths to the cube files
     base = compound_path
-    base = base + 'cube-files/'
-    cubes = ['ve_8.cube', 've_15.cube', 've_23.cube', 've_30.cube', 've_38.cube']
+    base = os.path.join(base, 'cube-files')
+    cubes = ['ve_08.cube', 've_15.cube', 've_23.cube', 've_30.cube', 've_38.cube']
     for i in range(len(cubes)):
-        cubes[i] = base + cubes[i]
+        cubes[i] = os.path.join(base, cubes[i])
         
     path_to_ueg = '/home/misa/APDFT/prototyping/atomic_energies/results/slice_ve38/ueg/ve_00.cube'
     cubes.insert(0, path_to_ueg)

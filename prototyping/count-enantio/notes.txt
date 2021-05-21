@@ -1,0 +1,96 @@
+(base) simon@KrugAspire:~/ce$ python3 main.py
+main.py started
+-------------------------NBBNCC-------------------------
+Actual
+-435.87721373221734
+Taylor series of energy, order 0 :
+-433.2225790071665
+Sum = -433.2225790071665
+Taylor series of energy, order 1 :
+2.5233423350812245e-06
+Sum = -433.2225764838241
+Taylor series of energy, order 2 :
+-2.53075481603163
+Sum = -435.75333129985574
+Taylor series of energy, order 3 :
+0.008558638441613642
+Sum = -435.7447726614141
+Taylor series of energy, order 4 :
+-0.15284105071189957
+Sum = -435.89761371212603
+Taylor series of energy, order 5 :
+0.01331066488013657
+Sum = -435.8843030472459
+-------------------------BNNBCC-------------------------
+Actual
+-435.9038223625181
+Taylor series of energy, order 0 :
+-433.2225790071665
+Sum = -433.2225790071665
+Taylor series of energy, order 1 :
+-2.5233407585645296e-06
+Sum = -433.2225815305072
+Taylor series of energy, order 2 :
+-2.5307548161007034
+Sum = -435.7533363466079
+Taylor series of energy, order 3 :
+-0.008558638934819581
+Sum = -435.7618949855427
+Taylor series of energy, order 4 :
+-0.15284094517550512
+Sum = -435.9147359307182
+Taylor series of energy, order 5 :
+-0.013311751990151931
+Sum = -435.9280476827084
+
+
+(base) simon@mg:~/files/count-enantio$ python3 main.py
+main.py started
+-------------------------NNCNNCCC-------------------------
+Actual
+-739.3292463171272
+Taylor series of energy, order 0 :
+-738.0412452979488
+Sum = -738.0412452979488
+Taylor series of energy, order 1 :
+2.559893156709829e-06
+Sum = -738.0412427380556
+Taylor series of energy, order 2 :
+-1.2810620025464443
+Sum = -739.3223047406021
+Taylor series of energy, order 3 :
+-0.00018135811782708325
+Sum = -739.32248609872
+Taylor series of energy, order 4 :
+0.002857157678900236
+Sum = -739.3196289410411
+Taylor series of energy, order 5 :
+-0.00044140212760958883
+Sum = -739.3200703431687
+Taylor series of energy, order 6 :
+-0.004137434706357778
+Sum = -739.324207777875
+-------------------------CCNCCNNN-------------------------
+Actual
+-739.3284616392402
+Taylor series of energy, order 0 :
+-738.0412452979488
+Sum = -738.0412452979488
+Taylor series of energy, order 1 :
+-2.559893156709829e-06
+Sum = -738.0412478578419
+Taylor series of energy, order 2 :
+-1.2810620025642077
+Sum = -739.3223098604061
+Taylor series of energy, order 3 :
+0.00018135741742438446
+Sum = -739.3221285029887
+Taylor series of energy, order 4 :
+0.002857165485865188
+Sum = -739.3192713375028
+Taylor series of energy, order 5 :
+0.0004415661400975412
+Sum = -739.3188297713626
+Taylor series of energy, order 6 :
+-0.004138688079122776
+Sum = -739.3229684594418
