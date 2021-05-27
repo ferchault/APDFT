@@ -22,6 +22,7 @@ import scipy.special as spec
 import scipy.integrate as quad
 import tqdm
 import itertools as it
+import os
 
 import mpmath
 
@@ -765,25 +766,18 @@ def EE_list(basis):
         EE: list of two-electron integrals, with indices (i,j,k,l)
     """
 
-    # Size of the basis set
-    K = basis.K
-
     # List of basis functions
     B = basis.basis()
 
-    EE = mpmath.matrix(K, K, K, K)
-
     combos = [_ for _ in enumerate(B)]
-    with multiprocessing.Pool(40) as pool:
+    with multiprocessing.Pool(os.cpu_count()) as pool:
         results = list(
             tqdm.tqdm(
-                pool.imap(do_one, it.product(combos, repeat=4)), total=len(combos) ** 4
+                pool.imap(do_one, it.product(combos, repeat=4)),
+                total=len(combos) ** 4,
             )
         )
-    for result in results:
-        i, j, k, l, E = result
-        EE[i, j, k, l] = E
-    return EE
+    return results
 
 
 def print_EE_list(basis, ee):

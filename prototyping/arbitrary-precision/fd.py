@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #%%
+import pickle
 import mpmath
 import configparser
 import click
@@ -17,8 +18,16 @@ import basis_set_exchange as bse
 
 
 @functools.lru_cache(maxsize=1)
-def get_ee(bs):
-    return EE_list(bs)
+def get_ee(basis, cachename):
+    K = basis.K
+
+    EE = mpmath.matrix(K, K, K, K)
+    with open(cachename + "-ee.cache", "rb") as fh:
+        results = pickle.load(fh)
+    for result in results:
+        i, j, k, l, E = result
+        EE[i, j, k, l] = E
+    return EE
 
 
 def build_system(config, lval):
@@ -41,10 +50,20 @@ def build_system(config, lval):
     return mol, bs, N
 
 
+def cache_EE_integrals(dps, config):
+    prevdps = mpmath.mp.dps
+    mpmath.mp.dps = dps
+    mol, bs, N = build_system(config, 0)
+    ee = EE_list(bs)
+    with open(config["meta"]["cache"] + "-ee.cache", "wb") as fh:
+        pickle.dump(ee, fh)
+    mpmath.mp.dps = prevdps
+
+
 def energy(lval, dps, config):
     mpmath.mp.dps = dps
     mol, bs, N = build_system(config, lval)
-    ee = get_ee(bs)
+    ee = get_ee(bs, config["meta"]["cache"])
     K = bs.K
     S = S_overlap(bs)
     X = X_transform(S)
@@ -85,13 +104,13 @@ def main(infile, outfile):
         "method": "step",
     }
 
-    _ = energy(0, mpmath.mp.dps, config)
-
     pos = []
     _ = mpmath.taylor(lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs)
+    maxdps = max([_[1] for _ in pos])
+    cache_EE_integrals(maxdps, config)
 
     content = [(*_, config) for _ in pos]
-    with Pool(1) as p:
+    with Pool(os.cpu_count()) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
     config.add_section("singlepoints")
