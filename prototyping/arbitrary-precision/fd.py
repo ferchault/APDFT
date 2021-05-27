@@ -3,10 +3,10 @@
 import pickle
 import mpmath
 import configparser
+import hashlib
 import click
 from multiprocessing import Pool, pool
 import multiprocessing as mp
-
 from RHF import *
 from matrices import *
 from integrals import *
@@ -51,11 +51,14 @@ def build_system(config, lval):
 
 
 def cache_EE_integrals(dps, config):
+    cachename = config["meta"]["cache"] + "-ee.cache"
+    if os.path.exists(cachename):
+        return
     prevdps = mpmath.mp.dps
     mpmath.mp.dps = dps
     mol, bs, N = build_system(config, 0)
     ee = EE_list(bs)
-    with open(config["meta"]["cache"] + "-ee.cache", "wb") as fh:
+    with open(cachename, "wb") as fh:
         pickle.dump(ee, fh)
     mpmath.mp.dps = prevdps
 
@@ -88,6 +91,8 @@ def main(infile, outfile):
     config = configparser.ConfigParser()
     with open(infile) as fh:
         config.read_file(fh)
+    with open(infile, "rb") as fh:
+        config["meta"]["cache"] = hashlib.sha256(fh.read()).hexdigest()
 
     mp.set_start_method("spawn")
     dps = config["meta"].getint("dps")
