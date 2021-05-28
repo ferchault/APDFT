@@ -81,7 +81,9 @@ def energy(lval, dps, config):
             break
         P = Pnew
         iter += 1
-    return (lval, dps), mpmath.chop(energy_el(P, F, Hc))
+        if iter > 10000:
+            raise ValueError("Unconverged")
+    return (lval, dps), (mpmath.chop(energy_el(P, F, Hc)), iter)
 
 
 @click.command()
@@ -122,16 +124,18 @@ def main(infile, outfile):
     for c, item in enumerate(res.items()):
         k, v = item
         lval, d = k
+        v, iter = v
         config["singlepoints"][f"pos-{c}"] = str(lval)
         config["singlepoints"][f"dps-{c}"] = str(d)
         config["singlepoints"][f"energy-{c}"] = str(v)
+        config["singlepoints"][f"iter-{c}"] = str(iter)
 
-    coeffs = mpmath.taylor(lambda _: res[(_, mpmath.mp.dps)], *args, **kwargs)
+    coeffs = mpmath.taylor(lambda _: res[(_, mpmath.mp.dps)][0], *args, **kwargs)
 
     total = mpmath.mpf("0")
     config.add_section("endpoints")
-    ref = energy(mpmath.mpf("0.0"), dps, config)[1]
-    target = energy(mpmath.mpf("1.0"), dps, config)[1]
+    ref = energy(mpmath.mpf("0.0"), dps, config)[1][0]
+    target = energy(mpmath.mpf("1.0"), dps, config)[1][0]
     config["endpoints"]["reference"] = str(ref)
     config["endpoints"]["target"] = str(target)
 
