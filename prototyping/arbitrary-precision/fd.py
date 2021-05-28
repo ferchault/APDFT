@@ -68,6 +68,32 @@ def cache_EE_integrals(dps, config):
     mpmath.mp.dps = prevdps
 
 
+class DIIS:
+    def __init__(self, maxlen, S):
+        self._maxlen = maxlen
+        self._S = S
+        self._P = []
+        self._F = []
+        self._e = []
+
+    def update(self, P, F):
+        F = from_np(F)
+        P = from_np(P)
+        self._P.append(P)
+        self._F.append(F)
+        q = mpmath.powm(self._S, -0.5)
+        e = q.T * (F * P * self._S - self._S * P * F) * q
+        self._e.append(e)
+        if len(self._P) > self._maxlen:
+            self._P = self._P[1:]
+            self._F = self._F[1:]
+            self._e = self._e[1:]
+
+        print(np.linalg.lstsq(np.array(self._e).T, np.zeros(len(self._e))))
+
+        return F
+
+
 def energy(lval, dps, config, guess):
     mpmath.mp.dps = dps
     mol, bs, N = build_system(config, lval)
@@ -80,12 +106,13 @@ def energy(lval, dps, config, guess):
     P = from_np(guess)
     iter = 1
     mval = 1
+    manager = DIIS(8, S)
     while True:
         # print(P)
-        Pnew, F, E = RHF_step(bs, mol, N, Hc, X, P, ee, False)
+        Pnew, F, E = RHF_step(bs, mol, N, Hc, X, P, ee, False, manager)
         Pnew = P * (1 - mval) + Pnew * mval
         dp = delta_P(P, Pnew)
-        # print("##", dp)
+        print("##", dp)
         if dp < mpmath.mpf(f"1e-{mpmath.mp.dps-3}"):
             break
         P = Pnew
@@ -163,7 +190,7 @@ def main(infile, outfile):
     dm = compare_to_pyscf(config)
 
     content = [(*_, config, dm) for _ in pos]
-    with Pool(os.cpu_count()) as p:
+    with Pool(1) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
     config.add_section("singlepoints")
