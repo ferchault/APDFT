@@ -85,9 +85,9 @@ def norm(ax, ay, az, aa):
     """
 
     # Compute normalization coefficient
-    N = (2 * aa / np.pi) ** (3.0 / 4.0)
+    N = (2 * aa / mpmath.pi) ** (3.0 / 4.0)
     N *= (4 * aa) ** ((ax + ay + az) / 2)
-    N /= np.sqrt(
+    N /= mpmath.sqrt(
         special.factorial2(2 * ax - 1)
         * special.factorial2(2 * ay - 1)
         * special.factorial2(2 * az - 1)
@@ -172,7 +172,7 @@ def overlap(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb):
     S *= Sxyz(ay, by, aa, bb, Ra[1], Rb[1], R[1])  # Overlap along y
     S *= Sxyz(az, bz, aa, bb, Ra[2], Rb[2], R[2])  # Overlap along z
     S *= Na * Nb * c  # Product coefficient and normalization
-    S *= (np.pi / (aa + bb)) ** (3.0 / 2.0)  # Normalization
+    S *= (mpmath.pi / (aa + bb)) ** (3.0 / 2.0)  # Normalization
 
     return S
 
@@ -241,7 +241,7 @@ def kinetic(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb):
         kc *= 0.5
 
         Kc = 1
-        Kc *= c * (np.pi / (aa + bb)) ** (3.0 / 2.0) * kc
+        Kc *= c * (mpmath.pi / (aa + bb)) ** (3.0 / 2.0) * kc
         Kc *= Sxyz(a1, b1, aa, bb, Ra1, Rb1, R1)
         Kc *= Sxyz(a2, b2, aa, bb, Ra2, Rb2, R2)
 
@@ -452,7 +452,7 @@ def nuclear(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb, Rn, Zn):
     Na = norm(ax, ay, az, aa)
     Nb = norm(bx, by, bz, bb)
 
-    Vn *= -Zn * Na * Nb * c * 2 * np.pi / g
+    Vn *= -Zn * Na * Nb * c * 2 * mpmath.pi / g
 
     return Vn
 
@@ -681,9 +681,9 @@ def electronic(
         * c1
         * c2
         * 2
-        * np.pi ** 2
+        * mpmath.pi ** 2
         / (g1 * g2)
-        * np.sqrt(np.pi / (g1 + g2))
+        * mpmath.sqrt(mpmath.pi / (g1 + g2))
     )
 
     return G
