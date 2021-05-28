@@ -5,6 +5,8 @@ import mpmath
 import configparser
 import hashlib
 import click
+import pyscf
+import basis_set_exchange as bse
 from multiprocessing import Pool, pool
 import multiprocessing as mp
 from RHF import *
@@ -18,12 +20,15 @@ import basis_set_exchange as bse
 
 
 @functools.lru_cache(maxsize=1)
-def get_ee(basis, cachename):
-    K = basis.K
-
-    EE = mpmath.matrix(K, K, K, K)
+def get_ee(cachename):
     with open(cachename + "-ee.cache", "rb") as fh:
         results = pickle.load(fh)
+    K = 0
+    for result in results:
+        i, j, k, l, E = result
+        K = max(K, max(i, j, k, l))
+    K = K + 1
+    EE = mpmath.matrix(K, K, K, K)
     for result in results:
         i, j, k, l, E = result
         EE[i, j, k, l] = E
@@ -66,7 +71,7 @@ def cache_EE_integrals(dps, config):
 def energy(lval, dps, config):
     mpmath.mp.dps = dps
     mol, bs, N = build_system(config, lval)
-    ee = get_ee(bs, config["meta"]["cache"])
+    ee = get_ee(config["meta"]["cache"])
     K = bs.K
     S = S_overlap(bs)
     X = X_transform(S)
@@ -84,6 +89,37 @@ def energy(lval, dps, config):
         if iter > 10000:
             raise ValueError("Unconverged")
     return (lval, dps), (mpmath.chop(energy_el(P, F, Hc)), iter)
+
+
+def compare_EE_integrals(config):
+    mol, bs, N = build_system(config, 0)
+    ee = get_ee(config["meta"]["cache"])
+    basis_Zs = config["meta"]["basis"].strip().split()
+    coords = config["meta"]["coords"].strip().split("\n")
+    bsname = config["meta"]["basisset"]
+
+    atomspec = []
+    for Z, cs in zip(basis_Zs, coords):
+        atomspec.append(f"{Z} {cs}")
+    atomspec = ";".join(atomspec)
+
+    basisspec = {}
+    for nuclear_number in set(basis_Zs):
+        basisspec[nuclear_number] = bse.get_basis(bsname, nuclear_number, fmt="nwchem")
+
+    mol = pyscf.gto.Mole()
+    mol.atom = atomspec
+    mol.basis = basisspec
+    mol.verbose = 0
+    mol.build()
+
+    c = pyscf.scf.RHF(mol)
+    c.run()
+    print(c.energy_tot() - c.energy_nuc())
+    S = S_overlap(bs)
+    print(S)
+    print(mol.intor("int1e_ovlp"))
+    print(mol.intor("int2e"))
 
 
 @click.command()
@@ -115,6 +151,10 @@ def main(infile, outfile):
     _ = mpmath.taylor(lambda _: pos.append((_, mpmath.mp.dps)) or 1, *args, **kwargs)
     maxdps = max([_[1] for _ in pos])
     cache_EE_integrals(maxdps, config)
+
+    # compare EE integrals to pyscf
+    compare_EE_integrals(config)
+    print(1 / 0)
 
     content = [(*_, config) for _ in pos]
     with Pool(os.cpu_count()) as p:
