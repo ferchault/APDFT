@@ -7,7 +7,7 @@ import hashlib
 import click
 import pyscf
 import basis_set_exchange as bse
-from multiprocessing import Pool, pool
+from multiprocessing import Pool, Value, pool
 import multiprocessing as mp
 from RHF import *
 from matrices import *
@@ -68,7 +68,7 @@ def cache_EE_integrals(dps, config):
     mpmath.mp.dps = prevdps
 
 
-def energy(lval, dps, config):
+def energy(lval, dps, config, guess):
     mpmath.mp.dps = dps
     mol, bs, N = build_system(config, lval)
     ee = get_ee(config["meta"]["cache"])
@@ -77,11 +77,15 @@ def energy(lval, dps, config):
     X = X_transform(S)
     Hc = H_core(bs, mol)
     Pnew = mpmath.matrix(K, K)
-    P = mpmath.matrix(K, K)
+    P = from_np(guess)
     iter = 1
+    mval = 1
     while True:
+        # print(P)
         Pnew, F, E = RHF_step(bs, mol, N, Hc, X, P, ee, False)
+        Pnew = P * (1 - mval) + Pnew * mval
         dp = delta_P(P, Pnew)
+        # print("##", dp)
         if dp < mpmath.mpf(f"1e-{mpmath.mp.dps-3}"):
             break
         P = Pnew
@@ -91,7 +95,7 @@ def energy(lval, dps, config):
     return (lval, dps), (mpmath.chop(energy_el(P, F, Hc)), iter)
 
 
-def compare_EE_integrals(config):
+def compare_to_pyscf(config):
     mol, bs, N = build_system(config, 0)
     ee = get_ee(config["meta"]["cache"])
     basis_Zs = config["meta"]["basis"].strip().split()
@@ -100,7 +104,8 @@ def compare_EE_integrals(config):
 
     atomspec = []
     for Z, cs in zip(basis_Zs, coords):
-        atomspec.append(f"{Z} {cs}")
+        parts = [float(_) * 0.52917721067 for _ in cs.split()]
+        atomspec.append(f"{Z} {parts[0]} {parts[1]} {parts[2]}")
     atomspec = ";".join(atomspec)
 
     basisspec = {}
@@ -115,11 +120,13 @@ def compare_EE_integrals(config):
 
     c = pyscf.scf.RHF(mol)
     c.run()
-    print(c.energy_tot() - c.energy_nuc())
-    S = S_overlap(bs)
-    print(S)
-    print(mol.intor("int1e_ovlp"))
-    print(mol.intor("int2e"))
+    S_this = to_np(S_overlap(bs)).astype(np.float64)
+    S_pyscf = mol.get_ovlp()
+
+    if not np.allclose(S_this, S_pyscf):
+        raise ValueError("Reference overlap does not agree with pyscf")
+
+    return mol.make_rdm1()
 
 
 @click.command()
@@ -153,10 +160,9 @@ def main(infile, outfile):
     cache_EE_integrals(maxdps, config)
 
     # compare EE integrals to pyscf
-    compare_EE_integrals(config)
-    print(1 / 0)
+    dm = compare_to_pyscf(config)
 
-    content = [(*_, config) for _ in pos]
+    content = [(*_, config, dm) for _ in pos]
     with Pool(os.cpu_count()) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
     res = dict(res)
@@ -174,8 +180,8 @@ def main(infile, outfile):
 
     total = mpmath.mpf("0")
     config.add_section("endpoints")
-    ref = energy(mpmath.mpf("0.0"), dps, config)[1][0]
-    target = energy(mpmath.mpf("1.0"), dps, config)[1][0]
+    ref = energy(mpmath.mpf("0.0"), dps, config, dm)[1][0]
+    target = energy(mpmath.mpf("1.0"), dps, config, dm)[1][0]
     config["endpoints"]["reference"] = str(ref)
     config["endpoints"]["target"] = str(target)
 
