@@ -1,0 +1,49 @@
+&FORCE_EVAL
+  METHOD Quickstep
+  &DFT
+    &MGRID
+      CUTOFF 250
+      REL_CUTOFF 60
+      NGRIDS 4
+    &END MGRID
+    &QS
+      METHOD GAPW
+    &END QS
+    &SCF
+      MAX_SCF 1
+      EPS_SCF 1.0E-8
+      SCF_GUESS RESTART
+      &OT ON
+         MINIMIZER DIIS
+         PRECONDITIONER FULL_ALL
+      &END OT
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL PBE
+      &END XC_FUNCTIONAL
+    &END XC
+  &END DFT
+  &SUBSYS
+    &CELL
+      ABC 10.0 10.0 10.0
+    &END CELL
+    &COORD
+    N1 0 0 0
+    N2 0 0 1
+    &END COORD
+    &KIND N1
+      CORE_CORRECTION UUU
+      BASIS_SET 6-31G
+      POTENTIAL ALL 
+    &END KIND
+    &KIND N2
+      CORE_CORRECTION DDD
+      BASIS_SET 6-31G
+      POTENTIAL ALL 
+    &END KIND
+  &END SUBSYS
+&END FORCE_EVAL
+&GLOBAL
+  PROJECT actest
+  PRINT_LEVEL MEDIUM
+&END GLOBAL
