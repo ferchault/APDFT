@@ -14,18 +14,22 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         os.mkdir('./logs')
     #-----------------------------Count AEs-------------------------------------
     #RAW:
-    '''with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+    """
+    with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')'''
+        print(str(pos)+' -> Done')
+    """
 
     #UNCOLOR:
-    '''with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+    """
+    with open('logs/QM9_uncolored_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(uncolor(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz')), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
-        print(str(pos)+' -> Done')'''
+        print(str(pos)+' -> Done')
+    """
 
     #TARGET SEARCH:
     '''with open('logs/QM9_target_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
@@ -70,11 +74,10 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')'''
 
     #------------------Energy differences of pairs of AE------------------------
-    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_'+str(batch_index)+'.txt', 'a') as f: #batch index is the yukawa mass here
+
+    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_'+str(batch_index)+'tol01.txt', 'a') as f: #batch index is the yukawa mass here
         sys.stdout = f # Change the standard output to the created file
         inputpath = PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'
-        #print(parse_XYZtoMAG(inputpath, with_hydrogen = False).get_electronic_energy())
-        standard_yukawa_range = batch_index
         Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'only_electronic_differences', method = 'geom', take_hydrogen_data_from=inputpath)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
@@ -107,16 +110,13 @@ for count in range(1,14+1):
 """
 #----------------------Finding Yukawa mass by going through QM9-----------------
 
-new_yukawa_range = 0
-for new_yukawa_range in [0.1,0.2,0.3,0.4]:
-    print('----------------------------------')
-    print(new_yukawa_range)
-    start_tag = 4
-    end_tag = 133885+1
-    #---------------------------Mutliprocessing-----------------------------
-    pool = mp.Pool(int(performance_use*mp.cpu_count()))
-    pool.starmap(multicore_QM9, [(i,new_yukawa_range,1) for i in range(start_tag,end_tag,1000)])
-    pool.close()
+print('----------------------------------')
+print(standard_yukawa_range)
+start_tag = 4
+end_tag = 133885+1
+pool = mp.Pool(int(performance_use*mp.cpu_count()))
+pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,1000)])
+pool.close()
 
 #---------------------------theoretically possible graphs-------------------
 """
@@ -144,20 +144,32 @@ pool.close()
 #mole = parse_XYZtoMAG(inputpath, with_hydrogen=False)
 #print(mole.elements_at_index)
 #geomAE(mole, dZ=[1,-1], m=[1,1], get_electronic_energy_difference=True, take_hydrogen_data_from=inputpath)
-
-
+start_tag = 4
+end_tag = 100 #133885+1
+"""
+all_norms = []
+for i in range(start_tag, end_tag):
+    pos = '000000'[:(6-len(str(i)))] + str(i)
+    current_norms = parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz', with_hydrogen = True).print_atomic_norms(tolist=True, with_hydrogen=False)
+    for j in range(len(current_norms)):
+        all_norms.append(current_norms[j])
+all_norms.sort(key = lambda k: k[3]) #sort by norm
+print(np.array(all_norms, dtype=object))
+"""
 #print(parse_XYZtoMAG('benzene.xyz', with_hydrogen = True).geometry)
 
-#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_delta_rho([-1,1,1,-1,0,0,0,0,0,0,0,0],[1,-1,-1,1,0,0,0,0,0,0,0,0])
-#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_rho_2D(dZ=[1,-1,-1,1,0,0,0,0,0,0,0,0])
 #parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000018.xyz', with_hydrogen=True, angle=[0,0,-60]).plot_rho_3D()
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000024.xyz', with_hydrogen=True).geometry)
 #for i in range(30,40):
 #    print(i)
 #    parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_'+'000000'[:(6-len(str(i)))] + str(i)+'.xyz', with_hydrogen=True).plot_rho_2D()
 
-#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-3,-38,5]).plot_rho_3D(dZ=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
-#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-3,-38,5]).plot_delta_rho_3D([1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0], [0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0])
+#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_rho_2D()
+#parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_delta_rho_2D([1,-1,-1,1,0,0,0,0,0,0,0,0], [-1,1,1,-1,0,0,0,0,0,0,0,0])
+
+
+#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_rho_3D(Z=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
+#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_delta_rho_3D([0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,0,0,0,0,0,0,0,0], [-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], Z = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
 #test = MoleAsGraph('H2', [[0,1]], ['H','H'], [['H', 0,0,0],['H',0,0,1.4]])
 
 #test.get_total_energy_arbprec()

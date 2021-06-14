@@ -79,7 +79,15 @@ def aaff(mf,DZ):
     U,dP,e1=alch_deriv(mf,[[x for x in range(mol0.natm)],DZ])
     dC=C@U
     return g1(mol0,dP,P,DZ,g0)+g2(mol0,dP,P,DZ,g0)+g3(mol0,dP,P,g0,e,e1,C,dC)
-
+# with CPHF done
+def aaff_resolv(mf,DZ,U,dP,e1):
+    mol0=mf.mol
+    g0=mf.Gradients()
+    P=mf.make_rdm1()
+    C=mf.mo_coeff
+    e=mf.mo_energy
+    dC=C@U
+    return g1(mol0,dP,P,DZ,g0)+g2(mol0,dP,P,DZ,g0)+g3(mol0,dP,P,g0,e,e1,C,dC)
 
 def alc_deriv_grad_nuc(mol,dL):  # to get the derivative with respect to alch. perturbation
     gn = np.zeros((mol.natm,3))

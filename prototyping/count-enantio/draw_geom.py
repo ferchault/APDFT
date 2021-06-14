@@ -7,6 +7,7 @@ if __name__ == "__main__":
     f = open(sys.argv[1], "r")
     data = f.read()
     f.close()
+    print(data)
     xdata = []
     ydata = []
     zdata = []

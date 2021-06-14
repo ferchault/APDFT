@@ -31,7 +31,7 @@ def from_np(array):
     return mpmath.matrix(array.tolist())
 
 
-def RHF_step(basis, molecule, N, H, X, P_old, ee, verbose=False):
+def RHF_step(basis, molecule, N, H, X, P_old, ee, verbose, manager):
     """
     Restricted Hartree-Fock self-consistent field setp.
 
@@ -44,31 +44,18 @@ def RHF_step(basis, molecule, N, H, X, P_old, ee, verbose=False):
         P_OLD: Old density matrix
         EE: List of electron-electron Integrals
         VERBOSE: verbose flag (set True to print everything on screen)
+        manager: DIIS
     """
-
-    if verbose:
-        print("\nDensity matrix P:")
-        print(P_old)
 
     G = G_ee(basis, molecule, P_old, ee)  # Compute electron-electron interaction matrix
 
-    if verbose:
-        print("\nG matrix:")
-        print(G)
-
     F = to_np(H) + to_np(G)  # Compute Fock matrix
-
-    if verbose:
-        print("\nFock matrix:")
-        print(F)
 
     Fx = np.dot(
         to_np(X).T, np.dot(F, to_np(X))
     )  # Compute Fock matrix in the orthonormal basis set (S=I in this set)
 
-    if verbose:
-        print("\nFock matrix in orthogonal orbital basis:")
-        print(Fx)
+    Fx = manager.update(Fx, P_old)
 
     e, Cx = mpmath.eigh(
         from_np(Fx)
@@ -79,23 +66,10 @@ def RHF_step(basis, molecule, N, H, X, P_old, ee, verbose=False):
     e = to_np(e)[idx]
     Cx = to_np(Cx)[:, idx]
 
-    if verbose:
-        print("\nCoefficients in orthogonal orbital basis:")
-        print(Cx)
-
     e = np.diag(e)  # Extract orbital energies as vector
-
-    if verbose:
-        print("\nEnergies in orthogonal orbital basis:")
-        print(e)
-
     C = np.dot(
         to_np(X), to_np(Cx)
     )  # Transform coefficient matrix in the orthonormal basis to the original basis
-
-    if verbose:
-        print("\nCoefficients:")
-        print(C)
 
     Pnew = P_density(C, N)  # Compute the new density matrix
 

@@ -8,10 +8,10 @@ from functools import reduce
 from pyscf.scf import cphf
 from pyscf import lib
 from pyscf.prop.nmr import rhf as rhf_nmr
-from aaff import alc_deriv_grad_nuc,aaff
+from aaff import alc_deriv_grad_nuc,aaff,aaff_resolv
 from scipy.spatial.transform import Rotation as R
 from FcMole import FcM_like
-
+from AP_utils import alias_param
 ang2bohr=1.8897261246
 bohr2ang=.5291772109
 charge2symbol={1:"H",2:"He",3:"Li",4:"Be",5:"B",6:"C",7:"N",8:"O",9:"F",10:"Ne"}
@@ -135,34 +135,6 @@ def alch_deriv(mf,dL=[]):
     der3=third_deriv_elec(mf,int_r,mo1,e1)
     return (der1,der2,der3)
 
-
-#symmetry operations on bezene
-def old_rotate_matrix(M,mol,atm_idx):  # to rotate the idx of the carbon atoms
-    pt=mol.aoslice_by_atom()[atm_idx,-2]
-    Mr=np.zeros_like(M)
-    Mr[:-pt,:-pt]=M[pt:,pt:]
-    Mr[-pt:,-pt:]=M[:pt,:pt]
-    Mr[:-pt,-pt:]=M[pt:,:pt]
-    Mr[-pt:,:-pt]=M[:pt,pt:]
-    return Mr
-
-def rotate_matrix(M,mol,atm_idx,ref_site=0):  # to rotate the idx of the carbon atoms
-    pt=mol.aoslice_by_atom()[atm_idx,-2]
-    rpt=mol.aoslice_by_atom()[ref_site,-2]
-    Mr=np.zeros_like(M)
-    msize=M.shape[0]
-    for i in range(msize):
-            for j in range(msize):
-                Mr[i,j]=M[(i+rpt-pt)%msize,(j+rpt-pt)%msize]
-    return Mr
-
-def rotate_grad(g,atm_idx,ref_site=0):
-    gr=np.zeros_like(g)
-    glen=g.shape[0]
-    for i in range(glen):
-        gr[i]=g[(i+ref_site-atm_idx)%glen]
-    return gr
-
 def make_dP(mf,mo1):
     mol=mf.mol
     nao=mol.nao
@@ -207,23 +179,23 @@ def cubic_alch_hessian(mf,int_r,mo1,e1):
     return e3
 
 class APDFT_perturbator(lib.StreamObject):
+    @alias_param(param_name="symmetry", param_alias='symm')
     def __init__(self,mf,symmetry=None,sites=None):
         self.mf=mf
         self.mol=mf.mol
-        self.symmetry=symmetry
+        self.symm=symmetry
         self.sites=[]
         for site in sites: self.sites.append(site)
         self.DeltaV=DeltaV
         self.alchemy_cphf_deriv=alchemy_cphf_deriv
         self.make_dP=make_dP
-        self.make_U=make_dP
+        self.make_U=make_U
         self.dVs={}
         self.mo1s={}
         self.e1s={}
         self.dPs={}
         self.afs={}
         self.perturb()
-        self.symm=benz_Symm(self.mol)
         self.cubic_hessian=None
         self.hessian=None
         self.gradient=None
@@ -268,9 +240,10 @@ class APDFT_perturbator(lib.StreamObject):
     def af(self,atm_idx):
         if atm_idx in self.afs: 
             return self.afs[atm_idx] 
-        elif atm_idx in self.symm.eqs:
-            afr=self.af(self.symm.eqs[atm_idx]['ref'])
-            self.afs[atm_idx]=rotate_grad(self.symm.eqs[atm_idx]['op'].apply(afr),atm_idx,ref_site=self.symm.eqs[atm_idx]['ref'])
+        elif self.symm and atm_idx in self.symm.eqs:
+            ref_idx=self.symm.eqs[atm_idx]['ref']
+            afr=self.af(ref_idx)
+            self.afs[atm_idx]=self.symm.symm_gradient(afr,atm_idx,ref_idx)
         else:
             print("No AF found for atom {}. Calculating it from code".format(atm_idx))
             if atm_idx not in self.sites:
@@ -278,7 +251,7 @@ class APDFT_perturbator(lib.StreamObject):
                 self.perturb()
             DZ=[0 for x in range(self.mol.natm)]
             DZ[atm_idx]=1
-            af=aaff(self.mf,DZ,U=self.U(atm_idx),dP=self.dP(atm_idx),e1=self.e1(atm_idx))
+            af=aaff_resolv(self.mf,DZ,U=self.U(atm_idx),dP=self.dP(atm_idx),e1=self.e1(atm_idx))
             af+=alc_deriv_grad_nuc(self.mol,DZ)
             self.afs[atm_idx]=af
         return self.afs[atm_idx]
@@ -288,6 +261,9 @@ class APDFT_perturbator(lib.StreamObject):
     
     def second_deriv(self,idx_1,idx_2):
         return second_deriv_elec(self.mf,self.dV(idx_1),self.mo1(idx_2)) +second_deriv_nuc_nuc(self.mol,[[idx_1,idx_2],[1,1]])
+    def third_deriv(self,pvec):
+        pvec=np.asarray(pvec)
+        return np.einsum('ijk,i,j,k',self.cubic_hessian,pvec,pvec,pvec)
     def build_gradient(self,*args):
         idxs=[]
         for arg in args:
@@ -327,11 +303,18 @@ class APDFT_perturbator(lib.StreamObject):
             e1s=np.asarray([self.e1(x) for x in idxs])
             self.cubic_hessian=cubic_alch_hessian(self.mf,dVs,mo1s,e1s)
             return self.cubic_hessian
+    def build_all(self):
+        self.build_gradient(*self.sites)
+        self.build_hessian(*self.sites)
+        self.build_cubic_hessian(*self.sites)
     def APDFT1(self,pvec):
+        pvec=np.asarray(pvec)
         return self.mf.e_tot+pvec.dot(self.gradient)
     def APDFT2(self,pvec):
+        pvec=np.asarray(pvec)
         return self.APDFT1(pvec)+0.5*np.einsum('i,ij,j',pvec,self.hessian,pvec)
     def APDFT3(self,pvec):
+        pvec=np.asarray(pvec)
         return self.APDFT2(pvec)+1/6*np.einsum('ijk,i,j,k',self.cubic_hessian,pvec,pvec,pvec)     
     
     def targ_energy(self,pvec):
@@ -346,14 +329,5 @@ def parse_to_array(natm,dL):
     for i in range(len(dL[0])):
         arr[dL[0][i]]=dL[1][i]
     return arr
-class benz_Symm:
-    def __init__(self,mol):
-        self.mol=mol
-        #for our particular benzene molecule 
-        self.axis=np.array((0,0,1))
-        self.irrepr=[0,1]
-        self.eqs={}
-        for eq in range(2,12):
-            self.eqs[eq]={'ref':eq%2,'op':R.from_rotvec(-self.axis*np.pi/3*(eq//2))}
-       
+
         

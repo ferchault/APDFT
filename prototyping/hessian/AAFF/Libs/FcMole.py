@@ -54,7 +54,6 @@ def FcM(fcs=[],**kwargs):
     return mol
 
 def FcM_like(in_mol,fcs=[]):
-    print("bubu")
     mol=in_mol.copy()
     mol.with_rinv_at_nucleus=with_rinv_at_nucleus.__get__(mol)
     mol.symmetry=None    #symmetry usually breaks after perturbation

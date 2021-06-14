@@ -15,12 +15,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import multiprocessing
 import numpy as np
 import scipy.special as special
 import scipy.special as spec
 import scipy.integrate as quad
 import tqdm
-
+import itertools as it
+import os
 
 import mpmath
 
@@ -83,9 +85,9 @@ def norm(ax, ay, az, aa):
     """
 
     # Compute normalization coefficient
-    N = (2 * aa / np.pi) ** (3.0 / 4.0)
+    N = (2 * aa / mpmath.pi) ** (3.0 / 4.0)
     N *= (4 * aa) ** ((ax + ay + az) / 2)
-    N /= np.sqrt(
+    N /= mpmath.sqrt(
         special.factorial2(2 * ax - 1)
         * special.factorial2(2 * ay - 1)
         * special.factorial2(2 * az - 1)
@@ -170,7 +172,7 @@ def overlap(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb):
     S *= Sxyz(ay, by, aa, bb, Ra[1], Rb[1], R[1])  # Overlap along y
     S *= Sxyz(az, bz, aa, bb, Ra[2], Rb[2], R[2])  # Overlap along z
     S *= Na * Nb * c  # Product coefficient and normalization
-    S *= (np.pi / (aa + bb)) ** (3.0 / 2.0)  # Normalization
+    S *= (mpmath.pi / (aa + bb)) ** (3.0 / 2.0)  # Normalization
 
     return S
 
@@ -239,7 +241,7 @@ def kinetic(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb):
         kc *= 0.5
 
         Kc = 1
-        Kc *= c * (np.pi / (aa + bb)) ** (3.0 / 2.0) * kc
+        Kc *= c * (mpmath.pi / (aa + bb)) ** (3.0 / 2.0) * kc
         Kc *= Sxyz(a1, b1, aa, bb, Ra1, Rb1, R1)
         Kc *= Sxyz(a2, b2, aa, bb, Ra2, Rb2, R2)
 
@@ -450,7 +452,7 @@ def nuclear(ax, ay, az, bx, by, bz, aa, bb, Ra, Rb, Rn, Zn):
     Na = norm(ax, ay, az, aa)
     Nb = norm(bx, by, bz, bb)
 
-    Vn *= -Zn * Na * Nb * c * 2 * np.pi / g
+    Vn *= -Zn * Na * Nb * c * 2 * mpmath.pi / g
 
     return Vn
 
@@ -679,12 +681,79 @@ def electronic(
         * c1
         * c2
         * 2
-        * np.pi ** 2
+        * mpmath.pi ** 2
         / (g1 * g2)
-        * np.sqrt(np.pi / (g1 + g2))
+        * mpmath.sqrt(mpmath.pi / (g1 + g2))
     )
 
     return G
+
+
+def do_one(parts):
+    p, q, r, s = parts
+    i, b1 = p
+    j, b2 = q
+    k, b3 = r
+    l, b4 = s
+    ret = mpmath.mpf("0.0")
+    for a1, d1 in zip(b1["a"], b1["d"]):
+        for a2, d2 in zip(b2["a"], b2["d"]):
+            for a3, d3 in zip(b3["a"], b3["d"]):
+                for a4, d4 in zip(b4["a"], b4["d"]):
+                    # Basis functions centers
+                    R1 = b1["R"]
+                    R2 = b2["R"]
+                    R3 = b3["R"]
+                    R4 = b4["R"]
+
+                    # Basis functions angular momenta
+                    ax = b1["lx"]
+                    ay = b1["ly"]
+                    az = b1["lz"]
+
+                    # Basis functions angular momenta
+                    bx = b2["lx"]
+                    by = b2["ly"]
+                    bz = b2["lz"]
+
+                    # Basis functions angular momenta
+                    cx = b3["lx"]
+                    cy = b3["ly"]
+                    cz = b3["lz"]
+
+                    # Basis functions angular momenta
+                    dx = b4["lx"]
+                    dy = b4["ly"]
+                    dz = b4["lz"]
+
+                    tmp = 1
+                    tmp *= d1.conjugate() * d2.conjugate()
+                    tmp *= d3 * d4
+                    tmp *= electronic(
+                        ax,
+                        ay,
+                        az,
+                        bx,
+                        by,
+                        bz,
+                        cx,
+                        cy,
+                        cz,
+                        dx,
+                        dy,
+                        dz,
+                        a1,
+                        a2,
+                        a3,
+                        a4,
+                        R1,
+                        R2,
+                        R3,
+                        R4,
+                    )
+
+                    ret += tmp
+    return i, j, k, l, ret
 
 
 def EE_list(basis):
@@ -697,78 +766,18 @@ def EE_list(basis):
         EE: list of two-electron integrals, with indices (i,j,k,l)
     """
 
-    # Size of the basis set
-    K = basis.K
-
     # List of basis functions
     B = basis.basis()
 
-    EE = mpmath.matrix(K, K, K, K)
-
-    for i, b1 in enumerate(B):
-        for j, b2 in enumerate(B):
-            for k, b3 in enumerate(B):
-                for l, b4 in enumerate(B):
-
-                    for a1, d1 in zip(b1["a"], b1["d"]):
-                        for a2, d2 in zip(b2["a"], b2["d"]):
-                            for a3, d3 in zip(b3["a"], b3["d"]):
-                                for a4, d4 in zip(b4["a"], b4["d"]):
-                                    # Basis functions centers
-                                    R1 = b1["R"]
-                                    R2 = b2["R"]
-                                    R3 = b3["R"]
-                                    R4 = b4["R"]
-
-                                    # Basis functions angular momenta
-                                    ax = b1["lx"]
-                                    ay = b1["ly"]
-                                    az = b1["lz"]
-
-                                    # Basis functions angular momenta
-                                    bx = b2["lx"]
-                                    by = b2["ly"]
-                                    bz = b2["lz"]
-
-                                    # Basis functions angular momenta
-                                    cx = b3["lx"]
-                                    cy = b3["ly"]
-                                    cz = b3["lz"]
-
-                                    # Basis functions angular momenta
-                                    dx = b4["lx"]
-                                    dy = b4["ly"]
-                                    dz = b4["lz"]
-
-                                    tmp = 1
-                                    tmp *= d1.conjugate() * d2.conjugate()
-                                    tmp *= d3 * d4
-                                    tmp *= electronic(
-                                        ax,
-                                        ay,
-                                        az,
-                                        bx,
-                                        by,
-                                        bz,
-                                        cx,
-                                        cy,
-                                        cz,
-                                        dx,
-                                        dy,
-                                        dz,
-                                        a1,
-                                        a2,
-                                        a3,
-                                        a4,
-                                        R1,
-                                        R2,
-                                        R3,
-                                        R4,
-                                    )
-
-                                    EE[i, j, k, l] += tmp
-
-    return EE
+    combos = [_ for _ in enumerate(B)]
+    with multiprocessing.Pool(os.cpu_count()) as pool:
+        results = list(
+            tqdm.tqdm(
+                pool.imap(do_one, it.product(combos, repeat=4)),
+                total=len(combos) ** 4,
+            )
+        )
+    return results
 
 
 def print_EE_list(basis, ee):
@@ -790,29 +799,3 @@ def print_EE_list(basis, ee):
                             i + 1, j + 1, k + 1, l + 1, ee[i, j, k, l]
                         )
                     )
-
-
-if __name__ == "__main__":
-
-    """
-    Results compared with
-
-        Modern Quantum Chemistry
-        Szabo and Ostlund
-        Dover
-        1989
-    """
-
-    # System: HeH+
-    HeH = [Atom("He", (0, 0, 1.4632), 2, ["1s"]), Atom("H", (0, 0, 0), 1, ["1s"])]
-
-    sto3g_HeH = STO3G(HeH)  # Create basis set
-
-    ee_HeH = EE_list(sto3g_HeH)  # Compute electron-electron integrals for HeH+
-
-    print("######################")
-    print("Two electron integrals")
-    print("######################")
-
-    print("\n HeH")
-    print_EE_list(ee_HeH)  # Print electron-electron integrals
