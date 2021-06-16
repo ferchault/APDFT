@@ -362,8 +362,13 @@ def F(nu, x):
         ff = 1 / (2 * nu + 1) - x / (2 * nu + 3)
     else:
         # Evaluate Boys function with incomplete and complete Gamma functions
-        ff = 0.5 / x ** (nu + 0.5) * spec.gamma(nu + 0.5) * mpmath.gammainc(nu + 0.5, x)
-
+        ff = (
+            0.5
+            / x ** (nu + 0.5)
+            * spec.gamma(nu + 0.5)
+            * mpmath.gammainc(nu + 0.5, 0, x, regularized=True)
+        )
+        print ("FF", nu, x, ff)
     return ff
 
 

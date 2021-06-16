@@ -40,6 +40,28 @@ class Atom:
         self.basisZ = basisZ
 
 
+class LegacyAtom:
+    """
+    Class representing an atom.
+    """
+
+    def __init__(self, name, R, Z, orbitals):
+        """
+        Initializer for ATOM
+
+        INPUT:
+            NAME: Name of the element
+            R: Position (cartesian coordinates, atomic units)
+            Z: Atomic charge
+            ORBITALS: list of orbitals for this atom
+        """
+
+        self.name = name
+        self.R = R
+        self.Z = Z
+        self.orbitals = orbitals
+
+
 class Basis:
     def __init__(self, basisset, atoms):
         self._basis = []
@@ -113,6 +135,13 @@ class STO3G:
     """
     STO-3G minimal basis set.
     """
+
+    def basis(self):
+        """
+        Return the basis set.
+        """
+
+        return self.STO3G
 
     def __init__(self, atoms):
         """

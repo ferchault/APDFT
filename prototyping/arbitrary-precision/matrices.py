@@ -315,8 +315,10 @@ if __name__ == "__main__":
     """
 
     # H2
-    H2 = [Atom("H", (0, 0, 0), 1, ["1s"]), Atom("H", (0, 0, 1.4), 1, ["1s"])]
-
+    H2 = [
+        LegacyAtom("H", (0, 0, 0), 1, ["1s"]),
+        LegacyAtom("H", (0, 0, 1.4), 1, ["1s"]),
+    ]
     # Create the basis set
     sto3g_H2 = STO3G(H2)
 
