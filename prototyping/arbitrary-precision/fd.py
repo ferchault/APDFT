@@ -76,22 +76,40 @@ class DIIS:
         self._F = []
         self._e = []
 
-    def update(self, P, F):
-        F = from_np(F)
-        P = from_np(P)
-        self._P.append(P)
+    def update(self, F, P):
+        # print("F", F)
+        F = from_np(F.copy())
+        P = from_np(P.copy())
         self._F.append(F)
-        q = mpmath.powm(self._S, -0.5)
-        e = q.T * (F * P * self._S - self._S * P * F) * q
-        self._e.append(e)
+        self._P.append(P)
+        sdf = self._S * P * F
+        e = sdf.T - sdf
+        self._e.append(to_np(e).reshape(-1))
         if len(self._P) > self._maxlen:
             self._P = self._P[1:]
             self._F = self._F[1:]
             self._e = self._e[1:]
+            e = np.array(self._e)
+            N = len(self._e)
+            A = np.zeros((N + 1, N + 1)) - 1
+            for i in range(N):
+                for j in range(N):
+                    A[i, j] = np.dot(e[i], e[j])
+            A[N, N] = 0
+            b = np.zeros(N + 1)
+            b[N] = -1
 
-        print(np.linalg.lstsq(np.array(self._e).T, np.zeros(len(self._e))))
+            ci, res, rank, s = np.linalg.lstsq(A, b, rcond=None)
+            # print(sum(ci))
+            Fprime = to_np(F) * 0
+            for i in range(N):
+                Fprime += ci[i] * to_np(self._F[i])
 
-        return F
+            Fprime = to_np(Fprime)
+        else:
+            Fprime = to_np(F)
+
+        return Fprime
 
 
 def energy(lval, dps, config, guess):
@@ -105,20 +123,28 @@ def energy(lval, dps, config, guess):
     Pnew = mpmath.matrix(K, K)
     P = from_np(guess)
     iter = 1
-    mval = 1
     manager = DIIS(8, S)
     while True:
-        # print(P)
+        # print("P", P)
+
+        # G = G_ee(bs, mol, P, ee)
+        # print("T", T_kinetic(bs))
+        # print("V", Hc - T_kinetic(bs))
+        # print("Hc", Hc)
+        # print("Veff", G)
+        # print("S", S)
         Pnew, F, E = RHF_step(bs, mol, N, Hc, X, P, ee, False, manager)
-        Pnew = P * (1 - mval) + Pnew * mval
+
         dp = delta_P(P, Pnew)
-        print("##", dp)
+        # print("##", mpmath.nstr(dp), mpmath.nstr(mpmath.mpf(f"1e-{mpmath.mp.dps-3}")))
         if dp < mpmath.mpf(f"1e-{mpmath.mp.dps-3}"):
             break
         P = Pnew
         iter += 1
-        if iter > 10000:
-            raise ValueError("Unconverged")
+        if iter > 50000:
+            got = mpmath.nstr(dp)
+            expected = mpmath.nstr(mpmath.mpf(f"1e-{mpmath.mp.dps-3}"))
+            raise ValueError(f"Unconverged: {got} instead of {expected}")
     return (lval, dps), (mpmath.chop(energy_el(P, F, Hc)), iter)
 
 
@@ -142,13 +168,31 @@ def compare_to_pyscf(config):
     mol = pyscf.gto.Mole()
     mol.atom = atomspec
     mol.basis = basisspec
-    mol.verbose = 0
     mol.build()
 
     c = pyscf.scf.RHF(mol)
     c.run()
     S_this = to_np(S_overlap(bs)).astype(np.float64)
     S_pyscf = mol.get_ovlp()
+
+    # from functools import reduce
+
+    # P = mol.make_rdm1()
+    # F = c.get_hcore() + c.get_veff(c.mol, P)
+    # print("REFREFREF v")
+    # print("P", P)
+    # print("T", mol.intor_symmetric("int1e_kin"))
+    # print("V", mol.intor_symmetric("int1e_nuc"))
+    # print("F", F)
+    # print("Hc", c.get_hcore())
+    # print("Veff", c.get_veff(c.mol, P))
+    # print("S", S_pyscf)
+    # sdf = reduce(np.dot, (S_pyscf, P, F))
+    # print("SD", np.dot(S_pyscf, P))
+    # print("SDF", sdf)
+    # print("REFREFREF ^")
+    # e = sdf.T.conj() - sdf
+    # print("EEEE", np.linalg.norm(e))
 
     if not np.allclose(S_this, S_pyscf):
         raise ValueError("Reference overlap does not agree with pyscf")
@@ -188,10 +232,12 @@ def main(infile, outfile):
 
     # compare EE integrals to pyscf
     dm = compare_to_pyscf(config)
+    # print(dm)
 
     content = [(*_, config, dm) for _ in pos]
-    with Pool(1) as p:
+    with Pool(os.cpu_count()) as p:
         res = p.starmap(energy, tqdm.tqdm(content, total=len(content)), chunksize=1)
+    # res = [energy(*_) for _ in content]
     res = dict(res)
     config.add_section("singlepoints")
     for c, item in enumerate(res.items()):

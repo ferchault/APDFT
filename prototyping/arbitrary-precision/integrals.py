@@ -368,7 +368,6 @@ def F(nu, x):
             * spec.gamma(nu + 0.5)
             * mpmath.gammainc(nu + 0.5, 0, x, regularized=True)
         )
-        print ("FF", nu, x, ff)
     return ff
 
 

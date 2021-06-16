@@ -51,11 +51,11 @@ def RHF_step(basis, molecule, N, H, X, P_old, ee, verbose, manager):
 
     F = to_np(H) + to_np(G)  # Compute Fock matrix
 
+    F = manager.update(F, P_old)
+
     Fx = np.dot(
         to_np(X).T, np.dot(F, to_np(X))
     )  # Compute Fock matrix in the orthonormal basis set (S=I in this set)
-
-    Fx = manager.update(Fx, P_old)
 
     e, Cx = mpmath.eigh(
         from_np(Fx)
