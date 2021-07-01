@@ -213,7 +213,16 @@ class APDFT_perturbator(lib.StreamObject):
     
     def perturb(self):
         for site in self.sites:
-            if not site in self.mo1s:
+            if site in self.mo1s: 
+                pass
+            elif  self.symm and site in self.symm.eqs:
+                ref_idx=self.symm.eqs[site]['ref']
+                if ref_idx in self.mo1s:
+                    self.dVs[site]=DeltaV(self.mol,[[site],[1]])
+                    self.mo1s[site],self.e1s[site]=self.symm.rotate_mo1e1(self.mo1s[ref_idx],self.e1s[ref_idx],\
+                    site,ref_idx,self.mf.mo_coeff,self.mf.get_ovlp())
+                else: continue
+            else:
                 self.dVs[site]=DeltaV(self.mol,[[site],[1]])
                 self.mo1s[site],self.e1s[site]=alchemy_cphf_deriv(self.mf,self.dVs[site])
     def mo1(self,atm_idx):
@@ -290,7 +299,7 @@ class APDFT_perturbator(lib.StreamObject):
             hessian=np.zeros((len(idxs),len(idxs)))
             for i in range(len(idxs)):
                 for j in range(i,len(idxs)):
-                    hessian[i,j]=second_deriv_nuc_nuc(self.mol,[[i,j],[1,1]])/2
+                    hessian[i,j]=second_deriv_nuc_nuc(self.mol,[[idxs[i],idxs[j]],[1,1]])/2
             hessian+=hessian.T
             return hessian   
     def build_cubic_hessian(self,*args):

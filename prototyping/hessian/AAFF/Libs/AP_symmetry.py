@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-
+from pyscf.symm.basis import _ao_rotation_matrices as aorm
 
 #symmetry operations on bezene
        
@@ -24,8 +24,6 @@ def rotate_matrix(M,mol,atm_idx,ref_site=0):  # to rotate the idx of the carbon 
     return Mr
 
 
-
-
 def rotate_grad(g,atm_idx,ref_site=0):
     gr=np.zeros_like(g)
     glen=g.shape[0]
@@ -47,7 +45,27 @@ class benz_Symm:
     def symm_gradient(self,afr,atm_idx,ref_idx):
         return rotate_grad(self.eqs[atm_idx]['op'].apply(afr),atm_idx,ref_site=ref_idx)
 
+    def rotate_mo1e1(self,mo1,e1,site,ref_idx,C,S):
+        nocc=self.mol.nelec[0]
+        rm=self.make_RM(site,ref_idx)
+        mo1r=(C.T@S@rotate_matrix(rm.T@(C@mo1@C.T[:nocc,:])@rm,self.mol,site,ref_site=ref_idx)@S@C)[:,:nocc]
+        e1r=(C.T@S@rotate_matrix(rm.T@(C[:,:nocc]@e1@C.T[:nocc,:])@rm,self.mol,site,ref_site=ref_idx)@S@C)[:nocc,:nocc]
+        return (mo1r,e1r)
 
+    def make_RM(self,site,ref_idx):
+        p_idxs=[i for i,elem in enumerate(self.mol.ao_labels()) if  "px" in elem]
+        d_idxs=[i for i,elem in enumerate(self.mol.ao_labels()) if  "dxy" in elem]
+        f_idxs=[i for i,elem in enumerate(self.mol.ao_labels()) if  "fy^3" in elem]
+        rm_p= self.eqs[site]['op'].as_dcm()
+        Dm_ao=aorm(self.mol,rm_p)
+        rm=np.eye(self.mol.nao)
+        for i in p_idxs:
+            rm[i:i+3,i:i+3]=Dm_ao[1]
+        for i in d_idxs:
+            rm[i:i+5,i:i+5]=Dm_ao[2]
+        for i in f_idxs:
+            rm[i:i+7,i:i+7]=Dm_ao[3]
+        return rm
 
 
 
