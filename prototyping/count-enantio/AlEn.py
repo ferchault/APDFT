@@ -22,7 +22,8 @@ import imageio
 import copy
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
-tolerance = 0.1 #0.5 gives reliable results; rounding error in geometry-based method
+tolerance = 2.0 #0.5 gives reliable results; rounding error in geometry-based method
+looseness = 2.0
 basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
 representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
 standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
@@ -89,16 +90,16 @@ def delta(i,j):
     else:
         return 0
 
-def are_close_scalars(a,b):
+def are_close_scalars(a,b,looseness):
     value = False
-    if abs(a-b) < tolerance:
+    if abs(a-b) < looseness:
         value = True
     return value
 
 def are_close_lists(a,b):
     value = True
     for i in range(len(a)):
-        if abs(a[i]-b[i]) > tolerance:
+        if abs(a[i]-b[i]) > tolerance*np.sqrt(len(a)): #The prefactor allows less closer arrays to appear so.
             value = False
     return value
 
@@ -468,7 +469,7 @@ class MoleAsGraph:
             lst.append(indices[i])
             indices2.remove(i)
             for j in range(i+1,len(indices)):
-                if are_close_scalars(CN[indices[i]],CN[indices[j]]):
+                if are_close_scalars(CN[indices[i]],CN[indices[j]],looseness):
                     lst.append(indices[j])
                     indices2.remove(j)
             similars.append(lst)
@@ -1122,7 +1123,7 @@ def lambda_taylorseries_electronic_energy(mole, Z, dlambda, order):
     return dlambda_electronic_energy(mole, Z, dlambda, order)/math.factorial(order)
 
 
-def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, get_electronic_energy_difference = False, electronic_energy_order=-1, take_hydrogen_data_from=''):
+def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, with_all_energies = False, with_electronic_energy_difference = False, with_Taylor_expansion = False, take_hydrogen_data_from=''):
     '''Returns the number of alchemical enantiomers of mole that can be reached by
     varying m[i] atoms in mole with identical Coulombic neighborhood by dZ[i].
     In case of method = 'geom', log = 'verbose', the path for the xyz data of the hydrogens is
@@ -1257,7 +1258,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
     to count.'''
     count += len(Total_CIM)
 
-    if get_electronic_energy_difference == True:
+    if with_electronic_energy_difference and len(Total_CIM) > 0:
         '''Explicitly calculate the energies of all the configurations in Total_CIM[0]
         and their mirrors, then print their energy difference'''
         if take_hydrogen_data_from != '':
@@ -1266,19 +1267,72 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, get_all_energies = False, g
                 #print('--------------------------------')
                 Z = np.zeros((full_mole.number_atoms)).tolist()
                 num = 0
+                #Initalize the two strings to discriminate the AEs
+                AE_string1 = ''
+                AE_string2 = ''
                 for j in similars:
                     Z[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
                     num += 1
+                #Fill both strings
+                for j in range(full_mole.number_atoms):
+                    AE_string1 += inv_elements[elements[full_mole.geometry[j][0]]+Z[j]]
+                    AE_string2 += inv_elements[elements[full_mole.geometry[j][0]]-Z[j]]
                 #print(Z)
                 diff = full_mole.get_electronic_energy(Z = Z) - full_mole.get_electronic_energy(Z = [-x for x in Z])
+                print("------------------------"+AE_string1+" minus "+AE_string2+"-------------------------")
                 print(str(diff)+'\t'+str(full_mole.name))
         else:
             print("'take_hydrogen_data_from' needs an argument")
 
-    if get_all_energies and len(Total_CIM) > 0:
+    if with_Taylor_expansion and len(Total_CIM) > 0:
+        max_order = 2
+        '''Explicitly calculate the Taylor expansion of all the configurations in Total_CIM[0]
+        and their mirrors, then print their energy difference'''
+        if take_hydrogen_data_from != '':
+            full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
+            for i in range(len(Total_CIM)):
+                #print('--------------------------------')
+                Z = np.zeros((full_mole.number_atoms)).tolist()
+                num = 0
+                #Initalize the only one string to discriminate the AEs
+                AE_string1 = ''
+                AE_string2 = ''
+                for j in similars:
+                    Z[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
+                    num += 1
+                #Fill both strings
+                for j in range(full_mole.number_atoms):
+                    AE_string1 += inv_elements[elements[full_mole.geometry[j][0]]+Z[j]]
+                    AE_string2 += inv_elements[elements[full_mole.geometry[j][0]]-Z[j]]
+                #print(Z)
+                print("------------------------"+AE_string1+"-------------------------")
+                sum=0
+                print("Actual energy [Ha]")
+                print(full_mole.get_electronic_energy(Z = Z))
+                for i in range(0,max_order+1):
+                    print("Taylor series of energy, order "+str(i)+" :")
+                    res = lambda_taylorseries_electronic_energy(full_mole, np.zeros((full_mole.number_atoms)).tolist(), Z, i)
+                    print(res)
+                    sum += res
+                    print("Sum = "+str(sum))
+                print("------------------------"+AE_string2+"-------------------------")
+                sum=0
+                print("Actual energy [Ha]")
+                print(full_mole.get_electronic_energy(Z = [-x for x in Z]))
+                for i in range(0,max_order+1):
+                    print("Taylor series of energy, order "+str(i)+" :")
+                    res = lambda_taylorseries_electronic_energy(full_mole, np.zeros((full_mole.number_atoms)).tolist(), [-x for x in Z], i)
+                    print(res)
+                    sum += res
+                    print("Sum = "+str(sum))
+        else:
+            print("'take_hydrogen_data_from' needs an argument")
+
+    if with_all_energies and len(Total_CIM) > 0:
         '''Explicitly calculate the energies of all the configurations in Total_CIM[0],
         but do so by returning a list of MoleAsGraph objects'''
         if take_hydrogen_data_from != '':
+            print('----------------------------')
             full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
                 #print('--------------------------------')
@@ -1440,6 +1494,7 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, bond_energy_rules = Fal
     #-----------------------------Very optional, very prelimenary-------------------------
     #Find all the rules for bond energies between the AEs in one pair:
     if bond_energy_rules == True:
+        print('----------------------------')
         #Initalize vector to hold all coefficients of all possible bonds
         #Find all possible nuclear charges:
         chem_elem = np.copy(graph.elements_at_index)
@@ -1490,9 +1545,9 @@ def nautyAE(graph, m = [2,2], dZ=[+1,-1], debug = False, bond_energy_rules = Fal
             if len(out.strip()) != 0:
                 rule = np.append(rule, out+' = 0')
         final_set = np.unique(rule)
+        print('Bond energy rules:')
         for r in final_set:
             print(r)
-
 
     if debug == True:
         print('---------------')
@@ -1559,23 +1614,17 @@ def Find_theoAEfromgraph(N, dZ_max):
             count += 1
     print('Number of atoms: '+str(N)+'\tdZ_max: '+str(dZ_max)+'\tPossibles / % : '+str(count*batching*100/(num_lines)))
 
-def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'geom', take_hydrogen_data_from = ''):
-    '''In case of method = 'geom', log = 'verbose', the path for the xyz data of the hydrogens is
-    needed to fill the valencies.'''
-    with_all_energies = False
-    with_bond_energy_rules = False
-    with_electronic_energy_difference = False
-    if method == 'graph' and log == 'verbose':
-        with_bond_energy_rules = True
-        print('----------------------------')
-        print('Bond energy rules:\n')
-    if method == 'geom':
-        if log == 'only_electronic_differences':
-            with_electronic_energy_difference = True
-        elif log == 'verbose':
-            with_all_energies = True
-            print('----------------------------')
-            print('Energies of AEs in Eh:\n')
+def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'geom', take_hydrogen_data_from = '', with_all_energies = False, with_bond_energy_rules = False, with_electronic_energy_difference = False, with_Taylor_expansion = False):
+    """
+    graph = MoleAsGraph
+    dZ_max = 1,2,3
+    log = 'normal', 'sparse', 'quiet'
+    energy_log-options:
+        with_all_energies (geom only)
+        with_bond_energy_rules (graph only)
+        with_electronic_energy_difference (geom only)
+        with_Taylor_expansion (geom only)
+    """
     dZ_all = np.copy(dZ_possibilities)
     m_all = np.copy(m_possibilities)
     start_time = time.time()
@@ -1610,7 +1659,7 @@ def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'geom', take_hydr
     times = []
     total_number = 0
     if log == 'normal':
-        print('\n'+ graph.name + '; method = ' + method + '\n------------------------------')
+        print('\n'+ graph.name + '; method = ' + method + '\n----------------------------')
 
     for i in range(len(m_all)):
         random_config = np.zeros((graph.number_atoms))
@@ -1626,14 +1675,14 @@ def Find_AEfromref(graph, dZ_max = 3, log = 'normal', method = 'geom', take_hydr
         if method == 'graph':
             x = nautyAE(graph, m_all[i], dZ_all[i], debug= False, bond_energy_rules = with_bond_energy_rules)
         if method == 'geom':
-            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, get_all_energies = with_all_energies, get_electronic_energy_difference = with_electronic_energy_difference, take_hydrogen_data_from= take_hydrogen_data_from)
+            x = geomAE(graph, m_all[i], dZ_all[i], debug= False, with_all_energies = with_all_energies, with_electronic_energy_difference = with_electronic_energy_difference, with_Taylor_expansion = with_Taylor_expansion, take_hydrogen_data_from= take_hydrogen_data_from)
         if log == 'normal' or log == 'verbose':
             print('Time:', time.time()-m_time)
             print('Number of AEs:', x,'\n')
         num_trans.append(np.sum(m_all[i]))
         times.append(time.time()-m_time)
         total_number += x
-    if log == 'verbose' or log == 'normal':
+    if log == 'normal':
         print('----------------------------')
         print(graph.name)
         print('Total time:', time.time()-start_time)
@@ -1703,7 +1752,7 @@ def Find_reffromtar(graph, dZ_max = 3, method = 'graph', log = 'normal'):
             lst.append(indices[i])
             indices2.remove(i)
             for j in range(i+1,len(indices)):
-                if are_close_scalars(CN[indices[i]],CN[indices[j]]):
+                if are_close_scalars(CN[indices[i]],CN[indices[j]],looseness):
                     lst.append(indices[j])
                     indices2.remove(j)
             sites.append(lst)
