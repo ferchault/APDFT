@@ -17,19 +17,17 @@ import pyscf
 from pysmiles import read_smiles
 import mpmath
 mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
-from HF_arbprec import *
 import imageio
 import copy
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
-tolerance = 2.0 #0.5 gives reliable results; rounding error in geometry-based method
-looseness = 2.0
-basis = 'ccpvdz' #'def2tzvp' Basis set for QM calculations
+tolerance = 0.005 #the threshold to which the inertia moments of molecules are still considered close enough
+looseness = 0.005 #the threshold to which the chemical environments of atoms within molecules are still considered close enough
+basis = 'ccpvdz' #'def2tzvp' 'cc-pCVDZ'??? Basis set for QM calculations
 representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
 standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
-PathToArbitPrec = '/home/simon/github/APDFT/prototyping/arbitrary-precision/'
 
 elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -1042,7 +1040,6 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
         f.close()
     else:
         print('File', input_PathToFile, 'not found.')
-        return 0
     #Get the name of the molecule
     MAG_name = input_PathToFile.split('/')[-1].split('.')[0]
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen
@@ -1265,20 +1262,20 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, with_all_energies = False, 
             full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
                 #print('--------------------------------')
-                Z = np.zeros((full_mole.number_atoms)).tolist()
+                Z_new = np.zeros((full_mole.number_atoms)).tolist()
                 num = 0
                 #Initalize the two strings to discriminate the AEs
                 AE_string1 = ''
                 AE_string2 = ''
                 for j in similars:
-                    Z[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
+                    Z_new[j] = elements[Total_CIM[i][0][num][0]]-elements[full_mole.geometry[j][0]]
                     num += 1
                 #Fill both strings
                 for j in range(full_mole.number_atoms):
-                    AE_string1 += inv_elements[elements[full_mole.geometry[j][0]]+Z[j]]
-                    AE_string2 += inv_elements[elements[full_mole.geometry[j][0]]-Z[j]]
+                    AE_string1 += inv_elements[elements[full_mole.geometry[j][0]]+Z_new[j]]
+                    AE_string2 += inv_elements[elements[full_mole.geometry[j][0]]-Z_new[j]]
                 #print(Z)
-                diff = full_mole.get_electronic_energy(Z = Z) - full_mole.get_electronic_energy(Z = [-x for x in Z])
+                diff = full_mole.get_electronic_energy(Z = Z_new) - full_mole.get_electronic_energy(Z = [-x for x in Z_new])
                 print("------------------------"+AE_string1+" minus "+AE_string2+"-------------------------")
                 print(str(diff)+'\t'+str(full_mole.name))
         else:

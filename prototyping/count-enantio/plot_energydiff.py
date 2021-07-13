@@ -83,13 +83,16 @@ fig.savefig("figures/yukawa_range.png", dpi=300)
 Delta_E = np.ones((7,7))
 Delta_E_SD = np.ones((7,7))
 
-values = [0.1,0.5,0.8,1.0,1.2,1.5,2.0]
-values_str = ['01','05','08','10','12','15','20']
+values = [0.02,0.1,0.5,0.8,1.0,1.2,1.5,2.0]
+values_str = ['002','01','05','08','10','12','15','20']
 
 for i in range(7):
     for j in range(7):
-        median = median_from_file('QM9_log_energydiff_dZ1_-1tol'+values_str[i]+'_loose'+values_str[j]+'.txt',0)
-        Delta_E[i][j] = median
+        try:
+            median = median_from_file('QM9_log_energydiff_dZ1_-1tol'+values_str[i]+'_loose'+values_str[j]+'.txt',0)
+            Delta_E[i][j] = median
+        except:
+            median = 0
         #mean, SD = average_from_file('QM9_log_energydiff_dZ1_-1tol'+values_str[i]+'_loose'+values_str[j]+'.txt',0)
         #Delta_E[i][j] = mean
         #Delta_E_SD[i][j] = SD
@@ -121,6 +124,7 @@ for i in range(len(values)):
         text = ax.text(j, i, "{:#.3g}".format(Delta_E[i, j]),
                        ha="center", va="center", color="w")
 
-#ax.set_title("Harvest of local farmers (in tons/year)")
+ax.set_title("Median energy difference of AEs when tuning tolerance and looseness")
 fig.tight_layout()
+fig.savefig("figures/energy_diff_loose_tol.png", dpi=300)
 plt.show()

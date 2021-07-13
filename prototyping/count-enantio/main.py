@@ -1,7 +1,9 @@
 from AlEn import *
 import multiprocessing as mp
 import os
-performance_use = 0.90
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+performance_use = 0.50
 
 #TAGS:
 #benzene: dsgdb9nsd_000214
@@ -75,10 +77,10 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
 
     #------------------Energy differences of pairs of AE------------------------
 
-    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_'+str(batch_index)+'tol01.txt', 'a') as f: #batch index is the yukawa mass here
+    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_'+str(batch_index)+'tol01_loose25.txt', 'a') as f: #batch index is the yukawa mass here
         sys.stdout = f # Change the standard output to the created file
         inputpath = PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'
-        Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'only_electronic_differences', method = 'geom', take_hydrogen_data_from=inputpath)
+        Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'quiet', with_electronic_energy_difference = True, method = 'geom', take_hydrogen_data_from=inputpath)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
 
@@ -109,7 +111,7 @@ for count in range(1,14+1):
     pool.close()
 """
 #----------------------Finding Yukawa mass by going through QM9-----------------
-
+"""
 print('----------------------------------')
 print(standard_yukawa_range)
 start_tag = 4
@@ -117,7 +119,7 @@ end_tag = 133885+1
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
 pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,1000)])
 pool.close()
-
+"""
 #---------------------------theoretically possible graphs-------------------
 """
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
@@ -126,6 +128,9 @@ pool.close()
 """
 
 #------------------------------Testing--------------------------------------
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_007404.xyz', with_hydrogen=True).get_electronic_energy([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
+print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_096104.xyz', with_hydrogen=False).equi_atoms)
+
 
 #print(geomAE(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
 #print(geomAE(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz'), m=[2,2], dZ=[1,-1], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
@@ -134,7 +139,13 @@ pool.close()
 #print(geomAE(parse_XYZtoMAG('cubane_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cubane_13halfs.xyz'))
 #print(parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).get_energy_NN())
 #print(geomAE(parse_XYZtoMAG('benzene.xyz'), m=[2,2], dZ=[1,-1], get_all_energies=False, get_electronic_energy_difference=True, take_hydrogen_data_from='benzene.xyz', debug=False))
-#Find_AEfromref(parse_XYZtoMAG('benzene.xyz'), log='normal', method='geom', dZ_max=2, take_hydrogen_data_from='benzene.xyz')
+
+#Find_AEfromref(parse_XYZtoMAG('adamantane.xyz'), log='normal', method='geom', dZ_max=1, take_hydrogen_data_from='adamantane.xyz', with_Taylor_expansion = True)
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=True).get_electronic_energy([0,0,0,-1,0,1,0,-1,1,0,0,0,0,0,0,0,0,0,0,0,0]))
+#print(Find_AEfromref(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen = False), dZ_max=1, log = 'quiet', with_electronic_energy_difference = True, method = 'geom', take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_040004.xyz'))
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz').equi_atoms)
+#Find_AEfromref(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz'), log='normal', method='geom', dZ_max=1, take_hydrogen_data_from='benzene.xyz')
+
 #print(total_energy_with_dZ(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,-0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
 
 #print(total_energy_with_dZ(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz', with_hydrogen=True).geometry, dZ=[0,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
@@ -174,15 +185,6 @@ print(np.array(all_norms, dtype=object))
 
 #test.get_total_energy_arbprec()
 #water = parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000003.xyz', with_hydrogen=True)
-"""
-H2O= MoleAsGraph(   'H2O',
-[[0,2],[1,2]],
-['H','H','O'],
-[['H', 1.809 * np.sin(104.52 / 180 * np.pi / 2), 0, 0], ['H', -1.809 * np.sin(104.52 / 180 * np.pi / 2), 0, 0], ['O', 0, 1.809 * np.sin(104.52 / 180 * np.pi / 2), 0]]
-)
-print(H2O.get_total_energy())
-print(H2O.get_total_energy_arbprec())
-"""
 
 
 """
@@ -231,8 +233,9 @@ for i in range(0,7):
     sum += res
     print("Sum = "+str(sum))
 """
-"""
+
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
+"""
 for tag_number in range(10,133885+1):
     pos = '000000'[:(6-len(str(tag_number)))] + str(tag_number)
     f = open(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz', "r")
@@ -243,7 +246,7 @@ for tag_number in range(10,133885+1):
     inchi = data.splitlines(False)[N+4].split('\t')[0].strip()
     #print(smiles)
     #This case: Benzene
-    if smiles == 'C1=CC=CC=C1':
+    if smiles == 'C1C3CC2CC(CC1C2)C3':
         print(pos)
     #if inchi == 'InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H':
     #    print(pos)'''

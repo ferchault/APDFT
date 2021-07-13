@@ -14,8 +14,8 @@ PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
 def draw(tag, out='bash'):
     #Get the SMILES from the correct file
-    #f = open(PathToQM9XYZ + 'dsgdb9nsd_'+ tag +'.xyz', 'r')
-    f = open(tag, 'r')
+    f = open(PathToQM9XYZ + tag +'.xyz', 'r')
+    #f = open(tag, 'r')
     data = f.read()
     f.close()
     N = int(data.splitlines(False)[0]) #number of atoms including hydrogen

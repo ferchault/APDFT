@@ -4,7 +4,7 @@ import sys
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 
 if __name__ == "__main__":
-    f = open(sys.argv[1], "r")
+    f = open(PathToQM9XYZ+str(sys.argv[1])+'.xyz', "r")
     data = f.read()
     f.close()
     print(data)
