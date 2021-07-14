@@ -374,7 +374,7 @@ def MAGtoMole(MAG):
 #CLASS DEFINITION OF MoleAsGraph------------------------------------------------
 
 class MoleAsGraph:
-    def __init__(self, name, edge_layout, elements_at_index, geometry):
+    def __init__(self, name, edge_layout, elements_at_index, geometry, without_hydrogen=False):
         '''Caution: For all methods so far, the indexing of the geometry and the graphs (i.e. all
         remaining attributes) does not have to match! Keep this in mind: They may have different
         indices!!!!!! They do not even have to be the same molecules but then the Constructor may
@@ -394,7 +394,19 @@ class MoleAsGraph:
         if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
         self.orbits = self.get_orbits_from_graph()
-        self.equi_atoms =  self.get_equi_atoms_from_geom()
+        self.equi_atoms =  self.get_equi_atoms_from_geom(ignore_hydrogen = without_hydrogen)
+
+        if without_hydrogen == True:
+            N_before = len(self.geometry)
+            count = 0
+            while count < N_before:
+                if self.geometry[count][0] == 'H':
+                    #Delete H in geometry, refresh number_atoms
+                    np.delete(self.geometry, count).tolist()
+                    N_before -= 1
+                else:
+                    count += 1
+
         #This part can only be used if you are sure that the indexing of atoms in the graph is the same as in the xyz
         #self.orbits = np.array(self.get_equi_atoms_from_geom(), dtype=object)
 
@@ -453,10 +465,11 @@ class MoleAsGraph:
             sites = [list(map(int,x)) for x in set(tuple(x) for x in similars)]
         return sites
 
-    def get_equi_atoms_from_geom(self):
+    def get_equi_atoms_from_geom(self, ignore_hydrogen = False):
         mole = self.geometry.copy()
         #Sort CN and group everything together that is not farther than tolerance
         CN = atomrep(center_mole(mole, angle_aligning=False))
+        #In atomrep, the hydrogens have been considered. Now, get rid of them again
         indices = np.argsort(CN).tolist()
         indices2 = np.copy(indices).tolist()
         lst = []
@@ -472,7 +485,20 @@ class MoleAsGraph:
                     indices2.remove(j)
             similars.append(lst)
             lst = []
-        #Delete all similars which include only one atom:
+        #print('Flag')
+        #print(similars)
+        #If without hydrogen: Delete all hydrogens
+        if ignore_hydrogen:
+            num_similars = 0
+            while num_similars < len(similars):
+                num_members = 0
+                while num_members < len(similars[num_similars]):
+                    if self.geometry[similars[num_similars][num_members]][0] != 'H':
+                        num_members += 1
+                    else:
+                        del similars[num_similars][num_members]
+                num_similars += 1
+        #Delete all similars which include only one atom or none at all:
         num_similars = 0
         while num_similars < len(similars):
             if len(similars[num_similars])>1:
@@ -959,7 +985,6 @@ class MoleAsGraph:
             f.close()
         else:
             print('File', input_PathToFile, 'not found.')
-            return 0
         #Initalize
         name = self.name
         new_geometry = self.geometry.copy()
@@ -999,6 +1024,7 @@ class MoleAsGraph:
         return energy_tot_arbprec(molecule, N)
 
 #MoleAsGraph EXAMPLES-----------------------------------------------------------
+"""
 anthracene = MoleAsGraph('Anthracene',
                         [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[6,7],[7,8],[8,9],[9,5],[7,10],[10,11],[11,12],[12,13],[13,8]],
                         ['C','C','C','C','C','C','C','C','C','C','C','C','C','C'],
@@ -1028,6 +1054,7 @@ water = MoleAsGraph(        'Water',
                             [[0,1],[1,2]],
                             ['H', 'O', 'H'],
                             [['H', 0, +1.43233673, -0.96104039], ['O', 0, 0, 0.24026010], ['H', 0, -1.43233673, -0.96104039]])
+"""
 
 #PARSER FUNCTION FOR QM9--------------------------------------------------------
 def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True, angle=None):
@@ -1051,14 +1078,15 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
         line = data.splitlines(False)[i]
         if line.split('\t')[0] == 'H':
             N_heavyatoms -= 1
-            if not with_hydrogen:
-                continue
         symbol = line.split('\t')[0]
         x = float(line.split('\t')[1].strip())
         y = float(line.split('\t')[2].strip())
         z = float(line.split('\t')[3].strip())
         mole.append([symbol,x,y,z])
-        elements_at_index.append(symbol)
+        if not with_hydrogen and symbol == 'H':
+            continue
+        else:
+            elements_at_index.append(symbol)
     #Find edge_layout:
     try:
         network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=with_hydrogen)
@@ -1089,7 +1117,11 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
     print(edge_layout)
     """
     mole = center_mole(mole, angle_aligning=angle_aligning, angle=angle)
-    return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
+    if with_hydrogen:
+        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
+    else:
+        #Careful here: This MAG object has the graph properties without hydrogen, but geometry still with!
+        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole, without_hydrogen = True)
 
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
