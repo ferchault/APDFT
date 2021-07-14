@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-performance_use = 0.50
+performance_use = 0.95
 
 #TAGS:
 #benzene: dsgdb9nsd_000214
@@ -77,7 +77,7 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
 
     #------------------Energy differences of pairs of AE------------------------
 
-    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_'+str(batch_index)+'tol01_loose25.txt', 'a') as f: #batch index is the yukawa mass here
+    with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_range'+str(batch_index)+'.txt', 'a') as f: #batch index is the yukawa mass here
         sys.stdout = f # Change the standard output to the created file
         inputpath = PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'
         Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'quiet', with_electronic_energy_difference = True, method = 'geom', take_hydrogen_data_from=inputpath)
@@ -111,15 +111,15 @@ for count in range(1,14+1):
     pool.close()
 """
 #----------------------Finding Yukawa mass by going through QM9-----------------
-"""
+
 print('----------------------------------')
 print(standard_yukawa_range)
 start_tag = 4
 end_tag = 133885+1
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
-pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,1000)])
+pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,100)])
 pool.close()
-"""
+
 #---------------------------theoretically possible graphs-------------------
 """
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
@@ -129,7 +129,10 @@ pool.close()
 
 #------------------------------Testing--------------------------------------
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_007404.xyz', with_hydrogen=True).get_electronic_energy([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))
-print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_096104.xyz', with_hydrogen=False).equi_atoms)
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).equi_atoms)
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).orbits)
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000214.xyz', with_hydrogen=False).geometry)
+
 
 
 #print(geomAE(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
@@ -155,9 +158,9 @@ print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_096104.xyz', with_hydrogen=False).e
 #mole = parse_XYZtoMAG(inputpath, with_hydrogen=False)
 #print(mole.elements_at_index)
 #geomAE(mole, dZ=[1,-1], m=[1,1], get_electronic_energy_difference=True, take_hydrogen_data_from=inputpath)
+"""
 start_tag = 4
 end_tag = 100 #133885+1
-"""
 all_norms = []
 for i in range(start_tag, end_tag):
     pos = '000000'[:(6-len(str(i)))] + str(i)
