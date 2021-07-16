@@ -28,6 +28,7 @@ representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulo
 standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
+PathToChEMBL = '/home/simon/ChEMBL/'
 
 elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -1123,6 +1124,58 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
         #Careful here: This MAG object has the graph properties without hydrogen, but geometry still with!
         return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole, without_hydrogen = True)
 
+
+def parse_MOL2toMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True, angle=None):
+    '''MoleAsGraph instance returned'''
+    #check if file is present
+    if os.path.isfile(input_PathToFile):
+        #open text file in read mode
+        f = open(input_PathToFile, "r")
+        data = f.read()
+        f.close()
+    else:
+        print('File', input_PathToFile, 'not found.')
+    #Get the name of the molecule
+    MAG_name = input_PathToFile.split('/')[-1].split('.')[0]
+    N = int(data.splitlines(False)[3].split(' ')[1]) #number of atoms including hydrogen
+    print(N)
+    #Get the geometry of the molecule
+    mole = []
+    N_heavyatoms = copy.deepcopy(N)
+    elements_at_index = []
+    for i in range(4,N+4): #get the atoms and their coordinates
+        line = data.splitlines(False)[i]
+        if line.split('\t')[0] == 'H':
+            N_heavyatoms -= 1
+        lst = line.split(' ')
+        ws = [i for i, z in enumerate(lst) if z == '']
+        lst = np.delete(lst,ws)
+        symbol = lst[3]
+        x = float(lst[0])
+        y = float(lst[1])
+        z = float(lst[2])
+        mole.append([symbol,x,y,z])
+        if not with_hydrogen and symbol == 'H':
+            continue
+        else:
+            elements_at_index.append(symbol)
+    print(mole)
+    """
+    #Find edge_layout:
+    try:
+        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=with_hydrogen)
+    except:
+        network = read_smiles(data.splitlines(False)[N+3].split(' ')[0], explicit_hydrogen=with_hydrogen)
+    edge_layout = [list(v) for v in network.edges()]
+    #print(mole)
+    #print(edge_layout)
+    mole = center_mole(mole, angle_aligning=angle_aligning, angle=angle)
+    if with_hydrogen:
+        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
+    else:
+        #Careful here: This MAG object has the graph properties without hydrogen, but geometry still with!
+        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole, without_hydrogen = True)
+    """
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
 def dlambda_electronic_energy(mole, Z, dlambda, order):
