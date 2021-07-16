@@ -16,13 +16,11 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         os.mkdir('./logs')
     #-----------------------------Count AEs-------------------------------------
     #RAW:
-    """
     with open('logs/QM9_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
-    """
 
     #UNCOLOR:
     """
@@ -76,20 +74,20 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')'''
 
     #------------------Energy differences of pairs of AE------------------------
-
+    """
     with open('logs/QM9_log_energydiff_dZ'+str(dZ_max)+'_range'+str(batch_index)+'.txt', 'a') as f: #batch index is the yukawa mass here
         sys.stdout = f # Change the standard output to the created file
         inputpath = PathToQM9XYZ+'dsgdb9nsd_' + pos + '.xyz'
         Find_AEfromref(parse_XYZtoMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'quiet', with_electronic_energy_difference = True, method = 'geom', take_hydrogen_data_from=inputpath)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
-
+    """
 
 #-------------------------------MAIN PROGRAM------------------------------------
 print("main.py started")
 
 #----------------------Going through QM9------------------------------------
-"""
+
 for count in range(1,14+1):
     #Start at 1, end at 14+1
     start_tag = (count-1)*10000
@@ -109,9 +107,9 @@ for count in range(1,14+1):
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_QM9, [(i,batch_index,2) for i in range(start_tag,end_tag)])
     pool.close()
-"""
-#----------------------Finding Yukawa mass by going through QM9-----------------
 
+#----------------------Finding Yukawa mass by going through QM9-----------------
+"""
 print('----------------------------------')
 print(standard_yukawa_range)
 start_tag = 4
@@ -119,7 +117,7 @@ end_tag = 133885+1
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
 pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,100)])
 pool.close()
-
+"""
 #---------------------------theoretically possible graphs-------------------
 """
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
@@ -132,7 +130,7 @@ pool.close()
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).equi_atoms)
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).orbits)
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000214.xyz', with_hydrogen=False).geometry)
-
+#parse_SDFtoMAG(PathToChEMBL+'chembl_153534.sdf', with_hydrogen=True)
 
 
 #print(geomAE(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))

@@ -3,6 +3,7 @@ from matplotlib import colors
 import numpy as np
 import os
 import sys
+import math
 
 #Initalize all variables:
 plt.rcParams.update({'font.size': 14})
@@ -80,14 +81,60 @@ def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
     #print('Percentage: '+str(num_AE*100))
     return binning, num_AE, num_moles
 
+def average_num_AE(input_file_prefix, input_file_postfix):
+    N = np.array([2,3,4,5,6,7,8,9], dtype='int') #Number of atoms
+    num_moles = np.zeros((len(N)), dtype='int') #Number of times a molecule with N atoms occurs
+    num_AE = np.zeros((len(N)), dtype=object)
+    num_AE_SD = np.zeros((len(N)), dtype=object)
+    #Go through all files, get number of AEs per N
+    for log_num in range(1,last_log_num+1):
+        f = open('logs/'+input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'_geom.txt', 'r')
+        Lines = f.readlines()
+        f.close()
+        for line in Lines:
+            x = line.split('\t')
+            num_AE[int(x[2])-2] += float(x[3])
+            num_moles[int(x[2])-2] += 1
+    #Normalize the function for percentages
+    for i in range(len(N)):
+        num_AE[i] /= num_moles[i]
+    for log_num in range(1,last_log_num+1):
+        f = open('logs/'+input_file_prefix+ '00'[:(2-len(str(log_num)))] + str(log_num) +input_file_postfix+'_geom.txt', 'r')
+        Lines = f.readlines()
+        f.close()
+        for line in Lines:
+            x = line.split('\t')
+            num_AE_SD[int(x[2])-2] += (float(x[3])-num_AE[int(x[2])-2])**2
+    for thing in N:
+        #print(num_AE_SD)
+        num_AE_SD[thing-2] = math.sqrt(num_AE_SD[thing-2])
+    #print('Percentage: '+str(num_AE*100))
+    return N, num_AE, num_AE_SD
 
 
 last_log_num = 14
 bin_size = 30
 
+NN, av, av_SD = average_num_AE('QM9_log', '_dZ1')
 N, times_dZ2, SD_dZ2 = get_times('QM9_log', '_dZ2')
 N, times_dZ1, SD_dZ1 = get_times('QM9_log', '_dZ1')
 
+
+#------------------------Plot the average num_AE per N--------------------------
+
+fig, ax = plt.subplots()
+ax.scatter(NN, av, marker='x', color=color[1], label='dZ_max = 2')
+#plt.errorbar(NN, av, yerr=av_SD, fmt='none', capsize=4, color=color[1])
+ax.set_xticks(range(2,10))
+ax.set_xlim([1.5, 9.7])
+ax.set_ylim([0.00,0.6])
+ax.set(xlabel='Number of heavy atoms N', ylabel='Average number of AEs per mol.')
+#ax.grid(which='both')
+#ax.legend(loc="upper left",framealpha=1, edgecolor='black')
+fig.savefig("figures/QM9_averagenumAE_dZ1_geom.png", dpi=500)
+
+
+"""
 #--------------------------QM9 as references, dZ1-------------------------------
 binning, num_AE, num_moles = get_CDF( 'QM9_log', '_dZ1', bin_size=bin_size)
 num_AE *= 100
@@ -176,8 +223,8 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average time / s')
 plt.yscale('log')
 ax.legend(loc="upper left",framealpha=1, edgecolor='black')
 fig.savefig("figures/QM9_times_dZ1and2_geom.png", dpi=500)
-
-
+"""
+"""
 #--------------------------QM9 if uncolored dZ1---------------------------------
 N, times_dZ1, SD_dZ1 = get_times('QM9_uncolored_log', '_dZ1')
 N, times_dZ2, SD_dZ2 = get_times('QM9_uncolored_log', '_dZ2')
@@ -398,3 +445,4 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Amount of molecules with AEs / 
 #plt.yscale('log')
 ax.legend(loc="upper right",prop={'size': 12},framealpha=1, edgecolor='black')
 fig.savefig("figures/sweetspot_geom.png", dpi=500)
+"""
