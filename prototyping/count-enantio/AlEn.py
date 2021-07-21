@@ -28,7 +28,12 @@ representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulo
 standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
-PathToChEMBL = '/home/simon/ChEMBL/'
+PathToZINC = '/home/simon/ZINC/'
+
+"""
+Split QM9:          python -c "for i,c in enumerate(open('dsgdb9nsd.xyz').read()[:-1].split('\n\n')): open(f'dsgdb9nsd_{i+1:06d}.xyz', 'w').write(c+'\n')"
+Split ZINC/named:   python -c "for i,c in enumerate(open('named.mol2').read()[:-1].split('@<TRIPOS>MOLECULE')): open(f'ZINC_named_{i:05d}.mol2', 'w').write(c+'\n')"
+"""
 
 elements = {'Ghost':0,'H':1, 'He':2,
 'Li':3, 'Be':4, 'B':5, 'C':6, 'N':7, 'O':8, 'F':9, 'Ne':10,
@@ -394,7 +399,10 @@ class MoleAsGraph:
             self.max_index = 0
         if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
-        self.orbits = self.get_orbits_from_graph()
+        if self.number_atoms > 20:
+            self.orbits = [[]]
+        else:
+            self.orbits = self.get_orbits_from_graph()
         self.equi_atoms =  self.get_equi_atoms_from_geom(ignore_hydrogen = without_hydrogen)
 
         if without_hydrogen == True:
@@ -1018,12 +1026,6 @@ class MoleAsGraph:
             new_edge_layout.append([int(index_of_shortest),len(new_geometry)-1])
         return MoleAsGraph(name, new_edge_layout, new_elements_at_index, new_geometry)
 
-
-    def get_total_energy_arbprec(self, digits=30):
-        mpmath.mp.dps = digits
-        molecule, N = MAGtoMole(self)
-        return energy_tot_arbprec(molecule, N)
-
 #MoleAsGraph EXAMPLES-----------------------------------------------------------
 """
 anthracene = MoleAsGraph('Anthracene',
@@ -1137,45 +1139,99 @@ def parse_MOL2toMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True
         print('File', input_PathToFile, 'not found.')
     #Get the name of the molecule
     MAG_name = input_PathToFile.split('/')[-1].split('.')[0]
-    N = int(data.splitlines(False)[3].split(' ')[1]) #number of atoms including hydrogen
-    print(N)
+    number = np.array(data.splitlines(False)[2].split(' '),dtype=object)
+    #Get rid of all the ''
+    j = 0
+    while j < len(number):
+        if number[j] == '':
+            number = np.delete(number, j)
+        else:
+            j += 1
+    N = int(number[0]) #number of atoms including hydrogen
+    #print(N)
+    #Get the line_offset where the geometry starts:
+    line_offset = 6
+    for d in range(10):
+        if data.splitlines(False)[d] == '@<TRIPOS>ATOM':
+            line_offset = d+1
+    #print(line_offset)
     #Get the geometry of the molecule
     mole = []
     N_heavyatoms = copy.deepcopy(N)
     elements_at_index = []
-    for i in range(4,N+4): #get the atoms and their coordinates
+    for i in range(line_offset,N+line_offset): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
-        if line.split('\t')[0] == 'H':
+        fourvec = np.array(line.split(' '),dtype=object)
+        #Get rid of all the ''
+        j = 0
+        while j < len(fourvec):
+            if fourvec[j] == '':
+                fourvec = np.delete(fourvec, j)
+            else:
+                j += 1
+        element = ''.join([o for o in fourvec[1] if not o.isdigit()])
+        if element == 'H':
             N_heavyatoms -= 1
-        lst = line.split(' ')
-        ws = [i for i, z in enumerate(lst) if z == '']
-        lst = np.delete(lst,ws)
-        symbol = lst[3]
-        x = float(lst[0])
-        y = float(lst[1])
-        z = float(lst[2])
+        symbol = element
+        x = float(fourvec[2])
+        y = float(fourvec[3])
+        z = float(fourvec[4])
         mole.append([symbol,x,y,z])
         if not with_hydrogen and symbol == 'H':
             continue
         else:
             elements_at_index.append(symbol)
-    print(mole)
-    """
-    #Find edge_layout:
-    try:
-        network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=with_hydrogen)
-    except:
-        network = read_smiles(data.splitlines(False)[N+3].split(' ')[0], explicit_hydrogen=with_hydrogen)
-    edge_layout = [list(v) for v in network.edges()]
     #print(mole)
-    #print(edge_layout)
+    #Find edge_layout; right beneath "@<TRIPOS>BOND"
+    layout = []
+    start_line = N+1+line_offset
+    i = N+1+line_offset
+    line = data.splitlines(False)[i]
+    try: #Honestly, this looks like crap but avoids the EOF error
+        while line[0] != "@":
+            fourvec = np.array(line.split(' '),dtype=object)
+            #Get rid of all the ''
+            j = 0
+            while j < len(fourvec):
+                if fourvec[j] == '':
+                    fourvec = np.delete(fourvec, j)
+                else:
+                    j += 1
+            if not with_hydrogen and (mole[int(fourvec[1])-1][0] == 'H' or mole[int(fourvec[2])-1][0] == 'H'):
+                i += 1
+                line = data.splitlines(False)[i]
+                continue
+            edge = [int(fourvec[1])-1,int(fourvec[2])-1]
+            layout.append(edge)
+            i += 1
+            line = data.splitlines(False)[i]
+    except:
+        pass
+    #Make sure that everything is numbered in consecutive manner if without Hydrogen!
+    if not with_hydrogen:
+        k = 0
+        while k < N_heavyatoms:
+            used = False
+            for l in range(len(layout)):
+                if layout[l][0] == k or layout[l][1] == k:
+                    used = True
+            if not used:
+                #If this index was never used, reduce all higher indices by one
+                for m in layout:
+                    if m[0] > k:
+                        m[0] -= 1
+                    if m[1] > k:
+                        m[1] -= 1
+            else:
+                k += 1
+    #print(layout)
     mole = center_mole(mole, angle_aligning=angle_aligning, angle=angle)
     if with_hydrogen:
-        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole)
+        return MoleAsGraph(MAG_name, layout, elements_at_index, mole)
     else:
         #Careful here: This MAG object has the graph properties without hydrogen, but geometry still with!
-        return MoleAsGraph(MAG_name, edge_layout, elements_at_index, mole, without_hydrogen = True)
-    """
+        return MoleAsGraph(MAG_name, layout, elements_at_index, mole, without_hydrogen = True)
+
 
 #ALL HIGHER LEVEL FUNCTIONS WITH VARIOUS DEPENDENCIES---------------------------
 def dlambda_electronic_energy(mole, Z, dlambda, order):

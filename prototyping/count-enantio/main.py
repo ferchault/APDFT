@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-performance_use = 0.95
+performance_use = 0.30
 
 #TAGS:
 #benzene: dsgdb9nsd_000214
@@ -83,11 +83,24 @@ def multicore_QM9(tag_number, batch_index, dZ_max):
         print(str(pos)+' -> Done')
     """
 
+def multicore_ZINC(tag_number, batch_index, dZ_max):
+    pos = '00000'[:(5-len(str(tag_number)))] + str(tag_number)
+    #Check for directory /logs and create one if necessary:
+    if not os.path.exists('./logs'):
+        os.mkdir('./logs')
+    #-----------------------------Count AEs-------------------------------------
+    #RAW:
+    with open('logs/ZINC_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
+        print(str(pos)+' -> Done')
+        sys.stdout = f # Change the standard output to the created file
+        Find_AEfromref(parse_MOL2toMAG(PathToZINC+'ZINC_named_' + pos + '.mol2'), log='sparse', dZ_max=dZ_max, method = 'geom')
+        sys.stdout = original_stdout # Reset the standard output to its original value
+
 #-------------------------------MAIN PROGRAM------------------------------------
 print("main.py started")
 
 #----------------------Going through QM9------------------------------------
-
+"""
 for count in range(1,14+1):
     #Start at 1, end at 14+1
     start_tag = (count-1)*10000
@@ -107,6 +120,31 @@ for count in range(1,14+1):
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_QM9, [(i,batch_index,2) for i in range(start_tag,end_tag)])
     pool.close()
+"""
+
+#----------------------Going through ZINC------------------------------------
+
+for count in [1,6]:
+    start_tag = (count-1)*10000
+    end_tag = count*10000
+    if count == 1:
+        #The first file is empty
+        start_tag = 1
+    if count == 6:
+        end_tag = 59986+1
+    batch_index = '00'[:(2-len(str(count)))] + str(count)
+
+    #---------------------------Mutliprocessing-----------------------------
+    pool = mp.Pool(int(performance_use*mp.cpu_count()))
+    pool.starmap(multicore_ZINC, [(i,batch_index,1) for i in range(start_tag,end_tag)])
+    pool.close()
+
+    pool = mp.Pool(int(performance_use*mp.cpu_count()))
+    pool.starmap(multicore_ZINC, [(i,batch_index,2) for i in range(start_tag,end_tag)])
+    pool.close()
+
+
+
 
 #----------------------Finding Yukawa mass by going through QM9-----------------
 """
@@ -130,8 +168,7 @@ pool.close()
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).equi_atoms)
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_040004.xyz', with_hydrogen=False).orbits)
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000214.xyz', with_hydrogen=False).geometry)
-#parse_SDFtoMAG(PathToChEMBL+'chembl_153534.sdf', with_hydrogen=True)
-
+#parse_MOL2toMAG(PathToZINC+'ZINC_named_00004.mol2', with_hydrogen=False)
 
 #print(geomAE(parse_XYZtoMAG('cyclooctatetraene_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, take_hydrogen_data_from='cyclooctatetraene_13halfs.xyz'))
 #print(geomAE(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz'), m=[2,2], dZ=[1,-1], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
