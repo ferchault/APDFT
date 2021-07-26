@@ -549,6 +549,8 @@ class MoleAsGraph:
             return result
 
     def get_total_energy(self, Z=[], basis=basis):
+        if len(Z) == 0:
+            Z = np.zeros((self.number_atoms)).tolist()
         if geom_hash(self.geometry, Z) in already_compt:
             return already_compt[geom_hash(self.geometry, Z)]
         else:
@@ -556,8 +558,6 @@ class MoleAsGraph:
             #PARSE THE HYDROGENS!!!!!
             atom_string = ''
             overall_charge = 0
-            if len(Z) == 0:
-                Z = np.zeros((self.number_atoms)).tolist()
             for i in range(len(self.geometry)): #get the atoms and their coordinates
                 atom_string += self.geometry[i][0]
                 overall_charge += elements[self.geometry[i][0]]+Z[i]

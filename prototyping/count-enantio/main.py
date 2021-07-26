@@ -3,7 +3,7 @@ import multiprocessing as mp
 import os
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
-performance_use = 0.30
+performance_use = 0.95
 
 #TAGS:
 #benzene: dsgdb9nsd_000214
@@ -91,10 +91,10 @@ def multicore_ZINC(tag_number, batch_index, dZ_max):
     #-----------------------------Count AEs-------------------------------------
     #RAW:
     with open('logs/ZINC_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
-        print(str(pos)+' -> Done')
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(parse_MOL2toMAG(PathToZINC+'ZINC_named_' + pos + '.mol2'), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')
 
 #-------------------------------MAIN PROGRAM------------------------------------
 print("main.py started")
@@ -122,6 +122,7 @@ for count in range(1,14+1):
     pool.close()
 """
 
+#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000005.xyz', with_hydrogen = True).get_nuclear_energy())
 #----------------------Going through ZINC------------------------------------
 
 for count in [1,6]:
@@ -139,11 +140,11 @@ for count in [1,6]:
     pool.starmap(multicore_ZINC, [(i,batch_index,1) for i in range(start_tag,end_tag)])
     pool.close()
 
+"""
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_ZINC, [(i,batch_index,2) for i in range(start_tag,end_tag)])
     pool.close()
-
-
+"""
 
 
 #----------------------Finding Yukawa mass by going through QM9-----------------
