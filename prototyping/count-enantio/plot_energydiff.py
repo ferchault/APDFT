@@ -78,8 +78,8 @@ fig.savefig("figures/yukawa_range.png", dpi=300)
 #plt.show()
 """
 
-#---------------------------Plot Yukawa range, 2nd attempt----------------------
-
+#---------------------Plot Yukawa range from QM9, 2nd attempt-------------------
+"""
 x = []
 y = []
 y_error = []
@@ -112,7 +112,43 @@ ax.set(xlabel="Yukawa range [A]", ylabel=r'Median $\Delta E$ / Ha')
 #ax.grid(which='both')
 plt.yscale('log')
 #ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-fig.savefig("figures/yukawa_range_ver2.png", dpi=300)
+fig.savefig("figures/yukawa_range_QM9.png", dpi=300)
+#plt.show()
+"""
+#---------------------Plot Yukawa range from ZINC, 2nd attempt------------------
+
+xZ = []
+yZ = []
+y_error = []
+for range in [-1,0.5,2.,3.,4.,5.]:
+    #mean, SD = average_from_file('QM9_log_energydiff_dZ1_range'+str(range)+'.txt',0)
+    median = median_from_file('ZINC_log_energydiff_dZ1_range'+str(range)+'.txt',0)
+    if range < 0:
+        hline = median
+        #hline = mean
+        #hline_pos_err = mean+SD
+        #hline_neg_err = mean-SD
+    else:
+        x.append(range)
+        y.append(median)
+        #y.append(mean)
+        #y_error.append(SD)
+
+print(x)
+print(y)
+fig, ax = plt.subplots()
+ax.scatter(x, y, marker='x', color='#1f77b4')
+#ax.axhline(y = hline_pos_err, color = '#000000', linestyle = '--')
+#ax.axhline(y = hline_neg_err, color = '#000000', linestyle = '--')
+ax.axhline(y = hline, color = '#000000', linestyle = '-')
+#plt.errorbar(x, y, yerr= y_error, fmt='none', capsize=4, color='#1f77b4')
+ax.set_xlim([0, 5.1])
+#ax.set(xlabel="Yukawa range [A]", ylabel=r'Average $\Delta E$ / Ha')
+ax.set(xlabel="Yukawa range [A]", ylabel=r'Median $\Delta E$ / Ha')
+#ax.grid(which='both')
+plt.yscale('log')
+#ax.legend(loc="upper right",framealpha=1, edgecolor='black')
+fig.savefig("figures/yukawa_range_ZINC.png", dpi=300)
 #plt.show()
 
 #------------------------Plot tolerance vs looseness----------------------------
