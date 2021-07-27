@@ -90,9 +90,19 @@ def multicore_ZINC(tag_number, batch_index, dZ_max):
         os.mkdir('./logs')
     #-----------------------------Count AEs-------------------------------------
     #RAW:
+    """
     with open('logs/ZINC_log'+batch_index+'_dZ'+str(dZ_max)+'_geom.txt', 'a') as f:
         sys.stdout = f # Change the standard output to the created file
         Find_AEfromref(parse_MOL2toMAG(PathToZINC+'ZINC_named_' + pos + '.mol2'), log='sparse', dZ_max=dZ_max, method = 'geom')
+        sys.stdout = original_stdout # Reset the standard output to its original value
+        print(str(pos)+' -> Done')
+    """
+
+    #------------------Energy differences of pairs of AE------------------------
+    with open('logs/ZINC_log_energydiff_dZ'+str(dZ_max)+'_range'+str(batch_index)+'.txt', 'a') as f: #batch index is the yukawa mass here
+        sys.stdout = f # Change the standard output to the created file
+        inputpath = PathToZINC+'ZINC_named_' + pos + '.mol2'
+        Find_AEfromref(parse_MOL2toMAG(inputpath, with_hydrogen = False), dZ_max=dZ_max, log = 'quiet', with_electronic_energy_difference = True, method = 'geom', take_hydrogen_data_from=inputpath)
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
 
@@ -124,8 +134,8 @@ for count in range(1,14+1):
 
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000005.xyz', with_hydrogen = True).get_nuclear_energy())
 #----------------------Going through ZINC------------------------------------
-
-for count in [1,6]:
+"""
+for count in [5,6]:
     start_tag = (count-1)*10000
     end_tag = count*10000
     if count == 1:
@@ -139,7 +149,7 @@ for count in [1,6]:
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_ZINC, [(i,batch_index,1) for i in range(start_tag,end_tag)])
     pool.close()
-
+"""
 """
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_ZINC, [(i,batch_index,2) for i in range(start_tag,end_tag)])
@@ -157,6 +167,19 @@ pool = mp.Pool(int(performance_use*mp.cpu_count()))
 pool.starmap(multicore_QM9, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,100)])
 pool.close()
 """
+
+#----------------------Finding Yukawa mass by going through ZINC----------------
+
+print('----------------------------------')
+print(standard_yukawa_range)
+start_tag = 1
+end_tag = 59986+1
+pool = mp.Pool(int(performance_use*mp.cpu_count()))
+pool.starmap(multicore_ZINC, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,300)])
+pool.close()
+
+
+
 #---------------------------theoretically possible graphs-------------------
 """
 pool = mp.Pool(int(performance_use*mp.cpu_count()))

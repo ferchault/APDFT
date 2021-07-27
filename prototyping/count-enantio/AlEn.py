@@ -569,10 +569,10 @@ class MoleAsGraph:
             mol.atom = atom_string[:-2]
             mol.basis = basis
             mol.verbose = 0
-            mol.nelectron = int(overall_charge+0.001) #Avoid .999 when adding thirds
+            mol.nelectron = int(overall_charge+0.001) - int(overall_charge+0.001)%2 #Avoid .999 when adding thirds and unpaired electrons
             mol.build()
-            calc = add_qmmm(scf.RHF(mol), mol, Z)
-            hfe = calc.kernel(verbose=0)
+            calc = add_qmmm(scf.RHF(mol).density_fit(), mol, Z)
+            hfe = calc.density_fit().kernel(verbose=0)
             total_energy = calc.e_tot
             already_compt.update({geom_hash(self.geometry, Z):total_energy})
             return total_energy
@@ -1147,6 +1147,7 @@ def parse_MOL2toMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True
             number = np.delete(number, j)
         else:
             j += 1
+    #print(number)
     N = int(number[0]) #number of atoms including hydrogen
     #print(N)
     #Get the line_offset where the geometry starts:
@@ -1400,7 +1401,11 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, with_all_energies = False, 
         '''Explicitly calculate the energies of all the configurations in Total_CIM[0]
         and their mirrors, then print their energy difference'''
         if take_hydrogen_data_from != '':
-            full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
+            #Different parsers for different data formats!
+            if take_hydrogen_data_from[-4:] == 'mol2':
+                full_mole = parse_MOL2toMAG(take_hydrogen_data_from, with_hydrogen=True)
+            elif take_hydrogen_data_from[-4:] == '.xyz':
+                full_mole = parse_XYZtoMAG(take_hydrogen_data_from, with_hydrogen=True)
             for i in range(len(Total_CIM)):
                 #print('--------------------------------')
                 Z_new = np.zeros((full_mole.number_atoms)).tolist()
