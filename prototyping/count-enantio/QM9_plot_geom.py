@@ -107,7 +107,7 @@ def average_num_AE(input_file_prefix, input_file_postfix):
             num_AE_SD[int(x[2])-2] += (float(x[3])-num_AE[int(x[2])-2])**2
     for thing in N:
         #print(num_AE_SD)
-        num_AE_SD[thing-2] = math.sqrt(num_AE_SD[thing-2])
+        num_AE_SD[thing-2] = math.sqrt(num_AE_SD[thing-2]/num_moles[thing-2])
     #print('Percentage: '+str(num_AE*100))
     return N, num_AE, num_AE_SD
 
@@ -123,8 +123,8 @@ N, times_dZ1, SD_dZ1 = get_times('QM9_log', '_dZ1')
 #------------------------Plot the average num_AE per N--------------------------
 
 fig, ax = plt.subplots()
-ax.scatter(NN, av, marker='x', color=color[1], label='dZ_max = 2')
-#plt.errorbar(NN, av, yerr=av_SD, fmt='none', capsize=4, color=color[1])
+ax.scatter(NN, av, marker='x', color=color[1], label='dZ_max = 1')
+plt.errorbar(NN, av, yerr=av_SD, fmt='none', capsize=4, color=color[1])
 ax.set_xticks(range(2,10))
 ax.set_xlim([1.5, 9.7])
 ax.set_ylim([0.00,0.6])

@@ -175,7 +175,7 @@ print(standard_yukawa_range)
 start_tag = 1
 end_tag = 59986+1
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
-pool.starmap(multicore_ZINC, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,300)])
+pool.starmap(multicore_ZINC, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,50)])
 pool.close()
 
 

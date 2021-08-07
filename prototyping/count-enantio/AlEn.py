@@ -31,8 +31,9 @@ PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToZINC = '/home/simon/ZINC/'
 
 """
-Split QM9:          python -c "for i,c in enumerate(open('dsgdb9nsd.xyz').read()[:-1].split('\n\n')): open(f'dsgdb9nsd_{i+1:06d}.xyz', 'w').write(c+'\n')"
-Split ZINC/named:   python -c "for i,c in enumerate(open('named.mol2').read()[:-1].split('@<TRIPOS>MOLECULE')): open(f'ZINC_named_{i:05d}.mol2', 'w').write(c+'\n')"
+Split QM9:              python -c "for i,c in enumerate(open('dsgdb9nsd.xyz').read()[:-1].split('\n\n')): open(f'dsgdb9nsd_{i+1:06d}.xyz', 'w').write(c+'\n')"
+Split ZINC/named:       python -c "for i,c in enumerate(open('named.mol2').read()[:-1].split('@<TRIPOS>MOLECULE')): open(f'ZINC_named_{i:05d}.mol2', 'w').write(c+'\n')"
+Split ZINC/in-vivo:     python -c "for i,c in enumerate(open('in-vivo.mol2').read()[:-1].split('@<TRIPOS>MOLECULE')): open(f'ZINC_in-vivo_{i:05d}.mol2', 'w').write(c+'\n')"
 """
 
 elements = {'Ghost':0,'H':1, 'He':2,
@@ -576,6 +577,8 @@ class MoleAsGraph:
             total_energy = calc.e_tot
             already_compt.update({geom_hash(self.geometry, Z):total_energy})
             return total_energy
+            #FLAG
+            #https://pyscf.org/user/df.html
 
     def get_electronic_energy(self, Z=[], basis=basis):
         return self.get_total_energy(Z, basis=basis) - self.get_nuclear_energy(Z)
