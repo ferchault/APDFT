@@ -130,6 +130,13 @@ def check_convergence(file, linenumber):
             success = False
     return(iteration, conv, success)
 
+def get_energy_contribution(logfile, name):
+    energy = 0
+    for line in logfile:
+        if name in line:
+            energy = float(line.split()[-2]) # return last value (should be after calc is converged)
+    return(energy)
+
 ##########################################################
 #                    Error handling                      #
 ##########################################################
@@ -197,3 +204,22 @@ def parse_error_file(file_content):
             if error_message_lookup[k] in line:
                 return(k)
     return('e000')
+
+##########################################################
+#                     Parse pp-files                     #
+##########################################################
+
+def parse_pp_file(file):
+    pp_param = {'Z_ion':0, 'r_loc':0, 'c1':0, 'c2':0, 'c3':0,'c4':0}
+    with open(file, 'r') as f:
+        for line in f:
+            if 'ZV' in line:
+                pp_param['Z_ion'] = float(line.strip('\n').split()[-1])
+            elif 'RC' in line:
+                pp_param['r_loc'] = float(line.strip('\n').split()[0])
+            elif '#C' in line:
+                items = line.strip('\n').split()
+                num_coeff = int(items[0])
+                for i, c in enumerate(items[1:num_coeff+1]):
+                    pp_param[f'c{i}'] = float(c)
+    return(pp_param)

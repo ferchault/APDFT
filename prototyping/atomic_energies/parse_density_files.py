@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ase.units import Bohr
 
-from ase.calculators.vasp.vasp import VaspChargeDensity
+#from ase.calculators.vasp.vasp import VaspChargeDensity
 
 class CUBE(object):
     
@@ -138,52 +138,52 @@ class CUBE(object):
             
     
     
-class Vasp_CHG(object):
-    def __init__(self, fname):
-        # get information from CHG file
-        dens_obj = VaspChargeDensity(fname)
-        self.charge_density = np.array(dens_obj.chg[0]) # read CHG file into numpy array
-        self.atoms = dens_obj.atoms[0] # information about cell, atom positions ...
+# class Vasp_CHG(object):
+#     def __init__(self, fname):
+#         # get information from CHG file
+#         dens_obj = VaspChargeDensity(fname)
+#         self.charge_density = np.array(dens_obj.chg[0]) # read CHG file into numpy array
+#         self.atoms = dens_obj.atoms[0] # information about cell, atom positions ...
         
-        del(dens_obj) # delete to free up memory
+#         del(dens_obj) # delete to free up memory
         
-        # scale electron density
-        self.gpts = self.charge_density.shape
-        self.dv = self.atoms.get_volume()/(self.gpts[0]*self.gpts[1]*self.gpts[2]) 
-        self.charge_density *= self.dv
+#         # scale electron density
+#         self.gpts = self.charge_density.shape
+#         self.dv = self.atoms.get_volume()/(self.gpts[0]*self.gpts[1]*self.gpts[2]) 
+#         self.charge_density *= self.dv
         
-    def project(self, axes):
-        """
-        scales density by gridvolume and projects density on specified axes (1D or 2D)
-        """
-        projected_density = np.sum(self.charge_density, axis=axes)
-        return(projected_density)
+#     def project(self, axes):
+#         """
+#         scales density by gridvolume and projects density on specified axes (1D or 2D)
+#         """
+#         projected_density = np.sum(self.charge_density, axis=axes)
+#         return(projected_density)
     
-    def save_projection(self, fname, pr_axes):
-        """
-        writes projection of density to file
+#     def save_projection(self, fname, pr_axes):
+#         """
+#         writes projection of density to file
         
-        fname: path to the file where projected density is stored
-        pr_axes: axes over which is integrated to generate projection
-        """
-        np.savetxt(fname, self.project(pr_axes))
+#         fname: path to the file where projected density is stored
+#         pr_axes: axes over which is integrated to generate projection
+#         """
+#         np.savetxt(fname, self.project(pr_axes))
         
         
-    def get_grid(self):
-        """
-        returns the coordinates of the grid points where the density values are given as a meshgrid
-        works so far only for orthogonal coordinate axes
-        """
-        # length along the axes
-        l_x = self.atoms.get_cell()[0][0]
-        l_y = self.atoms.get_cell()[1][1]
-        l_z = self.atoms.get_cell()[2][2]
-        # gpts along every axis
-        x_coords = np.linspace(0, l_x-l_x/self.gpts[0], self.gpts[0])
-        y_coords = np.linspace(0, l_y-l_y/self.gpts[1], self.gpts[1])
-        z_coords = np.linspace(0, l_z-l_z/self.gpts[2], self.gpts[2])
-        # create gridpoints
-        meshgrid = np.meshgrid(x_coords, y_coords, z_coords, indexing='ij')
-        return(meshgrid)
+#     def get_grid(self):
+#         """
+#         returns the coordinates of the grid points where the density values are given as a meshgrid
+#         works so far only for orthogonal coordinate axes
+#         """
+#         # length along the axes
+#         l_x = self.atoms.get_cell()[0][0]
+#         l_y = self.atoms.get_cell()[1][1]
+#         l_z = self.atoms.get_cell()[2][2]
+#         # gpts along every axis
+#         x_coords = np.linspace(0, l_x-l_x/self.gpts[0], self.gpts[0])
+#         y_coords = np.linspace(0, l_y-l_y/self.gpts[1], self.gpts[1])
+#         z_coords = np.linspace(0, l_z-l_z/self.gpts[2], self.gpts[2])
+#         # create gridpoints
+#         meshgrid = np.meshgrid(x_coords, y_coords, z_coords, indexing='ij')
+#         return(meshgrid)
         
         

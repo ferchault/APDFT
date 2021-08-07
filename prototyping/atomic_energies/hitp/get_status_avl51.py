@@ -2,6 +2,7 @@ import os
 
 import sys
 sys.path.insert(0, '/home/misa/git_repositories/APDFT/prototyping/atomic_energies/hitp')
+sys.path.insert(0, '/home/sahre/git_repositories/APDFT/prototyping/atomic_energies/hitp')
 
 from get_status_report import analyse_logfile
 
