@@ -231,3 +231,68 @@ def wrapper_ase(atoms, compound_path, pp_dir, pp_type, template_inp, template_in
 
         # generate pp-files
         write_pp_files_compound(atom_symbols, new_lambda, lambda_path, pp_dir, pp_type)
+
+        
+def align_molecule(molecule, n_plane, p1, p2, s):
+    """
+    rotates molecule such that the plane formed by the atoms at positions p1, p2, s is orthogonal to n_plane
+    """
+    v1 = molecule.get_positions()[s] - molecule.get_positions()[p1]
+    v2 = molecule.get_positions()[s] - molecule.get_positions()[p2]
+    n = np.cross(v1, v2)/np.linalg.norm(np.cross(v1, v2))
+    molecule.rotate(n, n_plane)
+
+def wrapper_aligned(a1, a2, a3, atoms, atoms_ref, compound_path, pp_dir, pp_type, template_inp, template_inp_small_lambda):
+    """
+    generates all necessary files for a cpmd calculation using an atoms object from ase as input
+    three atoms specified by their indices a1, a2, a3, lie in the same plane in and in the same plane as a set of grid points of the cube-file electronic density grid
+    """
+    # calculation parameters (independent of lambda value)
+    atom_symbols = atoms.get_chemical_symbols()
+    nuc_charges = atoms.get_atomic_numbers()
+    num_ve = eqd.get_num_val_elec(nuc_charges) # get number of ve
+    boxsize = get_boxsize(num_ve) # get boxsize
+    num_gpts_lower, num_gpts_higher = get_gpts(num_ve) # get gridpoints
+    num_gpts = num_gpts_higher
+
+    # shift/rotate molecule to be in plane of grid points
+    centroid_initial = np.mean(atoms_ref.get_positions(), axis=0)
+    shift = np.array([boxsize,boxsize,boxsize])/2 - centroid_initial
+    atoms.set_positions(atoms.get_positions() + shift)
+    
+    align_molecule(atoms, np.array([0,0,1]), a2, a3, a1)
+    pos_z = atoms.get_positions()[a1, 2]
+    lv = boxsize/num_gpts
+    final_shift_z = np.array([0,0,int(num_gpts/2)*lv - pos_z])
+    atoms.set_positions(atoms.get_positions() + final_shift_z)
+    mean_x = atoms.get_positions()[:,0].mean()
+    mean_y = atoms.get_positions()[:,1].mean()
+    shift_xy = np.array([boxsize,boxsize,0])/2 - np.array([mean_x, mean_y, 0])
+    atoms.set_positions(atoms.get_positions() + shift_xy)
+    
+    coords_final = atoms.get_positions()
+    
+    # get correct lambda value
+    lambda_values = np.array([0.4, 0.6, 0.8, 1.0])
+    for lam_val in lambda_values:
+        new_lambda, scaled_ve = get_lambda(lam_val, num_ve)
+        # scaled_ve is number of electrons added from pseudopotential file, the remaining electrons must be added in form of a negative charge
+        charge = scaled_ve - num_ve # write input
+
+        # create directory if necessary
+        if scaled_ve < 10:
+            scaled_ve_str = '0'+str(scaled_ve)
+        else:
+            scaled_ve_str = str(scaled_ve)
+        lambda_path = os.path.join(compound_path, f've_{scaled_ve_str}/')
+        os.makedirs(lambda_path, exist_ok=True)
+
+        # generate input file
+        input_path = os.path.join(lambda_path, 'run.inp')
+        if new_lambda > 0.5:
+            write_input(atom_symbols, charge, coords_final, num_gpts, boxsize, input_path, template_inp, debug = False)
+        else:
+            write_input(atom_symbols, charge, coords_final, num_gpts, boxsize, input_path, template_inp_small_lambda, debug = False)
+
+        # generate pp-files
+        write_pp_files_compound(atom_symbols, new_lambda, lambda_path, pp_dir, pp_type)
