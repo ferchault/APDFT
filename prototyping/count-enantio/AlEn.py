@@ -25,7 +25,7 @@ tolerance = 0.005 #the threshold to which the inertia moments of molecules are s
 looseness = 0.005 #the threshold to which the chemical environments of atoms within molecules are still considered close enough
 basis = 'ccpvdz' #'def2tzvp' 'cc-pCVDZ'??? Basis set for QM calculations
 representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
-standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
+standard_yukawa_range = 1.7 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToZINC = '/home/simon/ZINC/'
@@ -1319,7 +1319,7 @@ def geomAE(graph, m=[2,2], dZ=[1,-1], debug = False, with_all_energies = False, 
         for j in range(N_dZ):
             atomwise_config[i][j+1] = elements[temp_mole[i][0]]+dZ[j]
     #All possible combinations of those atoms with meshgrid; the * passes the arrays element-wise
-    mole_config_unfiltered = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False)).T.reshape(-1,len(similars))
+    mole_config_unfiltered = np.array(np.meshgrid(*atomwise_config.tolist(), copy=False),dtype='int').T.reshape(-1,len(similars))
     #Initalize a molecule configuration:
     mole_config = np.zeros((1,len(similars)),dtype='int')
     mole_config = np.delete(mole_config, 0, axis = 0)

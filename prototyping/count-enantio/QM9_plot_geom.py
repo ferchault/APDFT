@@ -75,9 +75,9 @@ def get_CDF(input_file_prefix, input_file_postfix, bin_size = 50):
                     print(x)
         f.close()
     #Normalize the function for percentages
-    for i in range(len(N)):
-        for j in range(num_bin):
-            num_AE[i][j] /= num_moles[i]
+    #for i in range(len(N)):
+    #    for j in range(num_bin):
+    #        num_AE[i][j] /= num_moles[i]
     #print('Percentage: '+str(num_AE*100))
     return binning, num_AE, num_moles
 
@@ -134,10 +134,10 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Average number of AEs per mol.'
 fig.savefig("figures/QM9_averagenumAE_dZ1_geom.png", dpi=500)
 
 
-"""
+
 #--------------------------QM9 as references, dZ1-------------------------------
 binning, num_AE, num_moles = get_CDF( 'QM9_log', '_dZ1', bin_size=bin_size)
-num_AE *= 100
+#num_AE *= 100
 #print(binning, num_AE)
 fig, ax = plt.subplots()
 for i in N:
@@ -148,15 +148,15 @@ for i in N:
     ax.bar(binning, num_AE[i-2], width=bin_size, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     plt.yscale('log')
     ax.legend(loc="upper right",framealpha=1, edgecolor='black')
-    fig.savefig('figures/CDF_AE_N'+str(i)+'_dZ1_geom.png', dpi=500)
+    fig.savefig('figures/CDF_AE_N'+str(i)+'_dZ1_geom.png', dpi=500, bbox_inches='tight')
     ax.clear()
 
 #num_moles is needed to rescale the number of AEs depending on their N
 all_moles = np.sum(num_moles[1:])
-plt.xlabel('Amount of AEs in bins of size '+str(bin_size) + ',  (dZ_max = 1)')
-plt.ylabel('AEs among all molecules (ref) / %')
-plt.ylim([0.001,50])
-plt.xlim([-bin_size/2,1090])
+plt.xlabel(r'Number of AEs (bin size = '+str(bin_size) +', $dZ_{max} = 1$)')
+plt.ylabel('Molecules with AEs in QM9')
+plt.ylim([1,12000])
+plt.xlim([-bin_size/2,1020])
 plt.yscale('log')
 #plt.xscale('log')
 bottom = np.zeros((len(binning[1:])))
@@ -169,7 +169,7 @@ for i in N[1:]: #exclude the 2, because it does not have any AEs
     bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
     plt.legend(loc="upper right",framealpha=1, edgecolor='black')
     #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
-    plt.savefig('figures/CDF_AE_dZ1_geom.png', dpi=500)
+    plt.savefig('figures/CDF_abs_AE_dZ1_geom.png', dpi=500)
 
 
 #--------------------------QM9 as references, dZ2-------------------------------
@@ -445,4 +445,3 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Amount of molecules with AEs / 
 #plt.yscale('log')
 ax.legend(loc="upper right",prop={'size': 12},framealpha=1, edgecolor='black')
 fig.savefig("figures/sweetspot_geom.png", dpi=500)
-"""

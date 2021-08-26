@@ -96,8 +96,8 @@ def multicore_ZINC(tag_number, batch_index, dZ_max):
         Find_AEfromref(parse_MOL2toMAG(PathToZINC+'ZINC_named_' + pos + '.mol2'), log='sparse', dZ_max=dZ_max, method = 'geom')
         sys.stdout = original_stdout # Reset the standard output to its original value
         print(str(pos)+' -> Done')
-    """
 
+    """
     #------------------Energy differences of pairs of AE------------------------
     with open('logs/ZINC_log_energydiff_dZ'+str(dZ_max)+'_range'+str(batch_index)+'.txt', 'a') as f: #batch index is the yukawa mass here
         sys.stdout = f # Change the standard output to the created file
@@ -132,10 +132,11 @@ for count in range(1,14+1):
     pool.close()
 """
 
-#print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_000005.xyz', with_hydrogen = True).get_nuclear_energy())
 #----------------------Going through ZINC------------------------------------
+
+
 """
-for count in [5,6]:
+for count in [1,2,3,4,5,6]:
     start_tag = (count-1)*10000
     end_tag = count*10000
     if count == 1:
@@ -149,8 +150,6 @@ for count in [5,6]:
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_ZINC, [(i,batch_index,1) for i in range(start_tag,end_tag)])
     pool.close()
-"""
-"""
     pool = mp.Pool(int(performance_use*mp.cpu_count()))
     pool.starmap(multicore_ZINC, [(i,batch_index,2) for i in range(start_tag,end_tag)])
     pool.close()
