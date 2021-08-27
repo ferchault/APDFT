@@ -181,44 +181,45 @@ for range in ranges_QM9:
     if range < 0:
         #Yukawa range infinite, i.e. Coulomb potential
         hline_E_QM9 = median
-        hline_num_QM9 = numAE
+        hline_num_QM9 = numAE/1388 #Normalize the number by batch size
     else:
         median_E_QM9.append(median)
-        numAE_QM9.append(numAE)
+        numAE_QM9.append(numAE/1388)
 
 for range in ranges_ZINC:
     median, numAE = median_from_file('ZINC_log_energydiff_dZ1_range'+str(range)+'.txt',0)
     if range < 0:
         #Yukawa range infinite, i.e. Coulomb potential
         hline_E_ZINC = median
-        hline_num_ZINC = numAE
+        hline_num_ZINC = numAE/1199 #Normalize the number by batch size
     else:
         median_E_ZINC.append(median)
-        numAE_ZINC.append(numAE)
+        numAE_ZINC.append(numAE/1199) #Normalize the number by batch size
 
 fig, ax_Delta_E = plt.subplots()
 
 #Median energy differences
-ax_Delta_E.plot(ranges_QM9[1:], median_E_QM9, label=r'$| \Delta E |$ (QM9)', color='tab:blue')
-ax_Delta_E.plot(ranges_ZINC[1:], median_E_ZINC, label=r'$| \Delta E |$ (ZINC)', color='tab:red')
+ax_Delta_E.plot(ranges_QM9[1:], median_E_QM9, label=r'$| \Delta E |$ (QM9)', color='tab:blue', marker='+')
+ax_Delta_E.plot(ranges_ZINC[1:], median_E_ZINC, label=r'$| \Delta E |$ (ZINC)', color='tab:red', marker='+')
 ax_Delta_E.set_xlabel(r'Yukawa range $a$ [$\AA$]', fontsize=14)
 ax_Delta_E.set_ylabel(r'$| \Delta E |$  [Ha]', fontsize=14)
-ax_Delta_E.axhline(y = hline_E_QM9, color = 'tab:blue', linestyle = 'solid', linewidth = 1)
-ax_Delta_E.text(0.38,hline_E_QM9+0.0001,r'$| \Delta E |$ (QM9), $a \rightarrow \infty$', color='tab:blue')
-ax_Delta_E.axhline(y = hline_E_ZINC, color = 'tab:red', linestyle = 'solid', linewidth = 1)
-ax_Delta_E.text(0.38,hline_E_ZINC-0.003,r'$| \Delta E |$ (ZINC), $a \rightarrow \infty$', color='tab:red')
+ax_Delta_E.axhline(y = hline_E_QM9, color = 'tab:blue', linestyle = 'solid', linewidth = 1, xmin=0.68)
+ax_Delta_E.text(2.67,hline_E_QM9+0.0001,r'$| \Delta E |$ (QM9), $a \rightarrow \infty$', color='tab:blue')
+ax_Delta_E.axhline(y = hline_E_ZINC, color = 'tab:red', linestyle = 'solid', linewidth = 1, xmin=0.68)
+ax_Delta_E.text(2.67,hline_E_ZINC-0.003,r'$| \Delta E |$ (ZINC), $a \rightarrow \infty$', color='tab:red')
+ax_Delta_E.set_ylim([0.0004,1])
 ax_Delta_E.set_yscale('log')
 
 #Number of AEs
 ax_numAE = ax_Delta_E.twinx()
-ax_numAE.plot(ranges_QM9[1:], numAE_QM9, label=r'$\#$ AEs (QM9)', color='tab:blue', linestyle = 'dashed')
-ax_numAE.plot(ranges_ZINC[1:], numAE_ZINC, label=r'$\#$ AEs (ZINC)', color='tab:red', linestyle = 'dashed')
-ax_numAE.set_ylabel(r'$\#$ AEs', fontsize=14)
-ax_numAE.axhline(y = hline_num_QM9, color = 'tab:blue', linestyle = 'dashed', linewidth = 1)
-ax_numAE.text(2.7,hline_num_QM9-70,r'$\#$ AEs (QM9), $a \rightarrow \infty$', color='tab:blue')
-ax_numAE.axhline(y = hline_num_ZINC, color = 'tab:red', linestyle = 'dashed', linewidth = 1)
-ax_numAE.text(2.7,hline_num_ZINC-3000,r'$\#$ AEs (ZINC), $a \rightarrow \infty$', color='tab:red')
-ax_numAE.set_ylim([150,70000])
+ax_numAE.plot(ranges_QM9[1:], numAE_QM9, label=r'$\#$ AEs (QM9)', color='tab:blue', linestyle = 'dashed', marker='+')
+ax_numAE.plot(ranges_ZINC[1:], numAE_ZINC, label=r'$\#$ AEs (ZINC)', color='tab:red', linestyle = 'dashed', marker='+')
+ax_numAE.set_ylabel(r'Av. $\#$ AEs per mol.', fontsize=14)
+ax_numAE.axhline(y = hline_num_QM9, color = 'tab:blue', linestyle = 'dashed', linewidth = 1, xmin=0.68)
+ax_numAE.text(2.67,hline_num_QM9+0.03,r'$\#$ AEs (QM9), $a \rightarrow \infty$', color='tab:blue')
+ax_numAE.axhline(y = hline_num_ZINC, color = 'tab:red', linestyle = 'dashed', linewidth = 1, xmin=0.68)
+ax_numAE.text(2.67,hline_num_ZINC-3,r'$\#$ AEs (ZINC), $a \rightarrow \infty$', color='tab:red')
+ax_numAE.set_ylim([0.1,100])
 ax_numAE.set_yscale('log')
 
 #Literature values for method accuracy
@@ -228,11 +229,11 @@ hybrid_E = 0.0162
 """
 Source: https://dft.uci.edu/pubs/RCFB08.pdf
 """
-ax_Delta_E.axhline(y = LDA_E, color = 'black', linestyle = 'solid', linewidth = 1)
+ax_Delta_E.axhline(y = LDA_E, color = 'black', linestyle = 'solid', linewidth = 1, xmax = 0.32)
 ax_Delta_E.text(0.38,LDA_E + 0.005,'LDA')
-ax_Delta_E.axhline(y = GGA_E, color = 'black', linestyle = 'solid', linewidth = 1)
+ax_Delta_E.axhline(y = GGA_E, color = 'black', linestyle = 'solid', linewidth = 1, xmax = 0.32)
 ax_Delta_E.text(0.38,GGA_E+0.002,'PBE')
-ax_Delta_E.axhline(y = hybrid_E, color = 'black', linestyle = 'solid', linewidth = 1)
+ax_Delta_E.axhline(y = hybrid_E, color = 'black', linestyle = 'solid', linewidth = 1, xmax = 0.32)
 ax_Delta_E.text(0.38,hybrid_E-0.004,'TPSSh')
 
 h1, l1 = ax_Delta_E.get_legend_handles_labels()
