@@ -24,11 +24,12 @@ class BDE():
 #             self.nuc_charges = [32, 33, 34, 35]
         self.init_xdata(self.nuc_charges)
         
-    def fit(self, model, p0=None):
-        if p0:
-            self.params = curve_fit(model, self.xdata, self.ebfe, p0)
+    def fit(self, model, p0 = None):
+        if p0 is not None:
+            self.params = curve_fit(model, self.xdata, self.ebfe, p0, maxfev=100000)
         else:
-            elf.params = curve_fit(model, self.xdata, self.ebfe)
+            self.params = curve_fit(model, self.xdata, self.ebfe)
+        
         self.ebfe_fitted = model(self.xdata, *self.params[0])
         self.bde_fitted = -(self.ebfe_fitted + self.nbfe)
         self.mae = np.abs(self.bde_fitted-self.bde).mean()
@@ -67,6 +68,29 @@ class BDE():
         self.bde_predicted = -self.bfe_predicted
         self.linear_mae = np.abs(self.bde_predicted - self.bde).mean()
         
+
+class BDE_set(BDE):
+    def __init__(self, energies, nuc_charges_set):
+        ha2kcal = 630
+        # define energies
+        self.bde = -energies[:,0]*ha2kcal
+        self.bfe = energies[:,0]*ha2kcal
+        self.ebfe = energies[:,1]*ha2kcal
+        self.nbfe = energies[:,2]*ha2kcal
+
+        # define charge combinations Z1, Z2
+        self.nuc_charges_set = nuc_charges_set
+
+        self.init_xdata(self.nuc_charges_set)
+
+    
+    def init_xdata(self, nuc_charges_set):
+        self.xdata = []
+        for nuc_charges in nuc_charges_set:
+            for i in range(len(nuc_charges)):
+                for j in range(i, len(nuc_charges)):
+                    self.xdata.append([nuc_charges[i], nuc_charges[j]])
+        self.xdata = np.array(self.xdata)
         
 class BDE_dist(BDE):
     def __init__(self, energies, nuc_charges_row, dist):
