@@ -55,7 +55,7 @@ def FcM(fcs=[],**kwargs):
 
 def FcM_like(in_mol,fcs=[]):
     mol=in_mol.copy()
-    mol.with_rinv_at_nucleus=with_rinv_at_nucleus
+    mol.with_rinv_at_nucleus=with_rinv_at_nucleus.__get__(mol)
     mol.symmetry=None    #symmetry usually breaks after perturbation
     init_charges=mol.atom_charges()
     if fcs:
