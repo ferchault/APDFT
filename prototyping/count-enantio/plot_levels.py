@@ -2,10 +2,50 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 #-----------Plot energy levels of higher orders for paper-----------------------
+order = []
+energy_BNNBCC = np.array([])
+energy_NBBNCC = np.array([])
+f = open('dps-1000-STO3G.out.energy.csv', 'r')
+Lines = f.readlines()
+f.close()
+for line in Lines:
+    if line[0] == ',':
+        continue
+    else:
+        x = line.split(',') # linenumber,order,error,value,method,fn,group,key
+        if (int(x[1]) < 2 and x[4] == 'taylor') or (int(x[1]) >= 2 and x[4] == 'pade'):
+            order = np.append(order,int(x[1]))
+            energy_BNNBCC = np.append(energy_BNNBCC, float(x[2])) #Absolute errors
+            #energy_BNNBCC = np.append(energy_BNNBCC, float(x[3])) #Actual energies
 
 
+#Sort the arrays:
+energy_BNNBCC_idx = order.argsort()
+energy_BNNBCC = np.flip(energy_BNNBCC[energy_BNNBCC_idx[::-1]])
+order = np.flip(order[energy_BNNBCC_idx[::-1]])
+
+for i in range(0,len(order)):
+    if i == 0:
+        energy_NBBNCC= np.append(energy_NBBNCC,energy_BNNBCC[0])
+    else:
+        energy_NBBNCC = np.append(energy_NBBNCC, energy_NBBNCC[i-1]+(-1)**i*(energy_BNNBCC[i] - energy_BNNBCC[i-1]))
 
 
+print(order)
+print(energy_BNNBCC)
+print(np.flip(energy_NBBNCC))
+
+fig, ax = plt.subplots()
+ax.scatter(order, energy_BNNBCC, color='tab:blue', label='BNNBCC', marker='+')
+ax.scatter(order, energy_NBBNCC, color='tab:red', label='NBBNCC', marker='+')
+ax.set_xlabel("Order", fontsize=14)
+ax.set_ylabel("Absolute Error [Ha]", fontsize=14)
+ax.legend(loc="upper right",framealpha=0, edgecolor='black')
+ax.set_yscale('log')
+fig.tight_layout()
+fig.savefig("figures/branches_benzene.png", dpi=400)
+
+"""
 #-----------------------------COT-----------------------------------------------
 NNCNNCCC_actual = -739.3292463171272
 CCNCCNNN_actual = -739.3284616392402
@@ -147,28 +187,19 @@ ax2.annotate('Actual value BNNBCC: '+str(BNNBCC_actual)[:11], (0,BNNBCC_actual),
 ax2.set_xlabel(r'Order $n$')
 #ax2.set_ylabel('Energy [Ha]')
 fig.savefig("energy_levels/energy_levels_benzene.png", dpi=300)
-
+"""
 
 #-----------------------------Benzene_geomenforced------------------------------
-"""
-These were the original values; however, they were replaced by Guidos arbitrary
-precision values:
 
-NBBNCC_forced_actual = -435.87721373221757
-BNNBCC_forced_actual = -435.9038223625185
+#NBBNCC_forced_actual = -432.87721373221757
+#BNNBCC_forced_actual = -432.9038223625185
 
-energies = [-435.8847603778811, -435.88442255408, -435.8976108093157, -435.7447725850432, -435.75333130160647, -433.2225764838317, -433.2225790071666, -433.2225815305072, -435.7533363466079, -435.7618949855427, -435.9147359307182, -435.9280476827084, -435.92754913163907]
-"""
-"""
-Guidos values:
-FLAG
-"""
+BNNBCC_forced_actual = -432.749177335107
+NBBNCC_forced_actual = -432.7092066718999
 
 
-NBBNCC_forced_actual = -435.87721373221757
-BNNBCC_forced_actual = -435.9038223625185
-
-energies = [-435.8847603778811, -435.88442255408, -435.8976108093157, -435.7447725850432, -435.75333130160647, -433.2225764838317, -433.2225790071666, -433.2225815305072, -435.7533363466079, -435.7618949855427, -435.9147359307182, -435.9280476827084, -435.92754913163907]
+#energies = [-435.8847603778811, -435.88442255408, -435.8976108093157, -435.7447725850432, -435.75333130160647, -433.2225764838317, -433.2225790071666, -433.2225815305072, -435.7533363466079, -435.7618949855427, -435.9147359307182, -435.9280476827084, -435.92754913163907]
+energies = [-432.93126887, -432.93121001, -432.93121001, -430.39098273, -430.39098273, -430.39098448, -430.39098622, -430.39098796, -430.39098622, -430.39098622, -432.93121349, -432.93121349, -432.93127235]
 
 text_pos = [(-10,4),(-10,4),(-10,-10),(-10,2),(-10,-6),(-24,3),(-15,-7),(-13,3),(-22,-7),(-13,4),(-29,-6),(-22,-6),(-22,-6)]
 N = len(energies)
@@ -199,8 +230,13 @@ low_min -= abs(low_min)*0.0002
 low_max += abs(low_max)*0.0002
 d = abs(low_max - low_min)
 high_min = energies[int((N-1)/2)]
-#print(high_min)
-high_min -= abs(high_min)*0.0002
+
+#high_min -= abs(high_min)*0.0002
+high_min -= 0.2
+d = 0.4
+low_min = -433
+low_max = -432.6
+
 high_max = high_min + d
 
 ax2.set_ylim([low_min, low_max])
@@ -234,4 +270,4 @@ ax2.axhline(y = BNNBCC_forced_actual, color = '#000000', linestyle = '--')
 ax2.annotate('Actual value BNNBCC: '+str(BNNBCC_forced_actual)[:8], (0,BNNBCC_forced_actual), textcoords='offset points', xytext=(120,2), fontsize='xx-small')
 ax2.set_xlabel(r'Order $n$')
 #ax2.set_ylabel('Energy [Ha]')
-fig.savefig("energy_levels/energy_levels_benzene_forced.png", dpi=300)
+fig.savefig("energy_levels/energy_levels_benzene_forced_arbprec.png", dpi=300)

@@ -169,8 +169,8 @@ for the different Yuakwa ranges a
 
 """
 
-ranges_QM9 = [-1,0.5,0.7,0.8,1.0,1.1,1.2,1.3,1.5,2.0,2.5]
-ranges_ZINC = [-1,1.0,2.0,2.5,3.0,3.5]
+ranges_QM9 = [-1,0.5,0.7,0.8,1.0,1.1,1.2,1.3,1.5,2.0,2.5,3.5]
+ranges_ZINC = [-1,1.0,1.3,1.5,1.7,2.0,2.5,3.0,3.5]
 median_E_QM9 = []
 median_E_ZINC = []
 numAE_QM9 = []

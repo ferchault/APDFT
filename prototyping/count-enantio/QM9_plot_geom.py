@@ -153,21 +153,23 @@ for i in N:
 
 #num_moles is needed to rescale the number of AEs depending on their N
 all_moles = np.sum(num_moles[1:])
-plt.xlabel(r'Number of AEs (bin size = '+str(bin_size) +', $dZ_{max} = 1$)')
+plt.xlabel(r'# AEs (bin size = '+str(bin_size) +', $\Delta Z_{max} = 1$)')
 plt.ylabel('Molecules with AEs in QM9')
 plt.ylim([1,12000])
 plt.xlim([-bin_size/2,1020])
 plt.yscale('log')
 #plt.xscale('log')
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
 bottom = np.zeros((len(binning[1:])))
-for i in N[1:]: #exclude the 2, because it does not have any AEs
+for i in N[5:]: #exclude 2,3,4,5,6, because they dont have enough AEs
     #Calculate bottom:
     plt.bar(binning[1:],num_AE[i-2][1:]*num_moles[i-2]/all_moles, width=bin_size, bottom=bottom, label='N = '+str(i), alpha=0.5, edgecolor=color[i-2], facecolor=color[i-2], joinstyle='miter')
     #Update bottom:
     #print(bottom)
     #print(num_AE[i-2][1:]*num_moles[i-2]/all_moles)
     bottom = bottom + num_AE[i-2][1:]*num_moles[i-2]/all_moles
-    plt.legend(loc="upper right",framealpha=1, edgecolor='black')
+    plt.legend(loc="upper center",framealpha=1, edgecolor='black')
     #plt.legend(loc="upper right", bbox_to_anchor=(0.9,1),framealpha=1, edgecolor='black')
     plt.savefig('figures/CDF_abs_AE_dZ1_geom.png', dpi=500)
 
@@ -314,6 +316,7 @@ ax.legend(loc="upper left",framealpha=1, edgecolor='black')
 fig.savefig("figures/QM9_times_uncolored_dZ1and2_geom.png", dpi=500)
 
 #--------------------------Norms in QM9 (dZ1 and dZ2)--------------------------
+"""
 #Initalize x and y array, i.e. AEs and related orbit quantity
 AEs = np.empty((133885+1-4), dtype='int')
 norm = np.empty((133885+1-4), dtype='float')
@@ -389,6 +392,8 @@ plt.colorbar()
 plt.clim(1,100000)
 fig.savefig("figures/hist2d_norm_vs_numAE_dZ2_geom.png",dpi=500)
 ax.clear()
+"""
+
 
 #-----------------------Sweetspot---------------------------------------------
 '''Find the behavior of percentage of AEs in dataset versus number of heavy atoms,
@@ -396,6 +401,7 @@ because: N = 2 is too small for AEs to appear and the trend goes up, however, gr
 with large number of verties N get increasingly asymmetric and hence their group action
 orbit number decreases: Hypthesis: Find the sweetspot, where percentage reaches maximum'''
 
+"""
 #Get the data:
 #Possible number of heavy atoms
 
@@ -445,3 +451,5 @@ ax.set(xlabel='Number of heavy atoms N', ylabel='Amount of molecules with AEs / 
 #plt.yscale('log')
 ax.legend(loc="upper right",prop={'size': 12},framealpha=1, edgecolor='black')
 fig.savefig("figures/sweetspot_geom.png", dpi=500)
+
+"""

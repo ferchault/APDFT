@@ -27,7 +27,7 @@ def average_num_AE(input_file_prefix, input_file_postfix, last_log_num):
                 num_moles_zero[int(x[2])-N[0]] += 1
     #print("Percentage of non-yielding molecules vs number of heavy atoms")
     #print(100*num_moles_zero/num_moles)
-    print("Number pf molecules with N atoms")
+    print("Number of molecules with N atoms")
     print(num_moles)
     #Normalize the function for percentages
     for i in range(len(N)):

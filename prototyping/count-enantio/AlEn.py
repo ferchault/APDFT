@@ -23,9 +23,9 @@ import copy
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 tolerance = 0.005 #the threshold to which the inertia moments of molecules are still considered close enough
 looseness = 0.005 #the threshold to which the chemical environments of atoms within molecules are still considered close enough
-basis = 'ccpvdz' #'def2tzvp' 'cc-pCVDZ'??? Basis set for QM calculations
+basis = 'sto3g'#'ccpvdz' #'def2tzvp' 'cc-pCVDZ'??? Basis set for QM calculations
 representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
-standard_yukawa_range = 1.7 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
+standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
 PathToQM9XYZ = '/home/simon/QM9/XYZ/'
 PathToZINC = '/home/simon/ZINC/'
@@ -394,18 +394,20 @@ class MoleAsGraph:
             self.number_atoms = len(elements_at_index)
         else:
             print('Number of vertices and number of elements do not match!')
+            self.number_atoms = len(geometry)
+        """
         if len(edge_layout) != 0:
             self.max_index = max([max(sublist) for sublist in edge_layout])
         else:
             self.max_index = 0
         if len(elements_at_index) != self.max_index+1:
             print("Number of atoms does not match naming of vertices: enumerate the vertices with integers without omissions!")
-        if self.number_atoms > 20:
+        """
+        if self.number_atoms > 20 or edge_layout == [[]]:
             self.orbits = [[]]
         else:
             self.orbits = self.get_orbits_from_graph()
         self.equi_atoms =  self.get_equi_atoms_from_geom(ignore_hydrogen = without_hydrogen)
-
         if without_hydrogen == True:
             N_before = len(self.geometry)
             count = 0
@@ -1064,7 +1066,7 @@ water = MoleAsGraph(        'Water',
 
 #PARSER FUNCTION FOR QM9--------------------------------------------------------
 def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True, angle=None):
-    '''MoleAsGraph instance returned'''
+    '''MoleAsGraph object returned'''
     #check if file is present
     if os.path.isfile(input_PathToFile):
         #open text file in read mode
@@ -1082,12 +1084,18 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
     elements_at_index = []
     for i in range(2,N+2): #get the atoms and their coordinates
         line = data.splitlines(False)[i]
-        if line.split('\t')[0] == 'H':
+        if line.split('\t')[0] == 'H' or line.split(' ')[0] == 'H':
             N_heavyatoms -= 1
-        symbol = line.split('\t')[0]
-        x = float(line.split('\t')[1].strip())
-        y = float(line.split('\t')[2].strip())
-        z = float(line.split('\t')[3].strip())
+        try:
+            symbol = line.split('\t')[0]
+            x = float(line.split('\t')[1].strip())
+            y = float(line.split('\t')[2].strip())
+            z = float(line.split('\t')[3].strip())
+        except:
+            symbol = line.split(' ')[0]
+            x = float(line.split(' ')[1].strip())
+            y = float(line.split(' ')[2].strip())
+            z = float(line.split(' ')[3].strip())
         mole.append([symbol,x,y,z])
         if not with_hydrogen and symbol == 'H':
             continue
@@ -1096,9 +1104,13 @@ def parse_XYZtoMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True,
     #Find edge_layout:
     try:
         network = read_smiles(data.splitlines(False)[N+3].split('\t')[0], explicit_hydrogen=with_hydrogen)
+        edge_layout = [list(v) for v in network.edges()]
     except:
-        network = read_smiles(data.splitlines(False)[N+3].split(' ')[0], explicit_hydrogen=with_hydrogen)
-    edge_layout = [list(v) for v in network.edges()]
+        try:
+            network = read_smiles(data.splitlines(False)[N+3].split(' ')[0], explicit_hydrogen=with_hydrogen)
+            edge_layout = [list(v) for v in network.edges()]
+        except:
+            edge_layout = [[]]
     #print(mole)
     #print(edge_layout)
     """

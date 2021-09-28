@@ -168,7 +168,7 @@ pool.close()
 """
 
 #----------------------Finding Yukawa mass by going through ZINC----------------
-
+"""
 print('----------------------------------')
 print(standard_yukawa_range)
 start_tag = 1
@@ -176,7 +176,7 @@ end_tag = 59986+1
 pool = mp.Pool(int(performance_use*mp.cpu_count()))
 pool.starmap(multicore_ZINC, [(i,standard_yukawa_range,1) for i in range(start_tag,end_tag,50)])
 pool.close()
-
+"""
 
 
 #---------------------------theoretically possible graphs-------------------
@@ -198,7 +198,8 @@ pool.close()
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').get_energy_NN(take_hydrogen_data_from=PathToQM9XYZ+'dsgdb9nsd_010839.xyz'))
 #print(parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').fill_hydrogen_valencies(PathToQM9XYZ+'dsgdb9nsd_010839.xyz').energy_PySCF())
 #print(geomAE(parse_XYZtoMAG('cubane_13halfs.xyz'), m=[4,4], dZ=[0.5,-0.5], debug = True, get_all_energies=True, chem_formula = True, take_hydrogen_data_from='cubane_13halfs.xyz'))
-#print(parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).get_energy_NN())
+#print(parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).geometry)
+#print(parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).get_electronic_energy(Z=[1,-1,-1,1,0,0,0,0,0,0,0,0]))
 #print(geomAE(parse_XYZtoMAG('benzene.xyz'), m=[2,2], dZ=[1,-1], get_all_energies=False, get_electronic_energy_difference=True, take_hydrogen_data_from='benzene.xyz', debug=False))
 
 #Find_AEfromref(parse_XYZtoMAG('adamantane.xyz'), log='normal', method='geom', dZ_max=1, take_hydrogen_data_from='adamantane.xyz', with_Taylor_expansion = True)
@@ -240,7 +241,7 @@ print(np.array(all_norms, dtype=object))
 #parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_delta_rho_2D([1,-1,-1,1,0,0,0,0,0,0,0,0], [-1,1,1,-1,0,0,0,0,0,0,0,0])
 
 
-#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_rho_3D(Z=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
+parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_rho_3D(Z=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
 #parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_delta_rho_3D([0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,0,0,0,0,0,0,0,0], [-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], Z = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
 #test = MoleAsGraph('H2', [[0,1]], ['H','H'], [['H', 0,0,0],['H',0,0,1.4]])
 
