@@ -241,7 +241,7 @@ print(np.array(all_norms, dtype=object))
 #parse_XYZtoMAG('benzene.xyz', with_hydrogen=True).plot_delta_rho_2D([1,-1,-1,1,0,0,0,0,0,0,0,0], [-1,1,1,-1,0,0,0,0,0,0,0,0])
 
 
-parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_rho_3D(Z=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
+#parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_rho_3D(Z=[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
 #parse_XYZtoMAG(PathToQM9XYZ+'dsgdb9nsd_017954.xyz', with_hydrogen=True, angle=[-145,-21,-63]).plot_delta_rho_3D([0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,0,0,0,0,0,0,0,0], [-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0], Z = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0,0,0,0,0,0,0,0])
 #test = MoleAsGraph('H2', [[0,1]], ['H','H'], [['H', 0,0,0],['H',0,0,1.4]])
 
@@ -273,7 +273,7 @@ for i in range(0,7):
 """
 
 
-"""
+
 print("-------------------------NBBNCC-------------------------")
 sum=0
 print("Actual")
@@ -294,7 +294,7 @@ for i in range(0,7):
     print(res)
     sum += res
     print("Sum = "+str(sum))
-"""
+
 
 #print(Find_reffromtar(benzene, method = 'geom', dZ_max = 1, log= 'normal').get_energy_NN())
 """

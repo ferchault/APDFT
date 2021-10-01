@@ -1253,7 +1253,7 @@ def parse_MOL2toMAG(input_PathToFile, with_hydrogen = False, angle_aligning=True
 def dlambda_electronic_energy(mole, Z, dlambda, order):
     #Z is the deviation of the molecule from integer nuclear charges
     #dlambda is needed as the basis vector for the parameter lambda and is the change of nuclear charges at lamda=1
-    step = 0.02
+    step = 0.05
     if order < 1:
         #print(mole.geometry)
         if geom_hash(mole.geometry, Z) in already_compt:
@@ -1262,17 +1262,22 @@ def dlambda_electronic_energy(mole, Z, dlambda, order):
             result = mole.get_electronic_energy(Z)
             already_compt.update({geom_hash(mole.geometry, Z):result})
             return result
+        """
+        result = mole.get_electronic_energy(Z)
+        return result
+        """
     else:
         def f(b):
             return dlambda_electronic_energy(mole, [x+b*step*y for x,y in zip(Z,dlambda)], dlambda, order-1)
         #return (-f(4)/280 + 4*f(3)/105 - f(2)/5 + 4*f(1)/5 - 4*f(-1)/5 + f(-2)/5 - 4*f(-3)/105 + f(-4)/280)/step
         return (-f(2)/12 + 2*f(1)/3 - 2*f(-1)/3 + f(-2)/12)/step
+        #return (f(1)-2*f(0)+f(-1))/(step)
 
 def lambda_taylorseries_electronic_energy(mole, Z, dlambda, order):
     """
     dlambda is a list with the desired difference in nuclear charge of the endpoints
     compared to the current state of the molecule (so the difference transmuted for
-    lambda = 1
+    lambda = 1)
     """
     return dlambda_electronic_energy(mole, Z, dlambda, order)/math.factorial(order)
 
