@@ -203,7 +203,23 @@ def cubic_alch_hessian(mf,int_r,mo1,e1):
     e3 -= lib.einsum('pq,xpi,yqj,zij->xyz', mf.get_ovlp(), mo1, mo1, e1) * 2
     e3 = (e3 + e3.transpose(1,2,0) + e3.transpose(2,0,1) +
           e3.transpose(0,2,1) + e3.transpose(1,0,2) + e3.transpose(2,1,0))
-    e3 = -e3
+    e3 = -e3   # this minus should be cancelled
+    return e3
+
+def cubic_alch_hessian2(mf,int_r,mo1,e1):   # as stated in Cammi PCM article 
+    mo_coeff = mf.mo_coeff
+    mo_occ = mf.mo_occ
+    occidx = mo_occ > 0
+    orbo = mo_coeff[:, occidx]
+    mo1 = lib.einsum('xqi,pq->xpi', mo1, mo_coeff)
+    dm1 = lib.einsum('xpi,qi->xpq', mo1, orbo) * 2
+    dm1 = dm1 + dm1.transpose(0,2,1)
+    vresp = mf.gen_response(hermi=1)
+    h1ao = int_r + vresp(dm1)
+    # *2 for double occupancy
+    e3  = lib.einsum('xpq,ypi,zqi->xyz', h1ao, mo1, mo1) * 4
+    e3 -= lib.einsum('pq,xpi,yqj,zij->xyz', mf.get_ovlp(), mo1, mo1, e1) * 4
+    e3 = e3 + e3.transpose(1,2,0) + e3.transpose(2,0,1) 
     return e3
 
 class APDFT_perturbator(lib.StreamObject):
@@ -333,6 +349,19 @@ class APDFT_perturbator(lib.StreamObject):
             e1s=np.asarray([self.e1(x) for x in idxs])
             self.cubic_hessian=cubic_alch_hessian(self.mf,dVs,mo1s,e1s)
             return self.cubic_hessian
+    def build_cubic_hessian2(self,*args):
+            if args is None:
+                return self.build_cubic_hessian2(*self.sites)
+            idxs=[]
+            for arg in args:
+                if isinstance(arg,int):
+                    idxs.append(arg)
+            mo1s=np.asarray([self.mo1(x) for x in idxs])
+            dVs=np.asarray([self.dV(x) for x in idxs])
+            e1s=np.asarray([self.e1(x) for x in idxs])
+            self.cubic_hessian2=cubic_alch_hessian2(self.mf,dVs,mo1s,e1s)
+            return self.cubic_hessian2
+        
     def APDFT1(self,pvec):
         return self.mf.e_tot+pvec.dot(self.gradient)
     def APDFT2(self,pvec):
