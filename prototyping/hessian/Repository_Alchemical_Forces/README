@@ -1,0 +1,5 @@
+This repository contains the subroutines for the CPHF evaluation of alchemical derivatives and of alchemical forces.
+The code contained is made available to the public audience, free of charge under the MIT License.
+The code works using PySCF (v. 1.7.6 - accessed February 2021) and no support for later varsion is guaranteed.
+This can be consider a research code supplementary to the paper [ ]
+
