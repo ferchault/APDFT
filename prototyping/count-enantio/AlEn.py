@@ -15,15 +15,15 @@ import itertools
 from pyscf import gto, scf, qmmm
 import pyscf
 from pysmiles import read_smiles
-import mpmath
-mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
+#import mpmath
+#mpmath.mp.dps = 30 #IMPORTANT FOR ARBITRARY PRECISION HF-COMPUTATION
 import imageio
 import copy
 
 #ALL CONFIGURATIONS AND GLOBAL VARIABLES----------------------------------------
 tolerance = 0.005 #the threshold to which the inertia moments of molecules are still considered close enough
 looseness = 0.005 #the threshold to which the chemical environments of atoms within molecules are still considered close enough
-basis = 'sto3g'#'ccpvdz' #'def2tzvp' 'cc-pCVDZ'??? Basis set for QM calculations
+basis = 'def2tzvp'#'ccpvdz' #'def2tzvp' Basis set for QM calculations
 representation ='yukawa' #'yukawa'# 'atomic_Coulomb' # 'exaggerated_atomic_Coulomb' #Atomic representations
 standard_yukawa_range = -1 # -1 is inf <=> Coulomb potential # <10 <=> bullshit
 PathToNauty27r1 = '/home/simon/nauty27r1/'
@@ -551,7 +551,7 @@ class MoleAsGraph:
                     result.append([self.name, self.geometry[i][0], i,rep_norm[i]])
             return result
 
-    def get_total_energy(self, Z=[], basis=basis):
+    def get_total_energy(self, Z=[], basis=basis, method = 'HF'):
         if len(Z) == 0:
             Z = np.zeros((self.number_atoms)).tolist()
         if geom_hash(self.geometry, Z) in already_compt:
@@ -567,20 +567,35 @@ class MoleAsGraph:
                 for j in [1,2,3]:
                     atom_string += ' ' + str(self.geometry[i][j])
                 atom_string += '; '
-            mol = gto.Mole()
-            mol.unit = 'Angstrom'
-            mol.atom = atom_string[:-2]
-            mol.basis = basis
-            mol.verbose = 0
-            mol.nelectron = int(overall_charge+0.001) - int(overall_charge+0.001)%2 #Avoid .999 when adding thirds and unpaired electrons
-            mol.build()
-            calc = add_qmmm(scf.RHF(mol).density_fit(), mol, Z)
-            hfe = calc.density_fit().kernel(verbose=0)
-            total_energy = calc.e_tot
-            already_compt.update({geom_hash(self.geometry, Z):total_energy})
-            return total_energy
-            #FLAG
-            #https://pyscf.org/user/df.html
+            if method == 'HF':
+                mol = gto.Mole()
+                mol.unit = 'Angstrom'
+                mol.atom = atom_string[:-2]
+                mol.basis = basis
+                mol.verbose = 0
+                #mol.nelectron = int(overall_charge+0.001) - int(overall_charge+0.001)%2 #Avoid .999 when adding thirds and unpaired electrons
+                mol.build()
+                calc = add_qmmm(scf.RHF(mol).density_fit(), mol, Z)
+                hfe = calc.density_fit().kernel(verbose=0)
+                total_energy = calc.e_tot
+                already_compt.update({geom_hash(self.geometry, Z):total_energy})
+                return total_energy
+                #https://pyscf.org/user/df.html
+            if method == 'DFT':
+                mol = gto.M(atom = atom_string, basis = basis, unit='Angstrom', charge=0, spin=spin, verbose=0)#output ='/qmlogs/test.log')
+                mf = dft.RKS(mol)
+                mf.xc = 'pbe,pbe'
+                #THE CRUCIALL BIT!!! NO IDEA IF THIS EVEN WORKS...
+                calc = add_qmmm(dft.RKS(mol), mol, Z)
+                mf = mf.newton() # second-order algortihm
+                mf.kernel()
+                if spin == 0:
+                    dm = mf.make_rdm1()
+                if spin == 1:
+                    dm = mf.make_rdm1()[0] + mf.make_rdm1()[1]
+                total_energy = mf.e_tot
+                already_compt.update({geom_hash(self.geometry, Z):total_energy})
+                return total_energy
 
     def get_electronic_energy(self, Z=[], basis=basis):
         return self.get_total_energy(Z, basis=basis) - self.get_nuclear_energy(Z)
