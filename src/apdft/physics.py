@@ -262,12 +262,17 @@ class APDFT(object):
                 "Mismatch of array lengths: %d dZ values for %d nuclei."
                 % (len(deltaZ), N)
             )
+        
+        # f^t = f^{(0)} + f^{(1)} + f^{(2)} + ...
 
         # order 0
+        # f^{(0)} = f^r
         if 0 in self._orders:
             alphas[0, 0] = 1
 
         # order 1
+        # f^{(1)} = \sum_I \Delta Z_I f_{Z_I}
+        #   \approx \sum_I \Delta Z_I [f(Z_I + \delta) - f(Z_I - \delta)] / (2 * \delta)
         if 1 in self._orders:
             prefactor = 1 / (2 * self._delta) / np.math.factorial(1 + shift)
             for siteidx in range(N):
@@ -275,6 +280,10 @@ class APDFT(object):
                 alphas[1 + siteidx * 2 + 1, 1] -= prefactor * deltaZ[siteidx]
 
         # order 2
+        # f^{(2)} = (1/2) * \sum_I \sum_J \Delta Z_I \Delta Z_J f_{Z_I Z_J}
+        #         = (1/2) * [ \sum_I \Delta Z_I^2 f_{Z_I Z_I} + 2 * \sum_{I<J} \Delta Z_I \Delta Z_J f_{Z_I Z_J} ]
+        #         = f^{(2)}_{II} + f^{(2)}_{IJ}
+
         if 2 in self._orders:
             pos = 1 + N * 2 - 2
             for siteidx_i in range(N):
@@ -284,8 +293,13 @@ class APDFT(object):
                     if deltaZ[siteidx_j] == 0 or deltaZ[siteidx_i] == 0:
                         continue
                     if self._include_atoms[siteidx_j] > self._include_atoms[siteidx_i]:
-                        prefactor = (1 / (2 * self._delta ** 2)) / np.math.factorial(
-                            2 + shift
+                        # f^{(2)}_{IJ} \approx 
+                        # (1/2) * 2 * \sum_{I<J} \Delta Z_I \Delta Z_J
+                        # * [f(Z_I + \delta, Z_J + \delta) - f(Z_I + \delta) - f(Z_J + \delta) + 2 f_r
+                        #    - f(Z_I - \delta) - f(Z_J - \delta) + f(Z_I - \delta, Z_J - \delta) ] / (2 * \delta^2)
+                        # = (1/2) *  \sum_{I<J} \Delta Z_I \Delta Z_J * [...] / \delta^2
+                        prefactor = (1 / (self._delta ** 2)) / np.math.factorial(
+                                2 + shift
                         )
                         prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[pos, 2] += prefactor
@@ -296,6 +310,8 @@ class APDFT(object):
                         alphas[1 + siteidx_j * 2, 2] -= prefactor
                         alphas[1 + siteidx_j * 2 + 1, 2] -= prefactor
                     if self._include_atoms[siteidx_j] == self._include_atoms[siteidx_i]:
+                        #  f^{(2)}_{II} \approx
+                        # (1/2) * [ \sum_I \Delta Z_I^2 [f(Z_I + \delta) - 2 f^r + f(Z_I + \delta)] / \delta^2
                         prefactor = (1 / (self._delta ** 2)) / np.math.factorial(
                             2 + shift
                         )
