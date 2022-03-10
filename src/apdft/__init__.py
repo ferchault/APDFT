@@ -31,6 +31,7 @@ def _setup_logging():
         renderer = structlog.processors.JSONRenderer()
 
     structlog.configure(
+        wrapper_class=structlog.BoundLogger,
         processors=[
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M", utc=False),
             structlog.processors.StackInfoRenderer(),
