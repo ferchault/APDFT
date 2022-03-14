@@ -34,32 +34,6 @@ class Coulomb(object):
                 d = np.linalg.norm((coordinates[i] - coordinates[j]) * angstrom)
                 ret += charges[i] * charges[j] / d
         return ret
-    
-    @staticmethod
-    def nuclei_nuclei_gradient(coordinates, charges):
-        """ Calculates the gradient of nuclear-nuclear interaction energy from Coulomb interaction.
-
-	    Sign convention assumes positive charges for nuclei.
-
-	    Args:
-	        coordinates:    A (3,N) array of nuclear coordinates :math:`\\mathbf{r_i}`. [Angstrom]
-	        charges:        A N array of point charges :math:`q_i`. [e]
-	
-            Returns:
-                Nuclear gradient of coulombic interaction energy. Shape: (3 * N, ). [Hartree / Bohr]
-	"""
-
-        natoms = len(coordinates)
-        ret = np.zeros((natoms, 3))
-        for k in range(natoms):
-            for i in range(natoms):
-                if i == k:
-                    continue
-                rik = (coordinates[i] - coordinates[k]) * angstrom
-                d = np.linalg.norm(rik)
-                ret[k] += ((charges[i] * charges[k]) / d**3 ) * rik
-
-        return ret.flatten()
 
     @staticmethod
     def nuclear_potential(coordinates, charges, at):
@@ -132,21 +106,6 @@ def charge_to_label(Z):
     if Z == 0:
         return "-"
     return bse.lut.element_sym_from_Z(Z, normalize=True)
-
-
-def to_csv_array(arr, enclosure="{}"):
-    """
-    Converts a 2D array into an 1D array of strings containing formatted numbers.
-    """
-    assert len(arr.shape) == 2
-    
-    l, r = enclosure
-    los = []
-    for line in arr:
-        temp = ["%.16e" % _ for _ in line]
-        los.append("%s%s%s" % (l, ",".join(temp), r))
-    
-    return np.array(los)
 
 
 class APDFT(object):
@@ -340,7 +299,7 @@ class APDFT(object):
                         #    - f(Z_I - \delta) - f(Z_J - \delta) + f(Z_I - \delta, Z_J - \delta) ] / (2 * \delta^2)
                         # = (1/2) *  \sum_{I<J} \Delta Z_I \Delta Z_J * [...] / \delta^2
                         prefactor = (1 / (self._delta ** 2)) / np.math.factorial(
-                            2 + shift
+                                2 + shift
                         )
                         prefactor *= deltaZ[siteidx_i] * deltaZ[siteidx_j]
                         alphas[pos, 2] += prefactor
@@ -417,43 +376,6 @@ class APDFT(object):
                     target=target,
                     targetname=targetname,
                 )
-    
-    def _print_gradients(self, targets, gradients, comparison_gradients):
-        for position in range(len(targets)):
-            targetname = APDFT._get_target_name(targets[position])
-            kwargs = dict()
-            for order in self._orders:
-                kwargs["order%d" % order] = np.linalg.norm(
-                    gradients[position, :, order]
-                )
-            if comparison_gradients is not None:
-                kwargs["reference"] = np.linalg.norm(comparison_gradients[position])
-                kwargs["error_norm"] = np.linalg.norm(
-                    gradients[position, :, -1] - comparison_gradients[position]
-                )
-
-            apdft.log.log(
-                "Nuclear gradient calculated",
-                level="RESULT",
-                value=kwargs["order%d" % self._orders[-1]],
-                kind="|nuclear_gradient|",
-                target=targets[position],
-                targetname=targetname,
-                **kwargs
-            )
-
-        if comparison_gradients is None:
-            apdft.log.log(
-                "Gradients for %d targets written to \"gradients.csv\"." \
-                    % len(targets),
-                level="RESULT",
-            )
-        else:
-            apdft.log.log(
-                "Gradients and comparisons for %d targets written to \"gradients.csv\"." \
-                    % len(targets),
-                level="RESULT",
-            )
 
     @staticmethod
     def _get_target_name(target):
@@ -640,23 +562,6 @@ class APDFT(object):
                 "%s/QM/comparison-%s"
                 % (self._basepath, "-".join(map(str, nuclear_charges)))
             )
-    
-    def get_gradient_from_reference(self, nuclear_charges, is_reference_molecule=False):
-        """ Retreives the nuclear gradient of total energy from a QM reference. 
-
-		Args:
-			nuclear_charges: 	Integer list of nuclear charges. [e]
-		Returns:
-                        The nuclear gradient. Shape: (3 * N, ). [Hartree / Bohr]"""
-        if is_reference_molecule:
-            return self._calculator.get_energy_nuclear_gradient(
-                "%s/QM/order-0/site-all-cc" % self._basepath
-            )
-        else:
-            return self._calculator.get_energy_nuclear_gradient(
-                "%s/QM/comparison-%s"
-                % (self._basepath, "-".join(map(str, nuclear_charges)))
-            )
 
     def get_linear_density_matrix(self, propertyname):
         """ Retrieves the value matrix for properties linear in density.
@@ -690,43 +595,13 @@ class APDFT(object):
         if len(results) == len(folders):
             return np.array(results)
 
-    def get_eeng_matrix(self):
-        """
-        Retrieves the matrix for Nuclear Gradient of Electronic Energy (EENG).
-        """
-        
-        # nuclear gradient of total energy
-        eng_matrix = self.get_linear_density_matrix("energy_nuclear_gradient")
-        
-        # Construct nuclear gradients of nuclei-nuclei repulsion.
-        folders = self.get_folder_order()
-        neng_matrix = np.zeros_like(eng_matrix)
-        for i, folder in enumerate(folders):
-            temp = folder.split('/')
-            idx = temp.index('QM')
-            order = int(temp[idx + 1].split('-')[-1])
-            if order != 0:
-                direction = temp[idx + 2].split('-')[-1]
-                combination = [int(x) for x in temp[idx + 2].split('-')[1:-1]]
-            else:
-                direction, combination = 'up', 0
-
-            charges = self._nuclear_numbers + self._calculate_delta_Z_vector(
-                len(self._nuclear_numbers), order, combination, direction
-            )
-
-            neng_matrix[i] = Coulomb.nuclei_nuclei_gradient(self._coordinates, charges)
-
-        eeng_matrix = eng_matrix - neng_matrix
-
-        return eeng_matrix
-
     def predict_all_targets(self):
         # assert one order of targets
         targets = self.enumerate_all_targets()
         own_nuc_nuc = Coulomb.nuclei_nuclei(self._coordinates, self._nuclear_numbers)
 
         energies = np.zeros((len(targets), len(self._orders)))
+        dipoles = np.zeros((len(targets), 3, len(self._orders)))
 
         # get base information
         refenergy = self.get_energy_from_reference(
@@ -734,28 +609,6 @@ class APDFT(object):
         )
         epn_matrix = self.get_epn_matrix()
         dipole_matrix = self.get_linear_density_matrix("ELECTRONIC_DIPOLE")
-        
-        # initialise dipoles
-        if dipole_matrix is not None:
-            dipoles = np.zeros((len(targets), 3, len(self._orders)))
-        else:
-            dipoles = None
-        
-        # initialise gradients
-        if self._calculator._options.get("gradients", False):
-            own_nuc_nuc_grad = Coulomb.nuclei_nuclei_gradient(
-                self._coordinates, self._nuclear_numbers
-            )
-            gradients = np.zeros(
-                (len(targets), 3 * len(self._nuclear_numbers), len(self._orders))
-            )
-            refgradient = self.get_gradient_from_reference(
-                self._nuclear_numbers, is_reference_molecule=True
-            )
-            eeng_matrix = self.get_eeng_matrix()
-        else:
-            own_nuc_nuc_grad, gradients, refgradient, eeng_matrix \
-                = None, None, None, None
 
         # get target predictions
         for targetidx, target in enumerate(targets):
@@ -790,34 +643,14 @@ class APDFT(object):
                         dipoles[targetidx, :, :order]
                     )
                 dipoles[targetidx] += nuc_dipole[:, np.newaxis]
-            
-            # gradients
-            if eeng_matrix is not None:
-                betas = self.get_linear_density_coefficients(deltaZ_included)
-                deltaGnn = Coulomb.nuclei_nuclei_gradient(
-                    self._coordinates, target
-                ) - own_nuc_nuc_grad
 
-                for order in sorted(self._orders):
-                    contributions = np.dot(betas[:, order], eeng_matrix)
-                    gradients[targetidx, :, order] = contributions
-                    if order == 0:
-                        gradients[targetidx, :, order] += deltaGnn + own_nuc_nuc_grad
-                    else:
-                        gradients[targetidx, :, order] += gradients[targetidx, :, order - 1]
-        
-        property_keys = ("dipoles", "gradients", )
-        property_values = (dipoles, gradients, )
-        properties = {k: v for (k, v) in zip(property_keys, property_values) 
-                      if v is not None}
-        
         # return results
-        return targets, energies, properties
+        return targets, energies, dipoles
 
     def analyse(self, explicit_reference=False):
         """ Performs actual analysis and integration. Prints results"""
         try:
-            targets, energies, properties = self.predict_all_targets()
+            targets, energies, dipoles = self.predict_all_targets()
         except (FileNotFoundError, AttributeError):
             apdft.log.log(
                 "At least one of the QM calculations has not been performed yet. Please run all QM calculations first.",
@@ -827,8 +660,7 @@ class APDFT(object):
 
         if explicit_reference:
             comparison_energies = np.zeros(len(targets))
-            comparison_properties = {k: np.zeros(v.shape[:-1]) 
-                                     for (k, v) in properties.items()}
+            comparison_dipoles = np.zeros((len(targets), 3))
             for targetidx, target in enumerate(targets):
                 path = "QM/comparison-%s" % "-".join(map(str, target))
                 try:
@@ -843,8 +675,7 @@ class APDFT(object):
                         target=target,
                     )
                     comparison_energies[targetidx] = np.nan
-                    for val in comparison_properties.values():
-                        val[targetidx] = np.nan
+                    comparison_dipoles[targetidx] = np.nan
                     continue
                 except ValueError:
                     apdft.log.log(
@@ -854,77 +685,43 @@ class APDFT(object):
                         target=target,
                     )
                     comparison_energies[targetidx] = np.nan
-                    for val in comparison_properties.values():
-                        val[targetidx] = np.nan
+                    comparison_dipoles[targetidx] = np.nan
                     continue
 
                 nd = apdft.physics.Dipoles.point_charges(
                     [0, 0, 0], self._coordinates, target
                 )
-                
                 # TODO: load dipole
-                # comparison_properties['dipoles'][targetidx] = ed + nd
-                
-                comparison_properties['gradients'][targetidx] \
-                    = self._calculator.get_energy_nuclear_gradient(path)
+                # comparison_dipoles[targetidx] = ed + nd
         else:
             comparison_energies = None
-            comparison_properties = {k: None for k in properties}
-        
+            comparison_dipoles = None
+
         self._print_energies(targets, energies, comparison_energies)
-        
-        if "dipoles" in properties:
-            dipoles = properties["dipoles"]
-            comparison_dipoles = comparison_properties["dipoles"]
-            self._print_dipoles(targets, dipoles, comparison_dipoles)
-        
-        if "gradients" in properties:
-            gradients = properties["gradients"]
-            comparison_gradients = comparison_properties["gradients"]
-            self._print_gradients(targets, gradients, comparison_gradients)
+        self._print_dipoles(targets, dipoles, comparison_dipoles)
 
         # persist results to disk
         targetnames = [APDFT._get_target_name(_) for _ in targets]
-        
-        # energies
         result_energies = {"targets": targetnames, "total_energy": energies[:, -1]}
         for order in self._orders:
             result_energies["total_energy_order%d" % order] = energies[:, order]
+        result_dipoles = {
+            "targets": targetnames,
+            "dipole_moment_x": dipoles[:, 0, -1],
+            "dipole_moment_y": dipoles[:, 1, -1],
+            "dipole_moment_z": dipoles[:, 2, -1],
+        }
+        for order in self._orders:
+            for didx, dim in enumerate("xyz"):
+                result_dipoles["dipole_moment_%s_order%d" % (dim, order)] = dipoles[
+                    :, didx, order
+                ]
         if explicit_reference:
             result_energies["reference_energy"] = comparison_energies
+            result_dipoles["reference_dipole_x"] = comparison_dipoles[:, 0]
+            result_dipoles["reference_dipole_y"] = comparison_dipoles[:, 1]
+            result_dipoles["reference_dipole_z"] = comparison_dipoles[:, 2]
         pd.DataFrame(result_energies).to_csv("energies.csv", index=False)
-
-        # dipoles
-        if "dipoles" in properties:
-            result_dipoles = {
-                "targets": targetnames,
-                "dipole_moment_x": dipoles[:, 0, -1],
-                "dipole_moment_y": dipoles[:, 1, -1],
-                "dipole_moment_z": dipoles[:, 2, -1],
-            }
-            for order in self._orders:
-                for didx, dim in enumerate("xyz"):
-                    result_dipoles["dipole_moment_%s_order%d" % (dim, order)] = dipoles[
-                        :, didx, order
-                    ]
-            if explicit_reference:
-                result_dipoles["reference_dipole_x"] = comparison_dipoles[:, 0]
-                result_dipoles["reference_dipole_y"] = comparison_dipoles[:, 1]
-                result_dipoles["reference_dipole_z"] = comparison_dipoles[:, 2]
-            pd.DataFrame(result_dipoles).to_csv("dipoles.csv", index=False)
-        
-        # gradients
-        if "gradients" in properties:
-            result_gradients = {
-                "targets": targetnames, 
-                "nuclear_gradient": to_csv_array(gradients[:, :, -1])
-            }
-            for order in self._orders:
-                result_gradients["nuclear_gradient_order%d" % order] \
-                    = to_csv_array(gradients[:, :, order])
-            if explicit_reference:
-                result_gradients["reference_gradient"] \
-                    = to_csv_array(comparison_gradients)
-            pd.DataFrame(result_gradients).to_csv("gradients.csv", index=False)
+        pd.DataFrame(result_dipoles).to_csv("dipoles.csv", index=False)
 
         return targets, energies, comparison_energies
