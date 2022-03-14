@@ -20,7 +20,17 @@ def entry_cli():
 
     # execute
     if mode == "energies":
-        mode_energies(conf, modeshort)
+        mode_properties(conf, modeshort)
+    elif mode == "gradients":
+        grad_available = [aconf.CodeEnum.G09]
+        if conf.energy_code not in grad_available:
+            apdft.log.log(
+                "Mode gradients is currently only available for energy_code %s." % ", ".join(
+                    [_.value for _ in grad_available]
+                ),
+                level="error",
+            )
+        mode_properties(conf, modeshort, gradients=True)
     else:
         apdft.log.log("Unknown mode %s" % mode, level="error")
 
@@ -88,10 +98,10 @@ def parse_target_list(lines):
     return np.array(ret)
 
 
-def mode_energies(conf, modeshort=None):
+def mode_properties(conf, modeshort=None, **kwargs):
     # select QM code
     calculator_options = conf.apdft_method, conf.apdft_basisset, conf.debug_superimpose
-    calculator = conf.energy_code.get_calculator_class()(*calculator_options)
+    calculator = conf.energy_code.get_calculator_class()(*calculator_options, **kwargs)
 
     # parse input
     try:
@@ -147,7 +157,7 @@ def build_main_commandline(set_defaults=True):
     )
 
     # mode selection
-    modes = ["energies"]
+    modes = ["energies", "gradients"]
     parser.add_argument(
         "mode",
         choices=modes,

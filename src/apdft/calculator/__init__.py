@@ -58,10 +58,11 @@ class Calculator(CalculatorInterface):
 
     _methods = {}
 
-    def __init__(self, method, basisset, superimpose=False):
+    def __init__(self, method, basisset, superimpose=False, **options):
         self._method = method
         self._basisset = basisset
         self._superimpose = superimpose
+        self._options = options
 
     def get_methods(self):
         return list(self._methods.keys())

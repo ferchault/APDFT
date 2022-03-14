@@ -14,7 +14,7 @@ class GaussianCalculator(calculator.Calculator):
     """ Performs the QM calculations for APDFT with the help of Gaussian.
 
     General Idea:
-    Gaussian supports both fractional nuclar charges (via the undocumented `Massage` keyword) and the evaluation of the electrostatic potential at the nucleus (via the `Prop` keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian."""
+    Gaussian supports both fractional nuclear charges (via the undocumented `Massage` keyword) and the evaluation of the electrostatic potential at the nucleus (via the `Prop` keyword). Earlier versions used to read fchk files and map out a grid, which is less accurate, but also feasible in Gaussian."""
 
     _methods = {
         "CCSD": "CCSD(Full,MaxCyc=100)",
@@ -96,9 +96,14 @@ class GaussianCalculator(calculator.Calculator):
         )
         env_nuc = GaussianCalculator._format_nuclear(nuclear_charges)
         env_molcharge = int(np.sum(nuclear_charges) - np.sum(nuclear_numbers))
+        
+        method = self._methods[self._method]
+        if self._options.get("gradients", False):
+            method = "%s Force" % method
+        
         return template.render(
             coordinates=env_coord,
-            method=self._methods[self._method],
+            method=method,
             basisset=env_basis,
             nuclearcharges=env_nuc,
             moleculecharge=env_molcharge,
@@ -153,3 +158,15 @@ class GaussianCalculator(calculator.Calculator):
             epn -= ap.Coulomb.nuclear_potential(coordinates, nuclear_charges, atomidx)
             epns.append(-epn)
         return np.array(epns)
+
+    @staticmethod
+    def get_energy_nuclear_gradient(folder):
+        gradient = []
+        with open(f'{folder}/run.fchk') as fh:
+            for line in fh:
+                if 'Cartesian Gradient' in line:
+                    nf = int(line.split()[-1])
+                    for _ in range(0, nf // 5 + 1):
+                        gradient.extend([float(x) for x in next(fh).strip().split()])
+        return np.array(gradient)
+
