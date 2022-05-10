@@ -1,0 +1,24 @@
+##################################################
+compared to basis set of the reference
+  contracted STO-3G -13.808377836340924 mHa
+uncontracted STO-3G -8.99030426620584 mHa
+
+compared to basis set of the target
+  contracted STO-3G 2259.2677457533628 mHa
+uncontracted STO-3G -43.22017772472009 mHa
+##################################################
+compared to basis set of the reference
+  contracted 6-31G 27.091905540231664 mHa
+uncontracted 6-31G -4.832485536070408 mHa
+
+compared to basis set of the target
+  contracted 6-31G 1892.8093038635438 mHa
+uncontracted 6-31G -6.057121799699416 mHa
+##################################################
+compared to basis set of the reference
+  contracted def2-TZVP -12.541855853982042 mHa
+uncontracted def2-TZVP -3.548162556199941 mHa
+
+compared to basis set of the target
+  contracted def2-TZVP 78.70518788038794 mHa
+uncontracted def2-TZVP -2.0039414974064584 mHa
