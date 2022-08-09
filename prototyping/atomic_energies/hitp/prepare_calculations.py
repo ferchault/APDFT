@@ -90,6 +90,21 @@ def get_lambda(lam_val, num_ve):
     new_lambda = scaled_ve/num_ve
     return(new_lambda, scaled_ve)
 
+def calculate_charge(lambda_value, num_ve, valence_charges = None, integer_electrons=False):
+    if type(lambda_value) == float:
+        if integer_electrons:
+            lambda_value, scaled_ve = get_lambda(lambda_value, num_ve)
+            # scaled_ve is number of electrons added from pseudopotential file, the remaining electrons must be added in form of a negative charge
+            charge = scaled_ve - num_ve # write input
+        else:
+            elec_pp = np.round(lambda_value*num_ve)
+            charge = elec_pp-num_ve # electrons added to conserve total number of electrons   
+    else:
+        assert valence_charges is not None, 'valence charges are undefined'
+        elec_pp = np.round((lambda_value*valence_charges).sum())
+        charge = elec_pp-num_ve # electrons added to conserve total number of electrons
+    return(charge)
+
 def write_atom(atomsym, coordinates, pp_type='GH_PBE'):
     """
     prepare the input for one atom:
@@ -181,6 +196,12 @@ def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/softwar
             path_file = os.path.join(calc_dir, k + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
+    elif type(compound) == dict:
+        for el, elIdx in zip(compound['el'], compound['elIdx']):
+            pp_file = generate_pp_file(lamb, el, pp_dir, pp_type)
+            path_file = os.path.join(calc_dir, elIdx + f'_{pp_type}')
+            with open(path_file, 'w') as f:
+                f.writelines(pp_file)
     else:
         for k in compound.natypes.keys():
             pp_file = generate_pp_file(lamb, k)
@@ -191,8 +212,14 @@ def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/softwar
 def write_pp_files_compound_partial(compound, lam_vals, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
     if type(compound) == list:
         for k, l in zip(compound, lam_vals):
-            pp_file = generate_pp_file(l, k[0], pp_dir, pp_type)
+            pp_file = generate_pp_file(l, k, pp_dir, pp_type)
             path_file = os.path.join(calc_dir, k + f'_{pp_type}')
+            with open(path_file, 'w') as f:
+                f.writelines(pp_file)
+    elif type(compound) == dict:
+        for el, elIdx, lamb in zip(compound['el'], compound['elIdx'], lam_vals):
+            pp_file = generate_pp_file(lamb, el, pp_dir, pp_type)
+            path_file = os.path.join(calc_dir, elIdx + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
 

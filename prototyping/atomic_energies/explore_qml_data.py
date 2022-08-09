@@ -206,6 +206,24 @@ def get_num_val_elec(nuclear_charges):
             assert('Cannot calculate number of valence electrons!')
     return(num_val)
 
+def get_val_charges(nuclear_charges):
+    """
+    returns valence charges of molecule up to third row of periodic table
+    input: list of nuclear charges
+    return: np.array of valence charges
+    """
+    valence_charges = []
+    for charge in nuclear_charges:
+        if charge <=2:
+            valence_charges.append(charge)
+        elif charge >= 3 and charge <= 10:
+            valence_charges.append(charge - 2)
+        elif charge >= 11 and charge <= 18:
+            valence_charges.append(charge - 10)
+        else:
+            assert('Cannot calculate number of valence electrons!')
+    return(np.array(valence_charges))
+
 def get_free_atom_data(path='/home/misa/datasets/atomref_qm9.txt'):
     """
     returns a dictionary of shape {key:element} {element_symbol : B3LYP energy of free atom at 0K (from qm9)}
