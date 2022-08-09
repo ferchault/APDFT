@@ -35,15 +35,17 @@ def load_compounds(path_list):
         compounds.append(mol)
     return(compounds)
 
-def paths_slice_ve(num_ve):
+def paths_slice_ve(num_ve, path_list=None):
     """
-    input: number of valence electrons
+    input: num_ve:number of valence electrons, paths:paths to xyz files of data
     return: paths to compounds of qm9 with the number of valence electrons specified in the input
     """
+    if path_list == None:
     # build path to data
-    d = '/home/misa/datasets/qm9/'
-    path_list = [os.path.join(d, f) for f in os.listdir(d)]
-    path_list.sort()
+        d = '/home/misa/datasets/qm9/'
+    #     d = '/data/sahre/datasets/qm9'
+        path_list = [os.path.join(d, f) for f in os.listdir(d)]
+        path_list.sort()
     
     #calculate number of valence electrons for every compound
     compounds = []
@@ -52,7 +54,7 @@ def paths_slice_ve(num_ve):
         mol = qml.Compound(xyz=file)
         num_val[idx] = get_num_val_elec(mol.nuclear_charges)
         
-        if num_val[idx] == 38:
+        if num_val[idx] == num_ve:
             compounds.append(file)
     return(compounds)
 

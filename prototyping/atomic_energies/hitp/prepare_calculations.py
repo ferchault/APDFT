@@ -93,7 +93,7 @@ def get_lambda(lam_val, num_ve):
 def write_atom(atomsym, coordinates, pp_type='GH_PBE'):
     """
     prepare the input for one atom:
-    the name of the pp is 'element_name' + idx of atom in Compound object + '_SG_LDA'
+    the name of the pp is 'element_name' + idx of atom in Compound object + 'SG_LDA'
     the coordinates are read from Compund as well (must be shifted to center before)
     """
     line1 = f'*{atomsym}_{pp_type} FRAC\n'
@@ -102,7 +102,7 @@ def write_atom(atomsym, coordinates, pp_type='GH_PBE'):
     line4 = ' ' + str(coordinates[0]) + ' ' + str(coordinates[1]) + ' ' + str(coordinates[2]) + '\n'
     return( [line1, line2, line3, line4] )
     
-def write_atom_section(atomsymbols, coordinates):
+def write_atom_section(atomsymbols, coordinates, pp_type):
     """
     atomsymbols: list of element names
     coordinates: list of coordinates
@@ -110,17 +110,17 @@ def write_atom_section(atomsymbols, coordinates):
     """
     atom_section = ['&ATOMS\n']
     for atsym, c in zip(atomsymbols, coordinates):
-        atom = write_atom(atsym, c)
+        atom = write_atom(atsym, c, pp_type)
         atom_section.extend(atom)
     atom_section.append('&END')
     return(atom_section)
 
-def write_input(atomsymbols, charge, coordinates, gpts, L, write_path, template_path='/home/misa/projects/Atomic-Energies/data/cpmd_params_template.inp', debug = False):
+def write_input(atomsymbols, charge, coordinates, gpts, L, write_path, pp_type='GH_PBE', template_path='/home/misa/projects/Atomic-Energies/data/cpmd_params_template.inp', debug = False):
     """
     writes input file for molecule with specified parameters boxisze L, charge, number of gpts for mesh
     """
     param_section = write_params(L, charge, gpts, template_path)
-    atom_section = write_atom_section(atomsymbols, coordinates)
+    atom_section = write_atom_section(atomsymbols, coordinates, pp_type)
     with open(write_path, 'w') as f:
         f.writelines(param_section+['\n']+atom_section)
     if debug:
@@ -158,8 +158,8 @@ def scale_coeffs(coeffs_line, lamb):
     formatstring = '%4d' + (len(parts)-1)*' %20.15f' + '   #C  C1 C2\n'
     return(formatstring % (*parts,))
 
-def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='_SG_LDA'):
-    name_pp = element + pp_type
+def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
+    name_pp = element + '_' + pp_type
     f_pp = os.path.join(pp_dir, name_pp)
     
     new_pp_file = []
@@ -174,17 +174,25 @@ def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp
     new_pp_file[len(new_pp_file)-1] = new_pp_file[len(new_pp_file)-1].rstrip('\n')
     return(new_pp_file)
     
-def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='_SG_LDA'):
+def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
     if type(compound) == list:
         for k in compound:
             pp_file = generate_pp_file(lamb, k, pp_dir, pp_type)
-            path_file = os.path.join(calc_dir, k + pp_type)
+            path_file = os.path.join(calc_dir, k + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
     else:
         for k in compound.natypes.keys():
             pp_file = generate_pp_file(lamb, k)
-            path_file = os.path.join(calc_dir, k + pp_type)
+            path_file = os.path.join(calc_dir, k + f'_{pp_type}')
+            with open(path_file, 'w') as f:
+                f.writelines(pp_file)
+                
+def write_pp_files_compound_partial(compound, lam_vals, calc_dir, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
+    if type(compound) == list:
+        for k, l in zip(compound, lam_vals):
+            pp_file = generate_pp_file(l, k[0], pp_dir, pp_type)
+            path_file = os.path.join(calc_dir, k + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
 

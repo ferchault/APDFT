@@ -11,10 +11,10 @@ from pyscf.geomopt.geometric_solver import optimize
 
 # comps = ['CC','CN','CO','CF','NN','NO','NF','OO', 'OF', 'FF']
 c = sys.argv[1]
-row = 'mixed_2_3'
-system = 'diatomics'
+row = 'row_2'
+system = 'fragments'
 bond_type = 'single'
-spin = 0
+spin = 1
 
 atoms = aio.read(f'/data/sahre/projects/atomic-energies/data/bonding_trends/pbe0_data/{row}/{system}_{bond_type}/{c}.xyz')
 
@@ -31,6 +31,7 @@ if spin != 0:
 else:
     mf = dft.RKS(mol)
 mf.xc = 'pbe0'
+mf.init_guess = 'atom'
 
 if system == 'fragments':
     mf.kernel()

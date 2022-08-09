@@ -496,7 +496,7 @@ def shift_by_mean_energy(reps, labels):
         
     return(labels_copy)
     
-def train_kernel(rep_tr, labels_tr, sigma, lam_val):
+def train_kernel(rep_tr, labels_tr, sigma, lam_val, kernel_type = "gaussian"):
     """
     return coefficients from representation, labels, sigma and lambda
     
@@ -505,7 +505,10 @@ def train_kernel(rep_tr, labels_tr, sigma, lam_val):
     sigma: kernel width
     lam_val: regularizer
     """
-    tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, sigma)
+    if kernel_type == "gaussian":
+        tr_kernel = qml.kernels.gaussian_kernel(rep_tr, rep_tr, sigma)
+    elif kernel_type == "laplacian":
+        tr_kernel = qml.kernels.laplacian_kernel(rep_tr, rep_tr, sigma)
     reg_kernel = tr_kernel + np.identity(len(tr_kernel))*lam_val
     coeffs = qml.math.cho_solve(reg_kernel, labels_tr)
     return(coeffs)

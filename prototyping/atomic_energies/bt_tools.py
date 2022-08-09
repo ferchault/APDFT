@@ -6,8 +6,11 @@ import ase.io as aio
 import glob
 
 class BDE():
-    def __init__(self, energies, nuc_charges):
-        ha2kcal = 630
+    def __init__(self, energies, nuc_charges, unit = 'kcal'):
+        if unit == 'kcal':
+            ha2kcal = 630
+        elif unit == 'atomic':
+            ha2kcal = 1
         # define energies
         self.bde = -energies[:,0]*ha2kcal
         self.bfe = energies[:,0]*ha2kcal
@@ -63,21 +66,103 @@ class BDE():
 
     def linear_fit(self):
         self.linear_params, mae_waste, self.linear_rank, self.linear_sg = np.linalg.lstsq(self.get_coeff_mat(), self.ebfe, rcond=None)
-        self.ebfe_predicted = self.linear_params@self.coeff_mat.T
-        self.bfe_predicted = self.ebfe_predicted + self.nbfe
-        self.bde_predicted = -self.bfe_predicted
-        self.linear_mae = np.abs(self.bde_predicted - self.bde).mean()
+        self.ebfe_fitted = self.linear_params@self.coeff_mat.T
+        self.bfe_fitted = self.ebfe_fitted + self.nbfe
+        self.bde_fitted = -self.bfe_fitted
+        self.linear_mae = np.abs(self.bde_fitted - self.bde).mean()
         
+    def train(self, tr_ind, model, p0 = None):
+        if p0 is not None:
+            self.params_tr = curve_fit(model, self.xdata[tr_ind], self.ebfe[tr_ind], p0, maxfev=100000)
+        else:
+            self.params_tr = curve_fit(model, self.xdata[tr_ind], self.ebfe[tr_ind])
+
+        self.ebfe_fitted_tr = model(self.xdata[tr_ind], *self.params_tr[0])
+        self.bde_fitted_tr = -(self.ebfe_fitted_tr + self.nbfe[tr_ind])
+        self.mae_tr = np.abs(self.bde_fitted_tr-self.bde[tr_ind]).mean()
+
+    def predict(self, test_ind, model):
+        self.ebfe_fitted_test = model(self.xdata[test_ind], *self.params_tr[0])
+        self.bde_fitted_test = -(self.ebfe_fitted_test + self.nbfe[test_ind])
+        self.mae_test = np.abs(self.bde_fitted_test-self.bde[test_ind]).mean()
+
+        
+class BDE_clean(BDE):
+    def __init__(self,bfe, bde, ebfe, nbfe, Z1, Z2, xdata):
+        self.bfe = bfe
+        self.bde = bde
+        self.ebfe = ebfe
+        self.nbfe = nbfe
+        self.Z1 = Z1
+        self.Z2 = Z2
+        self.xdata = xdata
+        
+    @classmethod
+    def fromdict(cls, datadict):
+        # get units
+        if 'unit' in datadict.keys():
+            e_unit = datadict['unit']
+        else:
+            e_unit = 1 # use Hartree as energy unit
+            
+        # bond energy
+#         if datadict['bfe type'] == 'isodesmic':
+#             bfe = np.array(datadict['bfe isodesmic'])*e_unit
+#         else:
+        bfe = np.array(datadict['bfe'])*e_unit # homolytic set to default
+        bde = -bfe
+        
+        # nuclear charges
+        Z1 = np.array(datadict['Z1'])
+        Z2 = np.array(datadict['Z2'])
+        
+        # nuclear repulsion
+        if 'nbfe' in datadict.keys():
+            nbfe = np.array(datadict['nbfe'])*e_unit
+        else:
+            nbfe = Z1*Z2*e_unit
+            
+        # electronic bond energy
+        ebfe = bfe - nbfe
+        
+        # xdata
+        xdata = np.array([Z1, Z2]).T
+        return(cls(bfe, bde, ebfe, nbfe, Z1, Z2, xdata))
+    
+    def get_coeff_mat(self):
+        """
+        matrix with coefficients for linear fit
+        """
+        
+        unique_Z = np.sort(np.unique(np.concatenate((self.Z1, self.Z2))))
+        index_a = dict(zip(unique_Z, np.arange(len(unique_Z))))
+        index_b = dict(zip(unique_Z, np.arange(len(unique_Z), 2*len(unique_Z))))
+        coeff_mat = np.zeros((len(self.Z1), 2*len(unique_Z))) # there are two parameters for every element
+        
+        for row, Z1, Z2 in zip(range(len(self.Z1)), self.Z1, self.Z2):
+            # coefficients for Z1
+            coeff_mat[row, index_a[Z1]] += 1
+            coeff_mat[row, index_b[Z1]] += Z2
+            # coefficients for Z2
+            coeff_mat[row, index_a[Z2]] += 1
+            coeff_mat[row, index_b[Z2]] += Z1
+            
+        self.coeff_mat = coeff_mat
+        return(self.coeff_mat)
+    
 
 class BDE_set(BDE):
-    def __init__(self, energies, nuc_charges_set):
-        ha2kcal = 630
+    def __init__(self, energies, nuc_charges_set, unit = 'kcal'):
+        if unit == 'kcal':
+            ha2kcal = 630
+        elif unit == 'atomic':
+            ha2kcal = 1
+            
         # define energies
         self.bde = -energies[:,0]*ha2kcal
         self.bfe = energies[:,0]*ha2kcal
         self.ebfe = energies[:,1]*ha2kcal
         self.nbfe = energies[:,2]*ha2kcal
-
         # define charge combinations Z1, Z2
         self.nuc_charges_set = nuc_charges_set
 

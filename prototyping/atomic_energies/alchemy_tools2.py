@@ -81,7 +81,7 @@ def calculate_atomic_energies(density, nuclei, meshgrid, h_matrix, intg_method =
 
     density: the lambda averaged electron density
     nuclei: charge and coordinates of nuclei in compound
-    meshgrid: rid which contains the coordinates for which the electron densities  are given
+    meshgrid: grid which contains the coordinates for which the electron densities  are given
     h_matrix: H matrix with the cell vectors as columns
     return: the alchemical potentials and atomic energies of the compound if the input the lambda averaged density
     """

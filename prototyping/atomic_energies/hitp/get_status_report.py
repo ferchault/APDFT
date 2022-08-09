@@ -34,21 +34,66 @@ def check_convergence(file, linenumber):
     """
     if converged 8 or 9 lines above FINAL RESULTS should be last iteration
     try to parse this one
+    
+    starting from 8 lines above final results try to parse till you reach with line containing "TCPU" because here the iterations start
     """
-    success = True
-    try:
-        last_iteration = file[linenumber-8]
-        last_iteration = last_iteration.strip('\n')
-        iteration, conv = int(last_iteration.split()[0]), float(last_iteration.split()[1])
-    except:
+    success = False
+    conv = False
+    iteration = None
+    
+    for line in range(linenumber-8, 0, -1):
+        if 'TCPU' in file[line]:
+            # print("Could not parse iterations log-file")
+            success = False
+            iteration = 0
+            conv = False
+            break
+            
         try:
-            last_iteration = file[linenumber-9]
+            last_iteration = file[line]
             last_iteration = last_iteration.strip('\n')
             iteration, conv = int(last_iteration.split()[0]), float(last_iteration.split()[1])
+            success = True
+            break
         except:
-            print("Could not parse log-file")
+            # print("Could not parse log-file")
             success = False
+            iteration = 0
+            conv = False
+        
     return(iteration, conv, success)
+
+# def check_convergence(file, linenumber):
+#     """
+#     if converged 8 or 9 lines above FINAL RESULTS should be last iteration
+#     try to parse this one
+    
+#     starting from 8 lines above final results try to parse till you reach with line containing "TCPU" because here the iterations start
+#     """
+#     success = True
+    
+#     for line in range(linenumber-8, 0, -1):
+#         if 'TCPU' in file[line]:
+#             print("Could not parse iterations log-file")
+#             success = False
+#             iteration = 0
+#             conv = False
+#             break
+#     try:
+#         last_iteration = file[linenumber-8]
+#         last_iteration = last_iteration.strip('\n')
+#         iteration, conv = int(last_iteration.split()[0]), float(last_iteration.split()[1])
+#     except:
+#         try:
+#             last_iteration = file[linenumber-9]
+#             last_iteration = last_iteration.strip('\n')
+#             iteration, conv = int(last_iteration.split()[0]), float(last_iteration.split()[1])
+#         except:
+#             print("Could not parse log-file")
+#             success = False
+#             iteration = 0
+#             conv = False
+#     return(iteration, conv, success)
 
 def check_errorfile(workdir):
     """
