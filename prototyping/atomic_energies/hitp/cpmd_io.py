@@ -88,6 +88,21 @@ def fix_input_file(p, restart_corrupted=False):
             f.write(line)
     return(restart_enabled)
 
+def modify_input_parameter(input_file_path, keyword, value):
+    new_parameter_line = f'    {value}\n'
+    with open(input_file_path, 'r') as f:
+        input_file = f.readlines()
+    linenumber = 0
+    for i, line in enumerate(input_file):
+        if keyword in line:
+            linenumber = i + 1
+            break
+    input_file[linenumber] = new_parameter_line
+    
+    with open(input_file_path, 'w') as f:
+        for line in input_file:
+            f.write(line)
+
 ##########################################################
 #                    Parse log-file                       #
 ##########################################################
