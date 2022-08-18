@@ -157,6 +157,31 @@ def write_params(L, charge, gpts, template_path='/home/misa/projects/Atomic-Ener
             template_params[i+1] = f'    {gpts} {gpts} {gpts}\n'
     return(template_params)
 
+def write_params_dict(input_params):
+    """
+    add correct parameters for boxsize L, charge and gpts to template
+    """
+    
+    input_file = ['&CPMD\n']
+    for line in input_params['CPMD']:
+        input_file.append(line)
+    input_file.append('&END\n')
+    input_file.append('\n')
+    
+    input_file = ['&DFT\n']
+    for line in input_params['DFT']:
+        input_file.append(line)
+    input_file.append('&END\n')
+    input_file.append('\n')
+    
+    input_file = ['&SYSTEM\n']
+    for line in input_params['SYSTEM']:
+        input_file.append(line)
+    input_file.append('&END\n')
+    input_file.append('\n')
+    
+    return(input_file)
+
 ###########################################################################################
 #                            Make pseudopotential files                                   #
 ###########################################################################################
@@ -173,6 +198,16 @@ def scale_coeffs(coeffs_line, lamb):
     formatstring = '%4d' + (len(parts)-1)*' %20.15f' + '   #C  C1 C2\n'
     return(formatstring % (*parts,))
 
+def scale_hij(coeff_line, lamb):
+    """
+    works so far only for C, N, O, F
+    """
+    line_components = coeff_line.split()
+    rescaled_hij = float(line_components[-3])*lamb
+    line_components[-3] = str(rescaled_hij)
+    new_line = 7*' '+line_components[0]+2*' '+line_components[1]+2*' '+' '.join(line_components[2:])+'\n'
+    return(new_line)
+
 def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
     name_pp = element + '_' + pp_type
     f_pp = os.path.join(pp_dir, name_pp)
@@ -185,6 +220,27 @@ def generate_pp_file(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp
         if '#C' in line:
             new_pp_file.append(scale_coeffs(line, lamb))
             continue
+        
+        new_pp_file.append(line)
+    new_pp_file[len(new_pp_file)-1] = new_pp_file[len(new_pp_file)-1].rstrip('\n')
+    return(new_pp_file)
+
+def generate_pp_file2(lamb, element, pp_dir='/home/misa/software/PP_LIBRARY/', pp_type='SG_LDA'):
+    name_pp = element + '_' + pp_type
+    f_pp = os.path.join(pp_dir, name_pp)
+    
+    new_pp_file = []
+    for line in open(f_pp).readlines():
+        if 'ZV' in line:
+            new_pp_file.append(scale_ZV(line, lamb))
+            continue
+        if '#C' in line:
+            new_pp_file.append(scale_coeffs(line, lamb))
+            continue
+        if 'H(s)' in line:
+            new_pp_file.append(scale_hij(line, lamb))
+            continue
+        
         new_pp_file.append(line)
     new_pp_file[len(new_pp_file)-1] = new_pp_file[len(new_pp_file)-1].rstrip('\n')
     return(new_pp_file)
@@ -198,7 +254,7 @@ def write_pp_files_compound(compound, lamb, calc_dir, pp_dir='/home/misa/softwar
                 f.writelines(pp_file)
     elif type(compound) == dict:
         for el, elIdx in zip(compound['el'], compound['elIdx']):
-            pp_file = generate_pp_file(lamb, el, pp_dir, pp_type)
+            pp_file = generate_pp_file2(lamb, el, pp_dir, pp_type)
             path_file = os.path.join(calc_dir, elIdx + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
@@ -218,7 +274,7 @@ def write_pp_files_compound_partial(compound, lam_vals, calc_dir, pp_dir='/home/
                 f.writelines(pp_file)
     elif type(compound) == dict:
         for el, elIdx, lamb in zip(compound['el'], compound['elIdx'], lam_vals):
-            pp_file = generate_pp_file(lamb, el, pp_dir, pp_type)
+            pp_file = generate_pp_file2(lamb, el, pp_dir, pp_type)
             path_file = os.path.join(calc_dir, elIdx + f'_{pp_type}')
             with open(path_file, 'w') as f:
                 f.writelines(pp_file)
@@ -226,6 +282,46 @@ def write_pp_files_compound_partial(compound, lam_vals, calc_dir, pp_dir='/home/
 ###########################################################################################
 #                                Wrappers and executables                                 #
 ###########################################################################################
+
+def create_run_dir(atom_symbols, boxsize, nuc_charges, positions, lambda_value, path, pp_dir, pp_type, shift2center, template_inp, template_inp_small_lambda, valence_charges):
+    """
+    creates directory with inp and pp for finite difference approach
+    """
+    # create directory if not exists
+    os.makedirs(path, exist_ok=True)
+    num_gpts = 0
+
+    # shift molecule to center of box
+    if shift2center:
+        coords_final = eqd.shift2center(positions, np.array([boxsize, boxsize, boxsize])/2)
+    else:
+        coords_final = positions
+        
+    # lambda dependent quantities
+
+    # add correct number of electrons such that system stays isoelectronic to target molecule
+    num_ve = valence_charges.sum()
+    charge = calculate_charge(lambda_value, num_ve, valence_charges, integer_electrons=False)
+
+    # generate input file
+    input_path = os.path.join(path, 'run.inp')
+    
+    # start from random wavefunction as initial guess if lambda < 0.5 otherwise the calculation will crash
+    if type(lambda_value) == float:
+        lam_min = lambda_value
+    else:
+        lam_min = np.amin(lambda_value)
+        
+    if lam_min > 0.501:
+        write_input(atom_symbols['elIdx'], charge, coords_final, num_gpts, boxsize, input_path, pp_type, template_inp, debug = False)
+    else:
+        write_input(atom_symbols['elIdx'], charge, coords_final, num_gpts, boxsize, input_path, pp_type, template_inp_small_lambda, debug = False)
+
+    # generate pp-files
+    if type(lambda_value) == float:
+        write_pp_files_compound(atom_symbols, lambda_value, path, pp_dir, pp_type)
+    else:
+        write_pp_files_compound_partial(atom_symbols, lambda_value, path, pp_dir, pp_type)
 
 def wrapper_ase(atoms, compound_path, pp_dir, pp_type, template_inp, template_inp_small_lambda):
     """
