@@ -12,7 +12,7 @@ with open(path_info, 'r') as f:
 
 lines = []
 for p in paths:
-    lines.append(f'cd {p}; mpirun --bind-to none -n {cores} {cpmd_bin} run.inp > run.log\n')
+    lines.append(f'cd {p}; mpirun.openmpi --bind-to none -np {cores} {cpmd_bin} run.inp > run.log\n')
 assert 'cpmd.x' not in sys.argv[4], 'Dont overwrite cpmd.x again!'
 with open(sys.argv[4], 'w') as f:
     f.writelines(lines)

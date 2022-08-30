@@ -1,9 +1,15 @@
+from decimal import Decimal, ROUND_HALF_UP
 import numpy as np
+import ase.io as aio
 import os
+import shutil
 
 import sys
 sys.path.insert(0, '/home/misa/git_repositories/APDFT/prototyping/atomic_energies/')
 import explore_qml_data as eqd
+sys.path.insert(0, '/home/misa/git_repositories/APDFT/prototyping/atomic_energies/hitp')
+import cpmd_io
+
 
 ###########################################################################################
 #                                     Make input file                                     #
@@ -97,12 +103,17 @@ def calculate_charge(lambda_value, num_ve, valence_charges = None, integer_elect
             # scaled_ve is number of electrons added from pseudopotential file, the remaining electrons must be added in form of a negative charge
             charge = scaled_ve - num_ve # write input
         else:
-            elec_pp = np.round(lambda_value*num_ve)
+            elec_pp = float(Decimal(lambda_value*num_ve).quantize(0, ROUND_HALF_UP))
+
             charge = elec_pp-num_ve # electrons added to conserve total number of electrons   
     else:
         assert valence_charges is not None, 'valence charges are undefined'
-        elec_pp = np.round((lambda_value*valence_charges).sum())
+        # elec_pp = np.round((lambda_value*valence_charges).sum(), 1)#float(Decimal(lambda_value*valence_charges).sum()).quantize(1, ROUND_HALF_UP)
+        elec_pp = float(Decimal((lambda_value*valence_charges).sum()).quantize(0, ROUND_HALF_UP))
         charge = elec_pp-num_ve # electrons added to conserve total number of electrons
+        
+        if elec_pp != float(Decimal((lambda_value*valence_charges).sum()).quantize(0, ROUND_HALF_UP)):
+            print("Warning")
     return(charge)
 
 def write_atom(atomsym, coordinates, pp_type='GH_PBE'):
@@ -282,7 +293,71 @@ def write_pp_files_compound_partial(compound, lam_vals, calc_dir, pp_dir='/home/
 ###########################################################################################
 #                                Wrappers and executables                                 #
 ###########################################################################################
+def parse_xyz_for_CPMD_input(path2xyz):
+    # get structure information from xyz file
+    molecule = aio.read(path2xyz)
 
+    atom_symbolsEl = []
+    atom_symbolsIdx = []
+    for i, el in enumerate(molecule.get_chemical_symbols()):
+        atom_symbolsEl.append(el)
+        atom_symbolsIdx.append(el + str(i+1))
+    atom_symbols = {'el':atom_symbolsEl, 'elIdx':atom_symbolsIdx}
+    nuc_charges = molecule.get_atomic_numbers()
+    valence_charges = eqd.get_val_charges(nuc_charges)
+    positions = molecule.get_positions()
+    return(atom_symbols, nuc_charges, positions, valence_charges)
+
+def finite_difference_directories(comp, delta_lambda, lam):
+    """
+    prepare the run dirs for finite difference partial derivatives for small molecules
+    comp: name of compound
+    delta_lambda: delta for finite difference
+    lam: lambda_value for which derivatives will be calculated
+    """
+    all_paths = [] # paths to run dirs
+    # path to PP-files and type of PP (pbe)
+    pp_dir = '/data/sahre/PP_LIBRARY'
+    pp_type = 'GH_PBE'
+
+    # input templates
+    template_inp = '/data/sahre/projects/atomic-energies/templates_inp/cpmd_template_restart.inp'
+    template_inp_small_lambda = '/data/sahre/projects/atomic-energies/templates_inp/cpmd_template_small_lambda_restart.inp'
+
+    # read optimized geometry and extract molecule specific parameters
+    xyz_path = f'/data/sahre/projects/finite_differences/small_molecules/{comp}/GEOMETRY.xyz'
+    atom_symbols, nuc_charges, positions, valence_charges = parse_xyz_for_CPMD_input(xyz_path)
+
+    # calculate correct boxsize
+    num_ve = valence_charges.sum()
+    reference_density = 8/(15**3) # density of UEG for a boxlength of 15 Ang and 8 valence electrons
+    boxsize = (num_ve/reference_density)**(1/3)
+    shift2center = True
+
+    for i, atom in enumerate(atom_symbols['elIdx']):
+        for fd in ['bw', 'fw']:
+            path = f'/data/sahre/projects/finite_differences/small_molecules/{comp}/lam_{np.round(lam, 3)}/{atom}/{fd}'
+            all_paths.append(path)
+            # define the array of lambda values
+            lambda_values = np.full_like(valence_charges, fill_value=lam, dtype='float')
+            if fd == 'bw':
+                lambda_values[i] -= delta_lambda
+            elif fd == 'fw':
+                lambda_values[i] += delta_lambda
+            else:
+                raise ValueError('Unknown finite difference operation')
+
+            create_run_dir(atom_symbols, boxsize, nuc_charges, positions, lambda_values, path, pp_dir, pp_type, shift2center, template_inp, template_inp_small_lambda, valence_charges)
+
+            # copy restart file
+            restart_file = f'/data/sahre/projects/finite_differences/small_molecules/{comp}/lam_{np.round(lam, 3)}/RESTART.1'
+            restart_file_dest = os.path.join(path, 'RESTART.1')
+            shutil.copy(restart_file, restart_file_dest)
+            latest_file = f'/data/sahre/projects/finite_differences/small_molecules/{comp}/lam_{np.round(lam, 3)}/LATEST'
+            latest_file_dest = os.path.join(path, 'LATEST')
+            shutil.copy(latest_file, latest_file_dest)
+            # cpmd_io.fix_input_file(path)
+    return(all_paths)
 def create_run_dir(atom_symbols, boxsize, nuc_charges, positions, lambda_value, path, pp_dir, pp_type, shift2center, template_inp, template_inp_small_lambda, valence_charges):
     """
     creates directory with inp and pp for finite difference approach
