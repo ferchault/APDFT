@@ -112,6 +112,23 @@ def parse_QM9(file):
         coords = np.array(coords)
     return(elements, coords)
 
+def el2Z(el):
+    """return nuclear charge for element symbol"""
+    Z = None
+    if el == 'H':
+        Z = 1
+    elif el == 'C':
+        Z = 6
+    elif el == 'N':
+        Z = 7
+    elif el == 'O':
+        Z = 8
+    elif el == 'F':
+        Z = 9
+    else:
+        raise Exception(f'el2Z not yet implemented for {el}')
+    return(Z)
+
 def sort_paths(paths, str_pos1, str_pos2, split1, split2):
     """
     sort paths by some numerical value that is hidden in the path

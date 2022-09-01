@@ -46,56 +46,74 @@ def get_energy_contributions(logfiles):
     e_el_cpmd = energy_contributions['TOTAL ENERGY ='] - nuc_rep_cpmd
     return(energy_contributions, e_el_cpmd, nuc_rep_cpmd)
 
+def get_energy_contribution_wrapper(logfile_path, energy_contr):
+    """
+    prepare the run dirs for finite difference partial derivatives for small molecules
+    comp: name of compound
+    delta_lambda: delta for finite difference
+    lam: lambda_value for which derivatives will be calculated
+    """
+    energy = None
+    with open(logfile_path, 'r') as f:
+        logfile = f.readlines()
+            # get energy
+    if energy_contr == 'total':
+        energy = cpmd_io.get_energy_contribution(logfile, 'TOTAL ENERGY =')
+    elif energy_contr == 'ion_pseudo':
+        energy = cpmd_io.get_energy_contribution(logfile, '(PSEUDO CHARGE I-I) ENERGY =')
+    elif energy_contr == 'ion_self':
+        energy = cpmd_io.get_energy_contribution(logfile, 'ESELF =')
+    elif energy_contr == 'ion_esr':
+        energy = cpmd_io.get_energy_contribution(logfile, 'ESR =')
+    elif energy_contr == 'kinetic':
+        energy = cpmd_io.get_energy_contribution(logfile, 'KINETIC ENERGY =')
+    elif energy_contr == 'xc_corr':
+        energy = cpmd_io.get_energy_contribution(logfile, 'EXCHANGE-CORRELATION ENERGY =') 
+    elif energy_contr == 'local_pp':
+        energy = cpmd_io.get_energy_contribution(logfile, 'LOCAL PSEUDOPOTENTIAL ENERGY')
+    elif energy_contr == 'nonlocal_pp':
+        energy = cpmd_io.get_energy_contribution(logfile, 'N-L PSEUDOPOTENTIAL ENERGY =')
+    elif energy_contr == 'electrostatic':
+        energy = cpmd_io.get_energy_contribution(logfile, 'ELECTROSTATIC ENERGY =')
+    elif energy_contr == 'electronic':
+        e_el_parts = []
+        for e in ['TOTAL ENERGY =','(PSEUDO CHARGE I-I) ENERGY =', 'ESR =','ESELF =']:
+            e_el_parts.append(cpmd_io.get_energy_contribution(logfile, e))
+        e_nuc = e_el_parts[1]+e_el_parts[2]-e_el_parts[3]
+        e_el = e_el_parts[0]-e_nuc
+        energy = e_el
+    elif energy_contr == 'potential':
+        e_pot_parts = []
+        for e in ['TOTAL ENERGY =','(PSEUDO CHARGE I-I) ENERGY =', 'ESR =','ESELF =','KINETIC ENERGY =']:
+            e_pot_parts.append(cpmd_io.get_energy_contribution(logfile, e))
+        epot = e_pot_parts[0] - (e_pot_parts[1]+e_pot_parts[2]-e_pot_parts[3]) - e_pot_parts[4]
+        energy = epot
+    elif energy_contr == 'nuclear':
+        e_nuc_parts = []
+        for e in ['(PSEUDO CHARGE I-I) ENERGY =', 'ESR =','ESELF =']:
+            e_nuc_parts.append(cpmd_io.get_energy_contribution(logfile, e))
+        e_nuc = e_nuc_parts[0]+e_nuc_parts[1]-e_nuc_parts[2]
+        energy = e_nuc
+    assert energy != None, f'Could not extract {energy_contr} from {logfile_path}'
+    return(energy)
 
-def create_run_dir(path, atom_symbols, nuc_charges, positions, lambda_value, valence_charges = None, integer_electrons = False):
+def calculate_partial_derivatives(atom, comp, delta_lambda, energy_contr, lambda_values):
+    """
+    prepare the run dirs for finite difference partial derivatives for small molecules
+    comp: name of compound
+    delta_lambda: delta for finite difference
+    lam: lambda_value for which derivatives will be calculated
+    """
 
-    # create directory if not exists
-    os.makedirs(path, exist_ok=True)
+    partial_derivatives = []
 
-    # set parameters independent of lambda value
-    num_ve = eqd.get_num_val_elec(nuc_charges) # get number of ve
-    boxsize = get_boxsize(num_ve) # get boxsize
-    num_gpts_lower, num_gpts_higher = get_gpts(num_ve) # get gridpoints
-    num_gpts = num_gpts_higher
-    # shift molecule to center of box
-    # coords_final = eqd.shift2center(positions, np.array([boxsize, boxsize, boxsize])/2)
-    coords_final = positions
-    # lambda dependent quantities
-
-    # add correct number of electrons such that system stays isoelectronic to target molecule\
-    charge = calculate_charge(lambda_value, num_ve, valence_charges, integer_electrons)
-
-    # generate input file
-    input_path = os.path.join(path, 'run.inp')
-    
-    # start from random wavefunction as initial guess if lambda < 0.5 otherwise the calculation will crash
-    if type(lambda_value) == float:
-        lam_min = lambda_value
-    else:
-        lam_min = np.amin(lambda_value)
-        
-    if lam_min > 0.501:
-        write_input(atom_symbols['elIdx'], charge, coords_final, num_gpts, boxsize, input_path, pp_type, template_inp, debug = False)
-    else:
-        write_input(atom_symbols['elIdx'], charge, coords_final, num_gpts, boxsize, input_path, pp_type, template_inp_small_lambda, debug = False)
-
-    # generate pp-files
-    if type(lambda_value) == float:
-        write_pp_files_compound(atom_symbols, lambda_value, path, pp_dir, pp_type)
-    else:
-        write_pp_files_compound_partial(atom_symbols, lambda_value, path, pp_dir, pp_type)
-        
-def parse_xyz_for_CPMD_input(path2xyz):
-    # get structure information from xyz file
-    molecule = aio.read(path2xyz)
-
-    atom_symbolsEl = []
-    atom_symbolsIdx = []
-    for i, el in enumerate(molecule.get_chemical_symbols()):
-        atom_symbolsEl.append(el)
-        atom_symbolsIdx.append(el + str(i+1))
-    atom_symbols = {'el':atom_symbolsEl, 'elIdx':atom_symbolsIdx}
-    nuc_charges = molecule.get_atomic_numbers()
-    valence_charges = eqd.get_val_charges(nuc_charges)
-    positions = molecule.get_positions()
-    return(atom_symbols, nuc_charges, positions, valence_charges)
+    for lam in lambda_values:
+        energies = []
+        for fd in ['bw', 'fw']:
+            logfile_path = f'/data/sahre/projects/finite_differences/small_molecules/{comp}/lam_{np.round(lam, 3)}/{atom}/{fd}/run.log'
+            with open(logfile_path, 'r') as f:
+                logfile = f.readlines()
+            # get energy
+            energies.append(get_energy_contribution_wrapper(logfile_path, energy_contr))
+        partial_derivatives.append((energies[1]-energies[0])/(2*delta_lambda))
+    return(partial_derivatives)
