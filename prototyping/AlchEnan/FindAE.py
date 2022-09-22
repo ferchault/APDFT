@@ -527,4 +527,14 @@ def Find_AEfromref(mole, dZ_max = 3, with_electronic_energy_difference = False, 
 
 #tot = Find_AEfromref(parse_XYZtoMAG('/home/simon/QM9/XYZ/dsgdb9nsd_000214.xyz')[0], dZ_max = 1)
 #print(tot)
-print(lambda_taylorseries_electronic_energy(parse_XYZtoMAG('/home/simon/QM9/XYZ/dsgdb9nsd_000214.xyz')[0], np.zeros(12), [-1,1,1,-1,0,0,0,0,0,0,0,0], 3))
+dl_list = [
+[-1,+1,+1,-1,0,0,0,0,0,0,0,0],
+[+1,-1,-1,+1,0,0,0,0,0,0,0,0],
+[-1,0,-1,+1,-1,0,0,0,0,0,0,0],
+[+1,0,+1,-1,+1,0,0,0,0,0,0,0],
+[-1,0,+1,-1,+1,0,0,0,0,0,0,0],
+[+1,0,-1,+1,-1,0,0,0,0,0,0,0],
+]
+
+for dl in dl_list:
+    print(lambda_taylorseries_electronic_energy(parse_XYZtoMAG('/home/simon/ce/benzene.xyz')[0], np.zeros(12), dl, 3))
