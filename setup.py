@@ -31,7 +31,7 @@ if __name__ == "__main__":
         install_requires=[
             "jinja2 == 3.0.3",
             "basis_set_exchange == 0.9",
-            "scipy == 1.5.4",
+            "scipy == 1.10.0",
             "numpy>=1.21",
             "pandas == 1.1.5",
             "pyscf == 2.0.1",
